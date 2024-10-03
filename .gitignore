@@ -1,0 +1,32 @@
+# Wanna tear your hair out?
+# You're welcome: https://labs.consol.de/development/git/2017/02/22/gitignore.html
+# ignore all project files
+vivado/*
+# Unignore tcl scripts
+!vivado/*.tcl
+
+# Unignore .srcs dir
+!vivado/**.srcs/
+# ignore everything in those directories
+vivado/**.srcs/**
+# Unignore directories ending with .src recursively
+!vivado/**.srcs/**/
+# Unignore everything endig with .bd, .xci and .vhd recursively
+!vivado/**.srcs/**/*.bd
+!vivado/**.srcs/**/*.xci
+!vivado/**.srcs/**/*.vhd
+
+# Some generated files for change propagation and inremental build
+!vivado/**.ip_user_files/
+# ignore everything recursively
+vivado/**.ip_user_files/**
+# Unignore directories recursively
+!vivado/**.ip_user_files/**/
+# Unignore everything endig with .bd recursively
+!vivado/**.ip_user_files/**/*.bd
+!vivado/**.ip_user_files/**/*.xci
+!vivado/**.ip_user_files/**/*.vhd
+
+# ignore .Xil
+.Xil
+.xcix
