@@ -42,7 +42,11 @@ begin
           if(CODE_READY = '1') then
             if(PS2_CODE = c_e0) then
               fsm_c <= special_code;
-            elsif((PS2_CODE = c_esc) or (PS2_CODE = c_enter)) then
+            elsif((PS2_CODE = c_esc) or (PS2_CODE = c_enter) or (PS2_CODE = c_0) or
+                  (PS2_CODE = c_1) or (PS2_CODE = c_2) or (PS2_CODE = c_3) or
+                  (PS2_CODE = c_4) or (PS2_CODE = c_5) or (PS2_CODE = c_6) or
+                  (PS2_CODE = c_7) or (PS2_CODE = c_8) or (PS2_CODE = c_9))
+            then
               fsm_c <= set_key;
             elsif(PS2_CODE = c_f0) then
               fsm_c <= end_code;
@@ -62,11 +66,21 @@ begin
           end if;
         when set_key =>
           case(PS2_CODE) is
-            when c_up    => keys_c.up    <= '1';
-            when c_down  => keys_c.down  <= '1';
-            when c_del   => keys_c.del   <= '1';
-            when c_esc   => keys_c.esc   <= '1';
-            when c_enter => keys_c.enter <= '1';
+            when c_up    => keys_c.up     <= '1';
+            when c_down  => keys_c.down   <= '1';
+            when c_del   => keys_c.del    <= '1';
+            when c_esc   => keys_c.esc    <= '1';
+            when c_enter => keys_c.enter  <= '1';
+            when c_0     => keys_c.number <= '1';
+            when c_1     => keys_c.number <= '1';
+            when c_2     => keys_c.number <= '1';
+            when c_3     => keys_c.number <= '1';
+            when c_4     => keys_c.number <= '1';
+            when c_5     => keys_c.number <= '1';
+            when c_6     => keys_c.number <= '1';
+            when c_7     => keys_c.number <= '1';
+            when c_8     => keys_c.number <= '1';
+            when c_9     => keys_c.number <= '1';
             when others  =>
           end case;
           
