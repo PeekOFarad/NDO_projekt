@@ -70,6 +70,7 @@ architecture Behavioral of ps2_top_TB is
   constant c_del_par   : std_logic := '1';
   constant c_f0_par    : std_logic := '1';
   constant c_e0_par    : std_logic := '0';
+  constant c_5_par     : std_logic := '1';
 
 begin
 
@@ -119,6 +120,16 @@ begin
     r_send_ps2_frame(c_f0, c_f0_par, ps2_clk, ps2_data);
     wait for ps2_clk_per * 3;
     r_send_ps2_frame(c_up, c_up_par, ps2_clk, ps2_data);
+    wait for ps2_clk_per * 3;
+    
+    -- press number 5
+    r_send_ps2_frame(c_5, c_5_par, ps2_clk, ps2_data);
+    wait for ps2_clk_per * 3;
+    
+    -- release number 5
+    r_send_ps2_frame(c_f0, c_f0_par, ps2_clk, ps2_data);
+    wait for ps2_clk_per * 3;
+    r_send_ps2_frame(c_5, c_5_par, ps2_clk, ps2_data);
     wait for ps2_clk_per * 3;
     
     wait for ps2_clk_per * 10;
