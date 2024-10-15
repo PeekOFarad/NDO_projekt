@@ -8,7 +8,7 @@
 
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
-use work.ps2_pkg.all;
+use work.VGA_pkg.all;
 
 entity ps2_decoder is
     Port ( CLK        : in STD_LOGIC;
