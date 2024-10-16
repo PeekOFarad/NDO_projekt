@@ -8,6 +8,8 @@
 
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.NUMERIC_STD.ALL;
+use IEEE.math_real.all;
 
 package server_pkg is
 
@@ -15,7 +17,15 @@ package server_pkg is
   
   subtype price_t is std_logic_vector(7 downto 0);
   
-  constant c_FOOD_TYPES_CNT : integer := 32;
+  subtype char_t is std_logic_vector(7 downto 0);
+  
+  constant c_FOOD_CNT     : integer := 32;
+  constant c_CLIENTS_CNT  : integer := 2;
+  constant c_NODE_WIDTH   : integer := integer(ceil(log2(real(c_CLIENTS_CNT))));
+  
+  type amount_table_t is array(0 to c_CLIENTS_CNT, 0 to (c_FOOD_CNT - 1)) of amount_t;
+  type price_table_t is array(0 to (c_FOOD_CNT - 1)) of price_t;
+  type char_buff_t is array(0 to 31) of char_t;
 
 end server_pkg;
 

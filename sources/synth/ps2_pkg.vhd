@@ -15,6 +15,8 @@ package ps2_pkg is
   
   constant  c_up    : std_logic_vector (7 downto 0) := "01110101";  -- 75
   constant  c_down  : std_logic_vector (7 downto 0) := "01110010";  -- 72
+  constant  c_left  : std_logic_vector (7 downto 0) := "01101011";  -- 6B
+  constant  c_right : std_logic_vector (7 downto 0) := "01110100";  -- 74
   constant  c_esc   : std_logic_vector (7 downto 0) := "01110110";  -- 76
   constant  c_del   : std_logic_vector (7 downto 0) := "01110001";  -- 71
   constant  c_enter : std_logic_vector (7 downto 0) := "01011010";  -- 5A
@@ -34,9 +36,13 @@ package ps2_pkg is
   type t_keys is record
     up      : std_logic;
     down    : std_logic;
+    left    : std_logic;
+    right   : std_logic;
     del     : std_logic;
+    bckspc  : std_logic;
     esc     : std_logic;
     enter   : std_logic;
+    char    : std_logic;
     number  : std_logic;
   end record t_keys;
   
