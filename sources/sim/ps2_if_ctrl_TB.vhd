@@ -167,10 +167,160 @@ begin
     keys.number <= '0';
     wait for clk_per * 5;
     
-    -- finish editing
+    -- finish editing amount
     keys.enter <= '1'; 
     wait for clk_per;
     keys.enter <= '0';
+    wait for clk_per * 5;
+
+    -- go to the name cell of first row
+    keys.left <= '1'; 
+    wait for clk_per;
+    keys.left <= '0';
+    wait for clk_per * 5;
+
+    -- start editing
+    keys.enter <= '1'; 
+    wait for clk_per;
+    keys.enter <= '0';
+    wait for clk_per * 5;
+
+    -- first char 'a'
+    ps2_code <= conv_std_logic_vector(16#1C#, 8);
+    wait for clk_per;
+    keys.char <= '1'; 
+    wait for clk_per;
+    keys.char <= '0';
+    wait for clk_per * 5;
+
+    -- second char 'b'
+    ps2_code <= conv_std_logic_vector(16#32#, 8);
+    wait for clk_per;
+    keys.char <= '1'; 
+    wait for clk_per;
+    keys.char <= '0';
+    wait for clk_per * 5;
+
+    -- third char 'c'
+    ps2_code <= conv_std_logic_vector(16#21#, 8);
+    wait for clk_per;
+    keys.char <= '1'; 
+    wait for clk_per;
+    keys.char <= '0';
+    wait for clk_per * 5;
+
+    -- fourth char 'x'
+    ps2_code <= conv_std_logic_vector(16#22#, 8);
+    wait for clk_per;
+    keys.char <= '1'; 
+    wait for clk_per;
+    keys.char <= '0';
+    wait for clk_per * 5;
+
+    -- backspace
+    keys.bckspc <= '1'; 
+    wait for clk_per;
+    keys.bckspc <= '0';
+    wait for clk_per * 5;
+
+    -- finish editing name
+    keys.esc <= '1'; 
+    wait for clk_per;
+    keys.esc <= '0';
+    wait for clk_per * 5;
+
+    -- go to the student price cell of first row
+    keys.right <= '1'; 
+    wait for clk_per;
+    keys.right <= '0';
+    wait for clk_per * 5;
+    keys.right <= '1'; 
+    wait for clk_per;
+    keys.right <= '0';
+    wait for clk_per * 5;
+
+    -- start editing
+    keys.enter <= '1'; 
+    wait for clk_per;
+    keys.enter <= '0';
+    wait for clk_per * 5;
+    
+    -- first digit
+    number <= conv_std_logic_vector(6, 4);
+    wait for clk_per;
+    keys.number <= '1'; 
+    wait for clk_per;
+    keys.number <= '0';
+    wait for clk_per * 5;
+    
+    -- second digit
+    number <= conv_std_logic_vector(0, 4);
+    wait for clk_per;
+    keys.number <= '1'; 
+    wait for clk_per;
+    keys.number <= '0';
+    wait for clk_per * 5;
+
+    -- finish editing student price by right arrow - col cursor should move right
+    keys.right <= '1'; 
+    wait for clk_per;
+    keys.right <= '0';
+    wait for clk_per * 5;
+
+    -- go to the next node button row (32)
+    for i in 1 to 32 loop
+      keys.down <= '1'; 
+      wait for clk_per;
+      keys.down <= '0';
+      wait for clk_per * 3;
+    end loop;
+
+    -- swith to the next node (first client)
+    keys.enter <= '1'; 
+    wait for clk_per;
+    keys.enter <= '0';
+    wait for clk_per * 5;
+
+    -- go to the first row (0)
+    for i in 1 to 32 loop
+      keys.up <= '1'; 
+      wait for clk_per;
+      keys.up <= '0';
+      wait for clk_per * 3;
+    end loop;
+
+    keys.left <= '1'; 
+    wait for clk_per;
+    keys.left <= '0';
+    wait for clk_per * 5;
+
+    -- try to modify student price (clients cannot modify prices)
+    -- start editing
+    keys.enter <= '1'; 
+    wait for clk_per;
+    keys.enter <= '0';
+    wait for clk_per * 5;
+    
+    -- first digit
+    number <= conv_std_logic_vector(3, 4);
+    wait for clk_per;
+    keys.number <= '1'; 
+    wait for clk_per;
+    keys.number <= '0';
+    wait for clk_per * 5;
+    
+    -- second digit
+    number <= conv_std_logic_vector(2, 4);
+    wait for clk_per;
+    keys.number <= '1'; 
+    wait for clk_per;
+    keys.number <= '0';
+    wait for clk_per * 5;
+
+    -- finish editing student price by left arrow - col cursor should move left
+    keys.left <= '1'; 
+    wait for clk_per;
+    keys.left <= '0';
     wait for clk_per * 5;
     
     simulation_finished <= TRUE;
