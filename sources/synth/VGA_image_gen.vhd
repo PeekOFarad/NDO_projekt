@@ -51,9 +51,9 @@ end VGA_img_gen;
 
 architecture rtl of VGA_img_gen is
 
-  signal RGB_c    : std_logic_vector(2 downto 0);
-  signal u_column : unsigned(c_cnt_h_w-1 downto 0);
-  signal u_row    : unsigned(c_cnt_v_w-1 downto 0);
+  signal RGB_c    : std_logic_vector(2 downto 0);-- 	:= (others => '0');
+  signal u_column : unsigned(c_cnt_h_w-1 downto 0);-- := (others => '0');
+  signal u_row    : unsigned(c_cnt_v_w-1 downto 0);-- := (others => '0');
 
 begin
 
@@ -76,16 +76,17 @@ begin
   end if;
 end process;
 
-RGB_c <=  "000" when ((u_column <= c_H_THIRD-1)   AND (u_row <= c_V_THIRD-1))   else
-          "001" when ((u_column <= 2*c_H_THIRD-1) AND (u_row <= c_V_THIRD-1))   else
+RGB_c <=  "000" when (((u_column <= c_H_THIRD-1)  AND (u_row <= c_V_THIRD-1)) OR ((u_column <= 2*c_H_THIRD-1) AND (u_column > c_H_THIRD-1) AND (u_row <= 2*c_V_THIRD-1) AND (u_row > c_V_THIRD-1)))   else
+          "001" when ((u_column <= 2*c_H_THIRD-1) AND (u_row <= c_V_THIRD-1))   else -- at the end (default)
           "010" when ((u_column <= c_H_PIXELS)    AND (u_row <= c_V_THIRD-1))   else
           "011" when ((u_column <= c_H_THIRD-1)   AND (u_row <= 2*c_V_THIRD-1)) else
-          "000" when ((u_column <= 2*c_H_THIRD-1) AND (u_row <= 2*c_V_THIRD-1)) else
           "100" when ((u_column <= c_H_PIXELS)    AND (u_row <= 2*c_V_THIRD-1)) else
-          "101" when ((u_column <= c_H_THIRD-1)   AND (u_row <= 3*c_V_THIRD-1)) else
-          "110" when ((u_column <= 2*c_H_THIRD-1) AND (u_row <= c_V_PIXELS-1)) else
-          "111" when ((u_column <= c_H_PIXELS)    AND (u_row <= c_V_PIXELS-1)) else
-          "001"; 
+          "101" when ((u_column <= c_H_THIRD-1)   AND (u_row <= c_V_PIXELS-1))  else
+		      "110" when ((u_column <= 2*c_H_THIRD-1) AND (u_row <= c_V_PIXELS-1))  else
+		      "111" when ((u_column <= c_H_PIXELS)    AND (u_row <= c_V_PIXELS-1))  else
+          "000"; 
+
+
 
 
 end rtl;

@@ -25,8 +25,8 @@ package VGA_pkg is
   constant c_V_BP     : integer    := 33;    --! vertical back porch width in rows
   constant c_V_POL    : std_logic  := '0';   --! vertical sync pulse polarity (1 = positive, 0 = negative)
 
-  constant c_H_THIRD : integer := integer(floor(real(c_H_PIXELS)));
-  constant c_V_THIRD : integer := integer(floor(real(c_H_PIXELS)));
+  constant c_H_THIRD : integer := c_H_PIXELS/3;
+  constant c_V_THIRD : integer := c_V_PIXELS/3;
 
   constant c_LINE     : integer := c_H_PIXELS+c_H_FP+c_H_PULSE+c_H_BP; --! Number of pixels in a line
   constant c_FRAME    : integer := c_V_PIXELS+c_V_FP+c_V_PULSE+c_V_BP; --! Number of lines in a frame

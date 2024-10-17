@@ -1,15 +1,22 @@
 #ucf file
 
 #clock
-NET "clk" LOC = T9;
+NET "CLK" LOC = T9;
 NET "clk" PERIOD = 40 ns;
+NET "CLK" IOSTANDARD = LVCMOS33;
 
 #VGA
-NET "RGB<2>" LOC = R12;
-NET "RGB<1>" LOC = T12;
-NET "RGB<0>" LOC = R11;
+NET "RGB[2]" LOC = R12;
+NET "RGB[1]" LOC = T12;
+NET "RGB[0]" LOC = R11;
 NET "H_SYNC" LOC = R9;
 NET "V_SYNC" LOC = T10;
+
+NET "RGB[2]" IOSTANDARD = LVCMOS33;
+NET "RGB[1]" IOSTANDARD = LVCMOS33;
+NET "RGB[0]" IOSTANDARD = LVCMOS33;
+NET "H_SYNC" IOSTANDARD = LVCMOS33;
+NET "V_SYNC" IOSTANDARD = LVCMOS33;
 
 # #7-segment
 # NET "segment_display<0>" LOC = E14;
@@ -25,3 +32,7 @@ NET "V_SYNC" LOC = T10;
 # #buttons
 # NET "btn<0>" LOC = "M13";
 # NET "btn<1>" LOC = "M14";
+
+# PlanAhead Generated IO constraints 
+
+

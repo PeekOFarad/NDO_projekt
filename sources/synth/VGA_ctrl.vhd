@@ -41,11 +41,8 @@ entity VGA_ctrl is
     RST_P     : IN   std_logic;                     --! active high sycnchronous reset
     H_SYNC    : OUT  std_logic;                     --! horiztonal sync pulse
     V_SYNC    : OUT  std_logic;                     --! vertical sync pulse
-    -- DISP_ENA  : OUT  std_logic;                     --! display enable ('1' = display time, '0' = blanking time)
     COLUMN    : OUT  std_logic_vector(c_cnt_h_w-1 downto 0);   --! horizontal pixel coordinate
     ROW       : OUT  std_logic_vector(c_cnt_v_w-1 downto 0)    --! vertical pixel coordinate
-    -- N_BLANK   : OUT  std_logic;                     --! direct blacking output to DAC
-    -- N_SYNC    : OUT  std_logic                    --! sync-on-green output to DAC
   );
 end VGA_ctrl;
 
@@ -85,10 +82,10 @@ begin
   cnt_v_c <= cnt_v_s;       -- default save vertical 
   if cnt_h_s >= c_LINE - 1 then -- if at end of line, reset horizontal counter and increment vertical
     cnt_h_c <= (others => '0');
-    cnt_v_c <= cnt_v_s + 1;
+	  cnt_v_c <= cnt_v_s + 1;
     if cnt_v_s >= c_FRAME - 1 then -- if at end of screen, reset vertical counter 
       cnt_v_c <= (others => '0');
-    end if;
+    end if;		
   end if;
 end process;
 
