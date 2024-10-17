@@ -48,7 +48,8 @@ begin
           if(CODE_READY = '1') then
             if(PS2_CODE = c_e0) then
               fsm_c <= special_code;
-            elsif((PS2_CODE = c_esc) or (PS2_CODE = c_enter) or ((unsigned(PS2_CODE) >= c_q) and (unsigned(PS2_CODE) < c_shft)))
+            elsif((PS2_CODE = c_esc) or (PS2_CODE = c_enter) or (PS2_CODE = c_bckspc) or
+            ((unsigned(PS2_CODE) >= c_q) and (unsigned(PS2_CODE) < c_shft)))
             then
               fsm_c <= set_key;
             elsif(PS2_CODE = c_f0) then
@@ -69,24 +70,25 @@ begin
           end if;
         when set_key =>
           case(PS2_CODE) is
-            when c_up    => keys_c.up     <= '1';
-            when c_down  => keys_c.down   <= '1';
-            when c_left  => keys_c.left   <= '1';
-            when c_right => keys_c.right  <= '1';
-            when c_del   => keys_c.del    <= '1';
-            when c_esc   => keys_c.esc    <= '1';
-            when c_enter => keys_c.enter  <= '1';
-            when c_0     => keys_c.number <= '1'; number_c <= TO_UNSIGNED(0, 4);
-            when c_1     => keys_c.number <= '1'; number_c <= TO_UNSIGNED(1, 4);
-            when c_2     => keys_c.number <= '1'; number_c <= TO_UNSIGNED(2, 4);
-            when c_3     => keys_c.number <= '1'; number_c <= TO_UNSIGNED(3, 4);
-            when c_4     => keys_c.number <= '1'; number_c <= TO_UNSIGNED(4, 4);
-            when c_5     => keys_c.number <= '1'; number_c <= TO_UNSIGNED(5, 4);
-            when c_6     => keys_c.number <= '1'; number_c <= TO_UNSIGNED(6, 4);
-            when c_7     => keys_c.number <= '1'; number_c <= TO_UNSIGNED(7, 4);
-            when c_8     => keys_c.number <= '1'; number_c <= TO_UNSIGNED(8, 4);
-            when c_9     => keys_c.number <= '1'; number_c <= TO_UNSIGNED(9, 4);
-            when others  =>
+            when c_up     => keys_c.up     <= '1';
+            when c_down   => keys_c.down   <= '1';
+            when c_left   => keys_c.left   <= '1';
+            when c_right  => keys_c.right  <= '1';
+            when c_del    => keys_c.del    <= '1';
+            when c_bckspc => keys_c.bckspc <= '1';
+            when c_esc    => keys_c.esc    <= '1';
+            when c_enter  => keys_c.enter  <= '1';
+            when c_0      => keys_c.number <= '1'; number_c <= TO_UNSIGNED(0, 4);
+            when c_1      => keys_c.number <= '1'; number_c <= TO_UNSIGNED(1, 4);
+            when c_2      => keys_c.number <= '1'; number_c <= TO_UNSIGNED(2, 4);
+            when c_3      => keys_c.number <= '1'; number_c <= TO_UNSIGNED(3, 4);
+            when c_4      => keys_c.number <= '1'; number_c <= TO_UNSIGNED(4, 4);
+            when c_5      => keys_c.number <= '1'; number_c <= TO_UNSIGNED(5, 4);
+            when c_6      => keys_c.number <= '1'; number_c <= TO_UNSIGNED(6, 4);
+            when c_7      => keys_c.number <= '1'; number_c <= TO_UNSIGNED(7, 4);
+            when c_8      => keys_c.number <= '1'; number_c <= TO_UNSIGNED(8, 4);
+            when c_9      => keys_c.number <= '1'; number_c <= TO_UNSIGNED(9, 4);
+            when others   =>
               if((unsigned(PS2_CODE) >= c_q) and (unsigned(PS2_CODE) < c_shft) and not(keys_c.number = '1')) then
                 keys_c.char <= '1';
               end if;
