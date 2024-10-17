@@ -117,7 +117,7 @@ begin
 
   process(KEYS, fsm_s, start_day_s, sel_cell_col_s, sel_cell_row_s,
           node_sel_s, amount_s, st_price_s, em_price_s, ex_price_s,
-          EDIT_ENA, new_number_c)
+          EDIT_ENA, new_number_c, char_sel_s, char_buff_s, buff_rdy_s)
   begin
     fsm_c          <= fsm_s;
     start_day_c    <= '0';
@@ -128,12 +128,14 @@ begin
     st_price_c     <= st_price_s;
     em_price_c     <= em_price_s;
     ex_price_c     <= ex_price_s;
-    char_buff_c    <= (others => (others => '0'));
-    char_sel_c     <= (others => '0');
-    buff_rdy_c     <= '0';
+    char_buff_c    <= char_buff_s;
+    char_sel_c     <= char_sel_s;
+    buff_rdy_c     <= buff_rdy_s;
     
     case(fsm_s) is
       when idle =>
+          buff_rdy_c     <= '0';
+          
           if(KEYS.up = '1') then
             if(sel_cell_row_s /= 0) then
               sel_cell_row_c <= sel_cell_row_s - 1;
@@ -148,7 +150,7 @@ begin
               end if;
             end if;
           elsif(KEYS.left = '1') then
-            if(sel_cell_col_s /= c_MIN_COL) then
+            if((sel_cell_col_s /= c_MIN_COL) and not((sel_cell_col_s = 4) and sel_cell_row_s = to_unsigned(c_MAX_ROW, 6))) then
               sel_cell_col_c <= sel_cell_col_s - 1;
             end if;
           elsif(KEYS.right = '1') then
@@ -173,6 +175,7 @@ begin
       when cell_rst =>
         if(sel_cell_col_s = 1) then -- character buffer
           char_buff_c <= (others => (others => '0'));
+          char_sel_c  <= (others => '0');
         elsif(sel_cell_col_s = 2) then -- amount
           amount_c(TO_INTEGER(node_sel_s), TO_INTEGER(sel_cell_row_s)) <= (others => '0');
         elsif(sel_cell_col_s = 3) then -- student price
@@ -246,7 +249,7 @@ begin
           end if;
         elsif((KEYS.char = '1') and (sel_cell_col_s = 1) and (char_sel_s /= 32)) then -- char
           char_buff_c(TO_INTEGER(char_sel_s)) <= PS2_CODE;
-          char_sel_s <= char_sel_c + 1;
+          char_sel_c <= char_sel_s + 1;
         elsif((KEYS.number = '1') and (sel_cell_col_s /= 1)) then -- number
           if((sel_cell_col_s = 2) and (new_number_c(15 downto 12) = 0)) then -- amount
             amount_c(TO_INTEGER(node_sel_s), TO_INTEGER(sel_cell_row_s)) <= std_logic_vector(new_number_c(11 downto 0));
@@ -267,9 +270,9 @@ begin
       old_number_c <= UNSIGNED(amount_s(TO_INTEGER(node_sel_s), TO_INTEGER(sel_cell_row_s)));
     elsif(sel_cell_col_s = 3) then
       old_number_c <= "0000" & UNSIGNED(st_price_s(TO_INTEGER(sel_cell_row_s)));
-    elsif(sel_cell_col_s = 4) then
+    elsif((sel_cell_col_s = 4) and (sel_cell_row_s /= c_MAX_ROW)) then
       old_number_c <= "0000" & UNSIGNED(em_price_s(TO_INTEGER(sel_cell_row_s)));
-    elsif(sel_cell_col_s = 5) then
+    elsif((sel_cell_col_s = 5) and (sel_cell_row_s /= c_MAX_ROW)) then
       old_number_c <= "0000" & UNSIGNED(ex_price_s(TO_INTEGER(sel_cell_row_s)));
     end if;
   end process;
