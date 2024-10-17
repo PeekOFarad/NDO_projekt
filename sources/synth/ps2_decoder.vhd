@@ -48,10 +48,7 @@ begin
           if(CODE_READY = '1') then
             if(PS2_CODE = c_e0) then
               fsm_c <= special_code;
-            elsif((PS2_CODE = c_esc) or (PS2_CODE = c_enter) or (PS2_CODE = c_0) or
-                  (PS2_CODE = c_1) or (PS2_CODE = c_2) or (PS2_CODE = c_3) or
-                  (PS2_CODE = c_4) or (PS2_CODE = c_5) or (PS2_CODE = c_6) or
-                  (PS2_CODE = c_7) or (PS2_CODE = c_8) or (PS2_CODE = c_9))
+            elsif((PS2_CODE = c_esc) or (PS2_CODE = c_enter) or ((unsigned(PS2_CODE) >= c_q) and (unsigned(PS2_CODE) < c_shft)))
             then
               fsm_c <= set_key;
             elsif(PS2_CODE = c_f0) then
@@ -90,6 +87,9 @@ begin
             when c_8     => keys_c.number <= '1'; number_c <= TO_UNSIGNED(8, 4);
             when c_9     => keys_c.number <= '1'; number_c <= TO_UNSIGNED(9, 4);
             when others  =>
+              if((unsigned(PS2_CODE) >= c_q) and (unsigned(PS2_CODE) < c_shft) and not(keys_c.number = '1')) then
+                keys_c.char <= '1';
+              end if;
           end case;
           
           fsm_c <= idle;

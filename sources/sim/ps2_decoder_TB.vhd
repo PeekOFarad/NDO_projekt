@@ -9,6 +9,7 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use work.ps2_pkg.all;
+use IEEE.Std_Logic_Arith.ALL;
 
 entity ps2_decoder_TB is
 end ps2_decoder_TB;
@@ -252,6 +253,30 @@ begin
     wait for ps2_clk_per * 10;
     
     ps2_code <= c_down;
+    wait for ps2_clk_per;
+    code_ready <= '1';
+    wait for clk_per;
+    code_ready <= '0';
+    wait for ps2_clk_per * 10;
+    
+    -- 'a' character
+    ps2_code <= conv_std_logic_vector(16#1C#, 8);
+    wait for ps2_clk_per;
+    code_ready <= '1';
+    wait for clk_per;
+    code_ready <= '0';
+    wait for ps2_clk_per * 10;
+    
+    -- space character
+    ps2_code <= conv_std_logic_vector(16#29#, 8);
+    wait for ps2_clk_per;
+    code_ready <= '1';
+    wait for clk_per;
+    code_ready <= '0';
+    wait for ps2_clk_per * 10;
+    
+    -- number 5
+    ps2_code <= c_5;
     wait for ps2_clk_per;
     code_ready <= '1';
     wait for clk_per;

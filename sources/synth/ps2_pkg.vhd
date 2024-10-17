@@ -8,30 +8,36 @@
 
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.NUMERIC_STD.ALL;
 
 package ps2_pkg is
 
   type t_fsm_ps2rx is (idle, receive, parity, stop);
   
-  constant  c_up    : std_logic_vector (7 downto 0) := "01110101";  -- 75
-  constant  c_down  : std_logic_vector (7 downto 0) := "01110010";  -- 72
-  constant  c_left  : std_logic_vector (7 downto 0) := "01101011";  -- 6B
-  constant  c_right : std_logic_vector (7 downto 0) := "01110100";  -- 74
-  constant  c_esc   : std_logic_vector (7 downto 0) := "01110110";  -- 76
-  constant  c_del   : std_logic_vector (7 downto 0) := "01110001";  -- 71
-  constant  c_enter : std_logic_vector (7 downto 0) := "01011010";  -- 5A
-  constant  c_f0    : std_logic_vector (7 downto 0) := "11110000";  -- F0
-  constant  c_e0    : std_logic_vector (7 downto 0) := "11100000";  -- E0
-  constant  c_0     : std_logic_vector (7 downto 0) := "01000101";  -- 45
-  constant  c_1     : std_logic_vector (7 downto 0) := "00010110";  -- 16
-  constant  c_2     : std_logic_vector (7 downto 0) := "00011110";  -- 1E
-  constant  c_3     : std_logic_vector (7 downto 0) := "00100110";  -- 26
-  constant  c_4     : std_logic_vector (7 downto 0) := "00100101";  -- 25
-  constant  c_5     : std_logic_vector (7 downto 0) := "00101110";  -- 2E
-  constant  c_6     : std_logic_vector (7 downto 0) := "00110110";  -- 36
-  constant  c_7     : std_logic_vector (7 downto 0) := "00111101";  -- 3D
-  constant  c_8     : std_logic_vector (7 downto 0) := "00111110";  -- 3E
-  constant  c_9     : std_logic_vector (7 downto 0) := "01000110";  -- 46
+  constant  c_up     : std_logic_vector (7 downto 0) := "01110101";  -- 75
+  constant  c_down   : std_logic_vector (7 downto 0) := "01110010";  -- 72
+  constant  c_left   : std_logic_vector (7 downto 0) := "01101011";  -- 6B
+  constant  c_right  : std_logic_vector (7 downto 0) := "01110100";  -- 74
+  constant  c_esc    : std_logic_vector (7 downto 0) := "01110110";  -- 76
+  constant  c_del    : std_logic_vector (7 downto 0) := "01110001";  -- 71
+  constant  c_bckspc : std_logic_vector (7 downto 0) := "01100110";  -- 66
+  constant  c_enter  : std_logic_vector (7 downto 0) := "01011010";  -- 5A
+  constant  c_f0     : std_logic_vector (7 downto 0) := "11110000";  -- F0
+  constant  c_e0     : std_logic_vector (7 downto 0) := "11100000";  -- E0
+  constant  c_0      : std_logic_vector (7 downto 0) := "01000101";  -- 45
+  constant  c_1      : std_logic_vector (7 downto 0) := "00010110";  -- 16
+  constant  c_2      : std_logic_vector (7 downto 0) := "00011110";  -- 1E
+  constant  c_3      : std_logic_vector (7 downto 0) := "00100110";  -- 26
+  constant  c_4      : std_logic_vector (7 downto 0) := "00100101";  -- 25
+  constant  c_5      : std_logic_vector (7 downto 0) := "00101110";  -- 2E
+  constant  c_6      : std_logic_vector (7 downto 0) := "00110110";  -- 36
+  constant  c_7      : std_logic_vector (7 downto 0) := "00111101";  -- 3D
+  constant  c_8      : std_logic_vector (7 downto 0) := "00111110";  -- 3E
+  constant  c_9      : std_logic_vector (7 downto 0) := "01000110";  -- 46
+  -- characters
+  constant  c_q      : unsigned(7 downto 0) := TO_UNSIGNED(16#15#, 8); -- 15
+  constant  c_shft   : unsigned(7 downto 0) := TO_UNSIGNED(16#59#, 8); -- 59
+  
   
   type t_keys is record
     up      : std_logic;
