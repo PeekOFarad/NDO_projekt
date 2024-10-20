@@ -13,13 +13,20 @@ architecture bench of VGA_ctrl_tb is
   -- Ports
   signal PIXEL_CLK  : std_logic := '0';
   signal RST_P      : std_logic := '0';
-  signal H_SYNC : std_logic;
-  signal V_SYNC : std_logic;
-  signal DISP_ENA : std_logic;
-  signal COLUMN : std_logic_vector(c_cnt_h_w-1 downto 0);
-  signal ROW : std_logic_vector(c_cnt_v_w-1 downto 0);
-  signal N_BLANK : std_logic;
-  signal N_SYNC : std_logic;
+  signal H_SYNC     : std_logic;
+  signal V_SYNC     : std_logic;
+  signal DISP_ENA   : std_logic;
+  signal COLUMN     : std_logic_vector(c_cnt_h_w-1 downto 0);
+  signal ROW        : std_logic_vector(c_cnt_v_w-1 downto 0);
+  signal N_BLANK    : std_logic;
+  signal N_SYNC     : std_logic;
+
+  signal R_DATA_i     : std_logic_vector(15 downto 0) := x"5555";
+  signal R_ADDR       : std_logic_vector(17 downto 0);
+  signal PIXEL_DATA   : std_logic;
+  signal OE_N         : std_logic;
+  signal WE_N         : std_logic;
+
 begin
 
   VGA_ctrl_inst : entity work.VGA_ctrl
@@ -28,12 +35,26 @@ begin
     RST_P       => RST_P,
     H_SYNC      => H_SYNC,
     V_SYNC      => V_SYNC,
-    DISP_ENA    => DISP_ENA,
+    COLUMN      => COLUMN,
+    ROW         => ROW
+  );
+  
+  VGA_sram_mux_inst : entity work.VGA_sram_mux
+  generic map (
+    g_SRAM_OFFSET => 0
+  )
+  port map (
+    CLK         => PIXEL_CLK,
+    RST         => RST_P,
     COLUMN      => COLUMN,
     ROW         => ROW,
-    N_BLANK     => N_BLANK,
-    N_SYNC      => N_SYNC
+    R_DATA_i    => R_DATA_i,
+    PIXEL_DATA  => PIXEL_DATA,
+    R_ADDR      => R_ADDR,
+    OE_N        => OE_N,
+    WE_N        => WE_N
   );
+
 
 PIXEL_CLK <= not PIXEL_CLK after clk_period/2;
 
