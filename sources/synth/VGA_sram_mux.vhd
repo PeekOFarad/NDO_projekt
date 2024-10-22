@@ -19,13 +19,12 @@ entity VGA_sram_mux is
   Port ( 
     CLK         : in  std_logic;
     RST         : in  std_logic;
-    -- W_ADDR      : in  std_logic_vector (17 downto 0);
-    -- W_DATA      : in  std_logic_vector (15 downto 0);
+    W_DATA      : out  std_logic_vector (15 downto 0);
     COLUMN      : in  std_logic_vector (c_cnt_h_w-1 downto 0);  --! horizontal pixel coordinate
     ROW         : in  std_logic_vector (c_cnt_v_w-1 downto 0);  --! vertical pixel coordinate
     R_DATA_i    : in  std_logic_vector (15 downto 0);
     PIXEL_DATA  : out std_logic;
-    R_ADDR      : out std_logic_vector (17 downto 0);
+    RW_ADDR      : out std_logic_vector (17 downto 0);
     CE_N        : out std_logic; --! chip enable, always low
     OE_N        : out std_logic;
     WE_N        : out std_logic --! always high for reading
@@ -57,10 +56,10 @@ begin
   u_column  <= unsigned(COLUMN);
   u_row     <= unsigned(ROW);
 
-  R_ADDR <= std_logic_vector(cnt_raddr_s);
-  OE_N <= sram_re_n;
-  CE_N <= sram_re_n;
-  WE_N <= '1' OR v_porch_n;
+  RW_ADDR <= std_logic_vector(cnt_raddr_s);
+  OE_N    <= sram_re_n;
+  CE_N    <= sram_re_n;
+  WE_N    <= '1' OR v_porch_n;
 
   PIXEL_DATA <= VGA_buffer_s(VGA_buffer_s'low);
 

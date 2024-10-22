@@ -22,7 +22,7 @@ architecture bench of VGA_ctrl_tb is
   signal N_SYNC     : std_logic;
 
   signal R_DATA_i     : std_logic_vector(15 downto 0) := x"5555";
-  signal R_ADDR       : std_logic_vector(17 downto 0);
+  signal RW_ADDR       : std_logic_vector(17 downto 0);
   signal PIXEL_DATA   : std_logic;
   signal OE_N         : std_logic;
   signal WE_N         : std_logic;
@@ -50,7 +50,7 @@ begin
     ROW         => ROW,
     R_DATA_i    => R_DATA_i,
     PIXEL_DATA  => PIXEL_DATA,
-    R_ADDR      => R_ADDR,
+    RW_ADDR     => RW_ADDR,
     OE_N        => OE_N,
     WE_N        => WE_N
   );
