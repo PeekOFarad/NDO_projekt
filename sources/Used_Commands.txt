@@ -1,0 +1,216 @@
+cd C:/Users/u-stepanm1/RETIA2024/master_project/vivado/
+source ./create_project.tcl
+
+
+VIVADO
+--------------------------------------------------------------------------------
+WRITE PROJECT TCL---------------------------------------------------------------
+--------------------------------------------------------------------------------
+cd [get_property DIRECTORY [current_project]]
+write_project_tcl -force -target_proj_dir . create_vivado_proj
+
+--IF PROJECT ALREADY EXISTS, ADD -force AFTER create_project COMMAND IN TCL SCRIPT
+
+--------------------------------------------------------------------------------
+SET DISABLE CORE CONTAINER BY DEFAULT FOR THE PROJECT---------------------------
+--------------------------------------------------------------------------------
+set_property coreContainer.enable 0 [current_project]
+
+
+--------------------------------------------------------------------------------
+REPORT GENERATION---------------------------------------------------------------
+--------------------------------------------------------------------------------
+report_utilization -hierarchical (-hierarchical_depth n) (-hierarchical_percentages) 
+
+--------------------------------------------------------------------------------
+POTENTIAL COMMANDS TO USE (COPY FROM CONSOLE)
+--------------------------------------------------------------------------------
+UPDATING IP---------------------------------------------------------------------
+--------------------------------------------------------------------------------
+upgrade_ip [get_ips]
+
+--------------------------------------------------------------------------------
+SET AUTO INCREMENTAL SYNTH------------------------------------------------------
+--------------------------------------------------------------------------------
+set_property AUTO_INCREMENTAL_CHECKPOINT 1 [get_runs synth_1]
+set_property AUTO_INCREMENTAL_CHECKPOINT.DIRECTORY [get_property DIRECTORY [current_project]] [get_runs synth_1]
+
+--------------------------------------------------------------------------------
+SET AUTO INCREMENTAL IMPL-------------------------------------------------------
+--------------------------------------------------------------------------------
+set_property AUTO_INCREMENTAL_CHECKPOINT 1 [get_runs impl_1]
+set_property AUTO_INCREMENTAL_CHECKPOINT.DIRECTORY [get_property DIRECTORY [current_project]] [get_runs impl_1]
+
+--------------------------------------------------------------------------------
+
+
+GIT
+-------------------------------------------------------------------------------- 
+SETUP PERSONAL ACCESS TOKEN AS CREDENTIALS--------------------------------------
+--------------------------------------------------------------------------------
+git config --global credential.helper store
+echo "https://<PAT>@github.com" > ~/.git_credentials
+git config --global credential.helper 'store --file ~/.git_credentials'
+
+-------------------------------------------------------------------------------- 
+SHOW ALL FILES VISIBLE TO GIT (.GITIGNORE)--------------------------------------
+--------------------------------------------------------------------------------
+git ls-files --cached --others --exclude-standard
+
+--------------------------------------------------------------------------------
+ADD SUBMODULE-------------------------------------------------------------------
+--------------------------------------------------------------------------------
+git submodule add -b main <repo>
+
+--------------------------------------------------------------------------------
+REMOVE SUBMODULE----------------------------------------------------------------
+--------------------------------------------------------------------------------
+git rm <path-to-submodule>
+--------------------------------------------------------------------------------
+--AFTER THIS THERE ARE STILL REMNANTS OF THE SUBMODULE IN .git FOR PAST COMMIT--
+--CHECKOUT PURPOSES. TO REMOVE SUBMODULE COMPLETELY USE THE FOLLOWING-----------
+--DO NOT DO THIS UNLESS YOU UNDERSTAND THE CONSEQUENCES!!!----------------------
+--------------------------------------------------------------------------------
+rm -rf .git/modules/<path-to-submodule>
+git config --remove-section submodule.<path-to-submodule>
+
+--------------------------------------------------------------------------------
+INITIALIZE ALL NESTED SUBMODULES------------------------------------------------
+--------------------------------------------------------------------------------
+git submodule update --init --recursive
+
+--------------------------------------------------------------------------------
+UPDATE ALL NESTED SUBMODULES----------------------------------------------------
+--------------------------------------------------------------------------------
+git submodule update --remote --recursive
+
+--------------------------------------------------------------------------------
+DO NOT USE THIS (OR ONLY IF YOU KNOW FULL EFFECTS)------------------------------
+--------------------------------------------------------------------------------
+git submodule foreach git pull origin main
+
+--------------------------------------------------------------------------------
+GIT ADD + COMMIT + PUSH TO ORIGIN MAIN------------------------------------------
+--------------------------------------------------------------------------------
+git add -A && git commit -am "msg" && git push origin main
+
+--------------------------------------------------------------------------------
+SHOW ALL CHANGES----------------------------------------------------------------
+--------------------------------------------------------------------------------
+git diff --color-words
+git submodule foreach --recursive 'git diff --color-words origin/main'
+
+--------------------------------------------------------------------------------
+SHOW CURRENT COMMIT HASH--------------------------------------------------------
+--------------------------------------------------------------------------------
+git rev-parse --short HEAD
+
+--------------------------------------------------------------------------------
+REMOVE BRANCH ON REMOTE --------------------------------------------------------
+--------------------------------------------------------------------------------
+git push <remote_name> --delete <branch_name>
+
+--------------------------------------------------------------------------------
+REMOVE LOCAL BRANCH ------------------------------------------------------------
+--------------------------------------------------------------------------------
+git branch -d <branch_name>
+
+
+
+--------------------------------------------------------------------------------
+VIVADO INTALLATION
+--------------------------------------------------------------------------------
+sudo apt update
+sudo apt upgrade
+sudo apt install openjdk-17-jre
+
+sudo nano /etc/apt/sources.list
+#append this to EOF
+deb http://archive.ubuntu.com/ubuntu/ lunar universe
+
+sudo apt update
+sudo apt install libtinfo5 libncurses5
+
+sudo ./<installer.bin>
+
+sudo nano ~/.bashrc
+source /tools/Xilinx/Vivado/2022.2/settings64.sh
+
+
+--------------------------------------------------------------------------------
+JENKINS INTALLATION
+--------------------------------------------------------------------------------
+sudo apt install openssh-server openssh-client
+sudo apt install openjdk-17-jre
+
+sudo wget -O /usr/share/keyrings/jenkins-keyring.asc \
+  https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
+echo "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc]" \
+  https://pkg.jenkins.io/debian-stable binary/ | sudo tee \
+  /etc/apt/sources.list.d/jenkins.list > /dev/null
+
+sudo apt-get update
+sudo apt-get install jenkins
+
+systemctl start jenkins
+systemctl status jenkins
+
+sudo apt install nginx
+systemctl start nginx
+
+firewall-cmd --permanent --zone=public --add-port=80/tcp
+firewall-cmd --permanent --zone=public --add-port=443/tcp
+firewall-cmd --reload
+
+# https://www.jenkins.io/doc/book/system-administration/reverse-proxy-configuration-with-jenkins/reverse-proxy-configuration-nginx/
+# ADD NGINX .CONF FILES FROM GIT REPO
+/etc/nginx/nginx.conf
+/etc/nginx/conf.d/jenkins.conf
+
+sudo apt install sendmail
+systemctl enable sendmail
+systemctl restart sendmail
+
+# IN JENKINS WEB GUI
+add vivado PATH to environmental variables
+Name: PATH
+Value: /tools/Xilinx/Vivado/2022.2/bin:/sbin:/usr/sbin:/bin:/usr/bin
+Secure built in node:
+Number of executors: 0
+Label: <random string> (GuessThisYouFilthyCasual)
+
+
+
+--------------------------------------------------------------------------------
+JENKINS AGENT
+--------------------------------------------------------------------------------
+install vivado
+sudo apt install openssh-server openssh-client
+sudo apt install openjdk-17-jre
+
+
+# In Jekins WebGUI > Nodes> +New Node
+Remote root directory: /home/<user>/jenkins-agent
+Label: vivado
+Usage: Only build jobs with label
+Launch: method: launch agents via SSH
+HOST: <agent IP or domain name>
+CREDENTIALS: agent/password(=agent) -> user domain login info
+Host key verification strategy: Know hosts key file verification strategy
+# Run this command on jenkins machine
+ssh-keyscan -H <agent IP or domain name> >> /home/jenkins/.ssh/known_hosts
+Environmental variables: add path to vivado on agent machine if different from default in Jenkins
+PATH=/tools/Xilinx/Vivado/2022.2/bin:/sbin:/usr/sbin:/bin:/usr/bin
+XILINXD_LICENSE_FILE=2100@s-licence2.pce.retia.cz
+
+# ALLOW JENKINS AGENT TO ACCESS GITOLITE OVER SSH
+# SSH KEYGEN
+ssh-keygen -t rsa -b 4096 -C agent@agentVM
+cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
+cat ~/.ssh/id_rsa.pub | ssh u-stepanm1@git.tu.retia.cz "mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys"
+# CREDENTIALS
+ID:           u-stepanm1
+DESCRIPTION:  Gitolite ssh key
+USERNAME:     u-stepanm1
+PRIVATE KEY:  paste private ssh key made with keygen
+PASSPHRASE:   Key passphrase (if any)

@@ -21,11 +21,13 @@ architecture bench of VGA_ctrl_tb is
   signal N_BLANK    : std_logic;
   signal N_SYNC     : std_logic;
 
-  signal R_DATA_i     : std_logic_vector(15 downto 0) := x"5555";
-  signal RW_ADDR       : std_logic_vector(17 downto 0);
+  signal DATA         : std_logic_vector(15 downto 0) := x"5555";
+  signal RW_ADDR      : std_logic_vector(17 downto 0);
   signal PIXEL_DATA   : std_logic;
   signal OE_N         : std_logic;
   signal WE_N         : std_logic;
+  signal LB_N         : std_logic;
+  signal UB_N         : std_logic;
 
 begin
 
@@ -48,14 +50,18 @@ begin
     RST         => RST_P,
     COLUMN      => COLUMN,
     ROW         => ROW,
-    R_DATA_i    => R_DATA_i,
+    DATA        => DATA,
     PIXEL_DATA  => PIXEL_DATA,
     RW_ADDR     => RW_ADDR,
     OE_N        => OE_N,
-    WE_N        => WE_N
+    WE_N        => WE_N,
+    LB_N        => LB_N,
+    UB_N        => UB_N
   );
 
 
 PIXEL_CLK <= not PIXEL_CLK after clk_period/2;
+
+DATA <= (others => 'Z'), x"5555" after clk_period*800*530;
 
 end;

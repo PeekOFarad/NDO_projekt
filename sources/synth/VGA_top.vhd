@@ -38,9 +38,18 @@ use work.VGA_pkg.all;
 entity VGA_top is
   PORT(
     CLK : in std_logic;
+    -- VGA
     H_SYNC    : out std_logic;
     V_SYNC    : out std_logic;
-    RGB       : out std_logic_vector(2 downto 0)
+    RGB       : out std_logic_vector(2 downto 0);
+    --SRAM
+    RW_ADDR   : out std_logic_vector (17 downto 0);
+    DATA      : inout  std_logic_vector (15 downto 0);
+    CE_N      : out std_logic; --! chip enable, always low
+    OE_N      : out std_logic;
+    WE_N      : out std_logic; --! always high for reading
+    LB_N      : out std_logic; --! Byte selection, always low
+    UB_N      : out std_logic  --! Byte selection, always low
   );
 end VGA_top;
 
@@ -48,11 +57,12 @@ architecture rtl of VGA_top is
 
   -- signal int_PIXEL_CLK : std_logic;
   -- signal int_RST_P     : std_logic := '0';
-  signal int_H_SYNC    : std_logic;
-  signal int_V_SYNC    : std_logic;
-  signal int_COLUMN    : std_logic_vector(c_cnt_h_w-1 downto 0);
-  signal int_ROW       : std_logic_vector(c_cnt_v_w-1 downto 0);
-  signal PIXEL_CLK		: std_logic := '0';
+  -- signal int_H_SYNC     : std_logic;
+  -- signal int_V_SYNC     : std_logic;
+  signal int_COLUMN     : std_logic_vector(c_cnt_h_w-1 downto 0);
+  signal int_ROW        : std_logic_vector(c_cnt_v_w-1 downto 0);
+  signal PIXEL_CLK		  : std_logic := '0';
+  signal PIXEL_DATA		  : std_logic := '0';
 
 begin
 
@@ -63,29 +73,51 @@ begin
 		end if;
 	end process;
 
+  RGB <= PIXEL_DATA & PIXEL_DATA & PIXEL_DATA;
 
   VGA_ctrl_inst : entity work.VGA_ctrl
   port map (
     PIXEL_CLK => PIXEL_CLK,
     RST_P     => '0',
-    H_SYNC    => int_H_SYNC,
-    V_SYNC    => int_V_SYNC,
+    H_SYNC    => H_SYNC,
+    V_SYNC    => V_SYNC,
     COLUMN    => int_COLUMN,
     ROW       => int_ROW
   );
 
-  VGA_img_gen_inst : entity work.VGA_img_gen
+
+  VGA_sram_mux_inst : entity work.VGA_sram_mux
+  generic map (
+    g_SRAM_OFFSET => 0
+  )
   port map (
-    PIXEL_CLK => PIXEL_CLK,
-    RST_P     => '0',
-    H_SYNC_IN => int_H_SYNC,
-    V_SYNC_IN => int_V_SYNC,
-    COLUMN    => int_COLUMN,
-    ROW       => int_ROW,
-    H_SYNC    => H_SYNC,
-    V_SYNC    => V_SYNC,
-    RGB       => RGB
+    CLK         => CLK,
+    RST         => '0',
+    COLUMN      => int_COLUMN,
+    ROW         => int_ROW,
+    PIXEL_DATA  => PIXEL_DATA,
+    RW_ADDR     => RW_ADDR,
+    DATA        => DATA,
+    CE_N        => CE_N,
+    OE_N        => OE_N,
+    WE_N        => WE_N,
+    LB_N        => LB_N,
+    UB_N        => UB_N
   );
+
+
+  -- VGA_img_gen_inst : entity work.VGA_img_gen
+  -- port map (
+  --   PIXEL_CLK => PIXEL_CLK,
+  --   RST_P     => '0',
+  --   H_SYNC_IN => int_H_SYNC,
+  --   V_SYNC_IN => int_V_SYNC,
+  --   COLUMN    => int_COLUMN,
+  --   ROW       => int_ROW,
+  --   H_SYNC    => H_SYNC,
+  --   V_SYNC    => V_SYNC,
+  --   RGB       => RGB
+  -- );
 
 
 

@@ -33,6 +33,8 @@ package VGA_pkg is
   constant c_cnt_h_w  : integer := integer(ceil(log2(real(c_LINE))));
   constant c_cnt_v_w  : integer := integer(ceil(log2(real(c_FRAME))));
 
+  
+
 end VGA_pkg;
 
 package body VGA_pkg is
