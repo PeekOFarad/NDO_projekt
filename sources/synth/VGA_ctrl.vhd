@@ -39,6 +39,7 @@ entity VGA_ctrl is
   PORT(
     PIXEL_CLK : IN   std_logic;                     --! pixel clock at frequency of VGA mode being used
     RST_P     : IN   std_logic;                     --! active high sycnchronous reset
+    -- CTRL_EN   : IN   std_logic;                     --!
     H_SYNC    : OUT  std_logic;                     --! horiztonal sync pulse
     V_SYNC    : OUT  std_logic;                     --! vertical sync pulse
     COLUMN    : OUT  std_logic_vector(c_cnt_h_w-1 downto 0);   --! horizontal pixel coordinate
@@ -66,6 +67,8 @@ begin
     if RST_P = '1' then
       cnt_h_s <= (others => '0');
       cnt_v_s <= (others => '0');
+      H_SYNC  <= NOT c_H_POL;
+      V_SYNC  <= NOT c_V_POL;
     else
       cnt_h_s <= cnt_h_c;
       cnt_v_s <= cnt_v_c;

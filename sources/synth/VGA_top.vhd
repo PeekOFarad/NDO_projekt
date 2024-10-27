@@ -63,7 +63,9 @@ architecture rtl of VGA_top is
   signal int_ROW        : std_logic_vector(c_cnt_v_w-1 downto 0);
   signal PIXEL_CLK		  : std_logic := '0';
   signal PIXEL_DATA		  : std_logic := '0';
-
+  signal CTRL_EN        : std_logic := '0';
+  signal RST            : std_logic := '1';
+  
 begin
 
 	process (CLK)
@@ -73,12 +75,20 @@ begin
 		end if;
 	end process;
 
+  process (PIXEL_CLK)
+  begin
+    if rising_edge(PIXEL_CLK) then
+      RST <= '0';
+    end if;
+  end process;
+
   RGB <= PIXEL_DATA & PIXEL_DATA & PIXEL_DATA;
 
   VGA_ctrl_inst : entity work.VGA_ctrl
   port map (
     PIXEL_CLK => PIXEL_CLK,
-    RST_P     => '0',
+    RST_P     => NOT CTRL_EN,
+    -- CTRL_EN   => CTRL_EN,
     H_SYNC    => H_SYNC,
     V_SYNC    => V_SYNC,
     COLUMN    => int_COLUMN,
@@ -88,11 +98,12 @@ begin
 
   VGA_sram_mux_inst : entity work.VGA_sram_mux
   generic map (
-    g_SRAM_OFFSET => 0
+    g_SRAM_OFFSET => 1
   )
   port map (
-    CLK         => CLK,
+    CLK         => PIXEL_CLK,
     RST         => '0',
+    CTRL_EN     => CTRL_EN,
     COLUMN      => int_COLUMN,
     ROW         => int_ROW,
     PIXEL_DATA  => PIXEL_DATA,
@@ -104,6 +115,7 @@ begin
     LB_N        => LB_N,
     UB_N        => UB_N
   );
+
 
 
   -- VGA_img_gen_inst : entity work.VGA_img_gen

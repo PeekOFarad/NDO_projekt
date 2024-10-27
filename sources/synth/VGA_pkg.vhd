@@ -32,11 +32,24 @@ package VGA_pkg is
   constant c_FRAME    : integer := c_V_PIXELS+c_V_FP+c_V_PULSE+c_V_BP; --! Number of lines in a frame
   constant c_cnt_h_w  : integer := integer(ceil(log2(real(c_LINE))));
   constant c_cnt_v_w  : integer := integer(ceil(log2(real(c_FRAME))));
+  
+  function bit_reverse (arg:std_logic_vector) return std_logic_vector;
 
   
 
 end VGA_pkg;
 
 package body VGA_pkg is
+
+  function bit_reverse (arg:std_logic_vector) return std_logic_vector is
+    variable ret : std_logic_vector(arg'range);
+  begin
+    for i in arg'range loop
+      ret(ret'low+i) := arg(arg'high-i);
+    end loop;
+    return ret;
+  end function;
+
+
  
 end VGA_pkg;
