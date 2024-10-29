@@ -72,6 +72,18 @@ begin
     UB_N        => UB_N
   );
 
+  SRAM_256Kx16_inst : entity work.SRAM_256Kx16
+  port map (
+    RW_ADDR => RW_ADDR,
+    DATA => DATA,
+    CE_N => CE_N,
+    OE_N => OE_N,
+    WE_N => WE_N,
+    LB_N => LB_N,
+    UB_N => UB_N
+  );
+
+
 
   process
   begin
@@ -83,16 +95,16 @@ begin
 
 CLK <= not CLK after clk_period/2;
 
-process
-begin
+-- process
+-- begin
 
-  DATA <= (others => 'Z');
-  wait for 51.77 us;
-  -- wait for 25.89 us;
-  DATA <= x"8001";
-  wait;
+--   DATA <= (others => 'Z');
+--   wait for 51.77 us;
+--   -- wait for 25.89 us;
+--   DATA <= x"8001";
+--   wait;
   
-end process;
+-- end process;
 
 
 

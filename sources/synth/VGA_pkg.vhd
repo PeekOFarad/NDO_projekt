@@ -20,9 +20,9 @@ package VGA_pkg is
   constant c_H_BP     : integer    := 48;    --! horiztonal back porch width in pixels
   constant c_H_POL    : std_logic  := '0';   --! horizontal sync pulse polarity (1 = positive, 0 = negative)
   constant c_V_PIXELS : integer    := 480;   --! vertical display width in rows
-  constant c_V_FP     : integer    := 10;    --! vertical front porch width in rows
+  constant c_V_FP     : integer    := 11;    --! vertical front porch width in rows
   constant c_V_PULSE  : integer    := 2;     --! vertical sync pulse width in rows
-  constant c_V_BP     : integer    := 33;    --! vertical back porch width in rows
+  constant c_V_BP     : integer    := 32;    --! vertical back porch width in rows
   constant c_V_POL    : std_logic  := '0';   --! vertical sync pulse polarity (1 = positive, 0 = negative)
 
   constant c_H_THIRD : integer := c_H_PIXELS/3;

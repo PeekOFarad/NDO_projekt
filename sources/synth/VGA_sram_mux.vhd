@@ -12,6 +12,8 @@
 -- Food name is 32 chars
 -- invert last updated cell (for user as cursor) and revert back when cell index changed
 
+-- TODO: This is so far the best. Correct char amount on screen, the pairs are just flipped around
+
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
@@ -66,6 +68,7 @@ architecture rtl of VGA_sram_mux is
 
   signal cnt_raddr_s    : unsigned(17 downto 0) := (others => '0');
   signal cnt_raddr_c    : unsigned(17 downto 0) := (others => '0');
+  signal RW_addr_c      : std_logic_vector(17 downto 0) := (others => '0');
 
   signal cnt_waddr_s    : unsigned(17 downto 0) := (others => '0');
   signal cnt_waddr_c    : unsigned(17 downto 0) := (others => '0');
@@ -112,17 +115,18 @@ begin
   DATA <= bit_reverse(dataOutA) & bit_reverse(dataOutA) when state = init else
           (others => 'Z');
 
-  RW_ADDR <=  std_logic_vector(cnt_waddr_s) when ((v_porch_n = '0') and (u_row < c_FRAME-1)) or (state = init) else
-              std_logic_vector(cnt_raddr_s);
+  rw_addr_c <=  std_logic_vector(cnt_waddr_s) when ((v_porch_n = '0') and (u_row < c_FRAME-1)) or (state = init) else
+              std_logic_vector(cnt_raddr_c);
 
-  OE_N    <= sram_re_n; -- oe_n_int;
+  OE_N    <= shreg_empty_n;-- sram_re_n; -- oe_n_int;
   CE_N    <= CLK;
   WE_N    <= we_n_int; --! write enable signal 
-  UB_N    <= ub_n_int; --'0' when cnt_ROM_s(cnt_ROM_s'low) = '0' and state = init else '1';
-  LB_N    <= lb_n_int; --'0' when cnt_ROM_s(cnt_ROM_s'low) = '1' and state = init else '1';
+  UB_N    <= ub_n_int;
+  LB_N    <= lb_n_int;
 
 
   PIXEL_DATA <= VGA_buffer_s(VGA_buffer_s'low);
+
 
   p_reg: process (CLK)
   begin
@@ -135,12 +139,14 @@ begin
       cnt_ROM_col_s   <= (others => '0');
       cnt_ROM_row_s   <= (others => '0');
       cnt_waddr_s     <= (others => '0');
+      RW_ADDR         <= (others => '0');
     else
+      RW_ADDR         <= rw_addr_c;
       cnt_shift_s     <= cnt_shift_c;
       VGA_buffer_s    <= VGA_buffer_c;
       state           <= next_state;
       cnt_raddr_s     <= cnt_raddr_c;
-      if lb_n_int = '1' then
+      if ub_n_int = '1' then
         cnt_waddr_s   <= cnt_waddr_c;
       end if;
       cnt_ROM_col_s   <= cnt_ROM_col_c;
@@ -149,13 +155,15 @@ begin
   end if;
   end process;
 
-  VGA_buffer_c <= DATA when cnt_shift_s >= 2**cnt_shift_s'length-1 else
-                  '0' & VGA_buffer_s(VGA_buffer_s'high downto VGA_buffer_s'low+1);
 
   
-
   shreg_empty_n <= '0' when cnt_shift_s = 2**cnt_shift_s'length-1 else '1'; -- when cnt_shift_s = 15
   sram_re_n     <= (NOT shreg_empty_n) NAND v_porch_n; -- sram_re_n active when shreg is empty and we're not in vert porch
+
+  VGA_buffer_c  <= DATA when (shreg_empty_n = '0' and state = run) else
+                   '0' & VGA_buffer_s(VGA_buffer_s'high downto VGA_buffer_s'low+1);
+  
+
   
   --! Generates sram read address and v_porch_n signal that allows write opperations
   p_cnt: process (cnt_raddr_s, u_row, u_column, cnt_ROM_col_s, cnt_waddr_s, state, cnt_ROM_row_s, cnt_shift_s)
@@ -184,11 +192,12 @@ begin
     
     
     cnt_raddr_c <= cnt_raddr_s;
-    if u_column < c_H_PIXELS and u_row < c_V_PIXELS and state = run and cnt_shift_s = 15 then
+    -- cnt_raddr_c <= (others => '0');
+    if (((u_column < c_H_PIXELS and u_row < c_V_PIXELS) or (u_column = c_LINE-1 and u_row = c_FRAME-1)) and (state = run) and (cnt_shift_s = 14)) then
       cnt_raddr_c <= cnt_raddr_s + 1;
-      if u_column >= c_H_PIXELS-16 and u_row >= c_V_PIXELS-1 then
-        cnt_raddr_c <= (others => '0');
-      end if;
+    end if;
+    if u_column < c_LINE-1 and u_row >= c_FRAME-1 then
+      cnt_raddr_c <= (others => '0');
     end if;
 
     
@@ -223,8 +232,8 @@ begin
 
       when init =>
         we_n_int  <= '0';
-        lb_n_int  <= NOT clk_half_en;
         ub_n_int  <= clk_half_en;
+        lb_n_int  <= NOT clk_half_en;
 
         next_state <= init;
         if cnt_ROM_row_s >= 15 and cnt_ROM_col_s >= 79*16-1 then 

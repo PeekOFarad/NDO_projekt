@@ -98,14 +98,16 @@ begin
   h_sync_c <= NOT c_H_POL;  -- default deasserted
   v_sync_c <= NOT c_V_POL;  -- default deasserted
   -- assert when cnt_h in sync pulse range
-  if ((cnt_h_s > c_H_PIXELS + c_H_FP) AND (cnt_h_s <= c_H_PIXELS + c_H_FP + c_H_PULSE)) then
+  if ((cnt_h_s >= c_H_PIXELS + c_H_FP - 1) AND (cnt_h_s < c_H_PIXELS + c_H_FP + c_H_PULSE - 1)) then
     h_sync_c <= c_H_POL;
   end if;
   -- assert when cnt_h in sync pulse range
-  if ((cnt_v_s > c_V_PIXELS + c_V_FP) AND (cnt_v_s <= c_V_PIXELS + c_V_FP + c_V_PULSE)) then
+  if ((cnt_v_s > c_V_PIXELS + c_V_FP - 1 or (cnt_v_s = c_V_PIXELS + c_V_FP - 1 and cnt_h_s = c_LINE-1))
+  AND (cnt_v_s < c_V_PIXELS + c_V_FP + c_V_PULSE - 1 or (cnt_v_s = c_V_PIXELS + c_V_FP + c_V_PULSE - 1 and cnt_h_s < c_LINE-1))) then -- is in pulse
     v_sync_c <= c_V_POL;
   end if;
 end process;
+
 
 COLUMN  <= STD_LOGIC_VECTOR(cnt_h_s);
 ROW     <= STD_LOGIC_VECTOR(cnt_v_s);
