@@ -22,10 +22,21 @@ package server_pkg is
   constant c_FOOD_CNT     : integer := 32;
   constant c_CLIENTS_CNT  : integer := 2;
   constant c_NODE_WIDTH   : integer := integer(ceil(log2(real(c_CLIENTS_CNT))));
+  constant c_NUM_BLOCKS   : integer := 2;
   
   type amount_table_t is array(0 to c_CLIENTS_CNT, 0 to (c_FOOD_CNT - 1)) of amount_t;
   type price_table_t is array(0 to (c_FOOD_CNT - 1)) of price_t;
   type char_buff_t is array(0 to 31) of char_t;
+
+  type block_bit_t is array(0 to c_NUM_BLOCKS-1) of STD_LOGIC;
+  type block_col_t is array(0 to c_NUM_BLOCKS-1) of STD_LOGIC_VECTOR (2 downto 0);
+  type block_row_t is array(0 to c_NUM_BLOCKS-1) of STD_LOGIC_VECTOR (5 downto 0);
+  type block_node_t is array(0 to c_NUM_BLOCKS-1) of STD_LOGIC_VECTOR (c_NODE_WIDTH downto 0);
+  type block_data_t is array(0 to c_NUM_BLOCKS-1) of STD_LOGIC_VECTOR (11 downto 0);
+
+  type sprit_buff_t is array(0 to 31) of char_t;
+  
+  type digit_t is array(0 to 3) of unsigned(11 downto 0);
 
 end server_pkg;
 

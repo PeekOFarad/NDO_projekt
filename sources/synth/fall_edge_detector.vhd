@@ -19,7 +19,7 @@ end fall_edge_detector;
 
 architecture Behavioral of fall_edge_detector is
 
-  signal q : std_logic_vector (1 downto 0);
+  signal q : std_logic_vector (1 downto 0) := (others => '0');
 
 begin
     
