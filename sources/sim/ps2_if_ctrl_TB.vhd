@@ -12,15 +12,6 @@ use work.ps2_pkg.all;
 use work.server_pkg.all;
 use IEEE.Std_Logic_Arith.ALL;
 
--- Uncomment the following library declaration if using
--- arithmetic functions with Signed or Unsigned values
---use IEEE.NUMERIC_STD.ALL;
-
--- Uncomment the following library declaration if instantiating
--- any Xilinx leaf cells in this code.
---library UNISIM;
---use UNISIM.VComponents.all;
-
 entity ps2_if_ctrl_TB is
 end ps2_if_ctrl_TB;
 
@@ -32,25 +23,72 @@ architecture Behavioral of ps2_if_ctrl_TB is
            g_CLIENTS_CNT  : positive;
            g_NODE_WIDTH   : positive
     );
-    Port ( CLK          : in STD_LOGIC;
-           RST          : in STD_LOGIC;
-           EDIT_ENA     : in STD_LOGIC;
-           KEYS         : in t_keys;
-           NUMBER       : in STD_LOGIC_VECTOR(3 downto 0);
-           PS2_CODE     : in STD_LOGIC_VECTOR (7 downto 0);
-           START_DAY    : out STD_LOGIC;
-           BUFF_RDY     : out STD_LOGIC;
-           NODE_SEL     : out STD_LOGIC_VECTOR(g_NODE_WIDTH downto 0);
-           SEL_CELL_COL : out STD_LOGIC_VECTOR (2 downto 0);
-           SEL_CELL_ROW : out STD_LOGIC_VECTOR (5 downto 0);
-           CHAR_BUFF    : out char_buff_t;
-           AMOUNT       : out amount_table_t;
-           ST_PRICE     : out price_table_t;
-           EM_PRICE     : out price_table_t;
-           EX_PRICE     : out price_table_t
-           );
+    Port (  CLK          : in STD_LOGIC;
+            RST          : in STD_LOGIC;
+            EDIT_ENA     : in STD_LOGIC;
+            KEYS         : in t_keys;
+            NUMBER       : in STD_LOGIC_VECTOR(3 downto 0);
+            PS2_CODE     : in STD_LOGIC_VECTOR (7 downto 0);
+            START_DAY    : out STD_LOGIC;
+            BUFF_RDY     : out STD_LOGIC;
+            UPD_ARR      : out STD_LOGIC;
+            UPD_DATA     : out STD_LOGIC;
+            NODE_SEL     : out STD_LOGIC_VECTOR(g_NODE_WIDTH downto 0);
+            SEL_CELL_COL : out STD_LOGIC_VECTOR (2 downto 0);
+            SEL_CELL_ROW : out STD_LOGIC_VECTOR (5 downto 0);
+            CHAR_BUFF    : out char_buff_t;
+            -- reg interface
+            REQ          : out STD_LOGIC;
+            ACK          : in  STD_LOGIC;
+            RW           : out STD_LOGIC;
+            DOUT         : out STD_LOGIC_VECTOR (11 downto 0)
+          );
   end component;
   
+--------------------------------------------------------------------------------
+
+  component server_regs_if is
+    Generic (
+           g_FOOD_CNT     : positive;
+           g_CLIENTS_CNT  : positive;
+           g_NODE_WIDTH   : positive
+    );
+    Port ( CLK      : in STD_LOGIC;
+           RST      : in STD_LOGIC;
+           RW       : in STD_LOGIC;
+           COL      : in STD_LOGIC_VECTOR (2 downto 0);
+           ROW      : in STD_LOGIC_VECTOR (5 downto 0);
+           NODE     : in STD_LOGIC_VECTOR (g_NODE_WIDTH downto 0);
+           DIN      : in STD_LOGIC_VECTOR (11 downto 0); -- max width constrained by amount
+           DOUT     : out STD_LOGIC_VECTOR (11 downto 0));
+  end component;
+
+
+--------------------------------------------------------------------------------
+
+  component bus_arbiter is
+    Generic (
+        g_NUM_BLOCKS : positive;
+        g_NODE_WIDTH : positive
+    );
+    Port(  CLK        : in STD_LOGIC;
+           RST        : in STD_LOGIC;
+           REQ        : in block_bit_t;
+           block_RW   : in block_bit_t;
+           block_COL  : in block_col_t;
+           block_ROW  : in block_row_t;
+           block_NODE : in block_node_t;
+           block_DIN  : in block_data_t;
+           ACK        : out block_bit_t;
+           -- to register interface
+           RW         : out STD_LOGIC;
+           COL        : out STD_LOGIC_VECTOR (2 downto 0);
+           ROW        : out STD_LOGIC_VECTOR (5 downto 0);
+           NODE       : out STD_LOGIC_VECTOR (g_NODE_WIDTH downto 0);
+           DIN        : out STD_LOGIC_VECTOR (11 downto 0)
+        );
+end component;
+
 --------------------------------------------------------------------------------
 
   constant clk_per              : time := 1 ns; 
@@ -66,14 +104,28 @@ architecture Behavioral of ps2_if_ctrl_TB is
   
   signal   start_day            : std_logic;
   signal   buff_rdy             : std_logic;
+  signal   upd_arr              : std_logic;
+  signal   upd_data             : std_logic;
   signal   node_sel             : std_logic_vector(1 downto 0);
   signal   sel_cell_col         : std_logic_vector(2 downto 0);
   signal   sel_cell_row         : std_logic_vector(5 downto 0);
   signal   char_buff            : char_buff_t;
-  signal   amount               : amount_table_t;
-  signal   st_price             : price_table_t;
-  signal   em_price             : price_table_t;
-  signal   ex_price             : price_table_t;
+
+  signal   node                 : std_logic_vector(1 downto 0);
+  signal   col                  : std_logic_vector(2 downto 0);
+  signal   row                  : std_logic_vector(5 downto 0);
+
+  signal   rw                   : std_logic;
+  signal   din                  : std_logic_vector(11 downto 0);
+  signal   dout                 : std_logic_vector(11 downto 0);
+
+  signal   REQ        :  block_bit_t;
+  signal   block_RW   :  block_bit_t;
+  signal   block_COL  :  block_col_t;
+  signal   block_ROW  :  block_row_t;
+  signal   block_NODE :  block_node_t;
+  signal   block_DIN  :  block_data_t;
+  signal   ACK        :  block_bit_t;
 
 begin
 
@@ -84,6 +136,30 @@ begin
       wait;
     end if;
   end process;
+
+--------------------------------------------------------------------------------
+    
+bus_arbiter_i : bus_arbiter
+generic map(
+  g_NUM_BLOCKS  => 2,
+  g_NODE_WIDTH  => 1
+)
+port map(
+  CLK          => clk,
+  RST          => rst,
+  REQ          => REQ,
+  block_RW     => block_RW,
+  block_COL    => block_COL,
+  block_ROW    => block_ROW,
+  block_NODE   => block_NODE,
+  block_DIN    => block_DIN,
+  ACK          => ACK,
+  RW           => rw,
+  COL          => col,
+  ROW          => row,
+  node         => node,
+  DIN          => din
+);
 
 --------------------------------------------------------------------------------
 
@@ -102,14 +178,35 @@ begin
     PS2_CODE     => ps2_code,
     START_DAY    => start_day,
     BUFF_RDY     => buff_rdy,
-    NODE_SEL     => node_sel,
-    SEL_CELL_COL => sel_cell_col,
-    SEL_CELL_ROW => sel_cell_row,
+    UPD_ARR      => upd_arr,
+    UPD_DATA     => upd_data,
+    NODE_SEL     => block_NODE(0),
+    SEL_CELL_COL => block_COL(0),
+    SEL_CELL_ROW => block_ROW(0),
     CHAR_BUFF    => char_buff,
-    AMOUNT       => amount,
-    ST_PRICE     => st_price,
-    EM_PRICE     => em_price,
-    EX_PRICE     => ex_price
+    REQ          => REQ(0),
+    ACK          => ACK(0),
+    RW           => block_RW(0),
+    DOUT         => block_DIN(0)
+  );
+
+--------------------------------------------------------------------------------
+
+  server_regs_if_i : server_regs_if
+  generic map(
+    g_FOOD_CNT    => c_FOOD_CNT,
+    g_CLIENTS_CNT => c_CLIENTS_CNT,
+    g_NODE_WIDTH  => 1
+  )
+  port map(
+    CLK    => clk,
+    RST    => rst,
+    RW     => rw,
+    COL    => col,
+    ROW    => row,
+    NODE   => node,
+    DIN    => din,
+    DOUT   => dout
   );
 
 --------------------------------------------------------------------------------
@@ -126,10 +223,6 @@ begin
     wait for clk_per;
     keys.right <= '0';
     wait for clk_per * 5;
---    keys.right <= '1'; 
---    wait for clk_per;
---    keys.right <= '0';
---    wait for clk_per * 5;
     
     -- start editing
     keys.enter <= '1'; 
@@ -138,7 +231,8 @@ begin
     wait for clk_per * 5;
     
     -- first digit
-    number <= conv_std_logic_vector(2, 4);
+    ps2_code <= c_2;
+    number   <= conv_std_logic_vector(2, 4);
     wait for clk_per;
     keys.number <= '1'; 
     wait for clk_per;
@@ -146,6 +240,7 @@ begin
     wait for clk_per * 5;
     
     -- second digit
+    ps2_code <= c_5;
     number <= conv_std_logic_vector(5, 4);
     wait for clk_per;
     keys.number <= '1'; 
@@ -160,6 +255,7 @@ begin
     wait for clk_per * 5;
     
     -- second digit
+    ps2_code <= c_1;
     number <= conv_std_logic_vector(1, 4);
     wait for clk_per;
     keys.number <= '1'; 
@@ -168,6 +264,8 @@ begin
     wait for clk_per * 5;
     
     -- finish editing amount
+    ps2_code <= c_enter;
+    wait for clk_per;
     keys.enter <= '1'; 
     wait for clk_per;
     keys.enter <= '0';
@@ -246,6 +344,7 @@ begin
     wait for clk_per * 5;
     
     -- first digit
+    ps2_code <= c_6;
     number <= conv_std_logic_vector(6, 4);
     wait for clk_per;
     keys.number <= '1'; 
@@ -254,6 +353,7 @@ begin
     wait for clk_per * 5;
     
     -- second digit
+    ps2_code <= c_0;
     number <= conv_std_logic_vector(0, 4);
     wait for clk_per;
     keys.number <= '1'; 
@@ -302,6 +402,7 @@ begin
     wait for clk_per * 5;
     
     -- first digit
+    ps2_code <= c_3;
     number <= conv_std_logic_vector(3, 4);
     wait for clk_per;
     keys.number <= '1'; 
@@ -310,6 +411,7 @@ begin
     wait for clk_per * 5;
     
     -- second digit
+    ps2_code <= c_2;
     number <= conv_std_logic_vector(2, 4);
     wait for clk_per;
     keys.number <= '1'; 
