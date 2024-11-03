@@ -42,9 +42,9 @@ end component;
   
 ----------------------------------------------------------------------------------
   signal clk_div_en  : std_logic;
-  signal ps2_clk_deb : std_logic;
+  signal ps2_clk_deb : std_logic := '0';
   signal ps2_clk_fe  : std_logic;
-  signal ps2_clk_reg : std_logic_vector(3 downto 0);
+  signal ps2_clk_reg : std_logic_vector(3 downto 0) := (others => '0');
 ----------------------------------------------------------------------------------
   signal fsm_c            : t_fsm_ps2rx;
   signal fsm_s            : t_fsm_ps2rx := idle;
@@ -115,12 +115,6 @@ begin
           ps2_data_c <= (others => '0');
           fsm_c <= receive;
         end if;
---      when start =>
---        ps2_data_c <= (others => '0');
-        
---        if(ps2_clk_fe = '1')) then
---          fsm_c <= receive;
---        end if;
       when receive =>
         if(ps2_clk_fe = '1') then
           ps2_data_c <= PS2_DATA & ps2_data_s(7 downto 1);
