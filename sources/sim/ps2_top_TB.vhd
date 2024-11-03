@@ -59,6 +59,8 @@ architecture Behavioral of ps2_top_TB is
     ps2_clk <= '1'; wait for ps2_clk_per/2;
     ps2_clk <= '0'; wait for ps2_clk_per/2;
     ps2_clk <= '1';
+
+    wait for 5 * ps2_clk_per;
   end procedure;
   
 --------------------------------------------------------------------------------
