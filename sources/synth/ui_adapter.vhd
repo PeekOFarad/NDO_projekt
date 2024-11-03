@@ -88,6 +88,7 @@ begin
         ROW_OUT      <= ROW_IN;
         UPD_ARR_OUT  <= UPD_ARR_IN;
         UPD_DATA_OUT <= UPD_DATA_IN;
+        REQ          <= '0';
 
         if(node_sel_s /= NODE_SEL) then
           fsm_c <= node_upd;
