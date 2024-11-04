@@ -15,6 +15,7 @@ architecture bench of VGA_ctrl_tb is
   signal PIXEL_CLK  : std_logic := '0';
   signal RST_P      : std_logic := '0';
   signal CTRL_EN    : std_logic := '0';
+  signal V_PORCH_N  : std_logic;
   signal H_SYNC     : std_logic;
   signal V_SYNC     : std_logic;
   signal DISP_ENA   : std_logic;

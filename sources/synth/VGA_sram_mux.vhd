@@ -43,9 +43,7 @@ end VGA_sram_mux;
 
 architecture rtl of VGA_sram_mux is
 
-  constant c_fontROM_size : integer := 128*16; -- = 2048
-
-  type t_fsm_sram_mux is (init, run);
+  type t_fsm_sram_mux is (init, READ, WRITE);
     
   signal state, next_state : t_fsm_sram_mux := init;
 
@@ -53,6 +51,8 @@ architecture rtl of VGA_sram_mux is
   signal oe_n_int       : std_logic := '1';
   signal ub_n_int       : std_logic := '0';
   signal lb_n_int       : std_logic := '1';
+  signal data_o_int     : std_logic_vector(15 downto 0) := (others => '0');
+
 
   signal ctrl_en_int    : std_logic := '0';
 
@@ -63,7 +63,7 @@ architecture rtl of VGA_sram_mux is
   signal cnt_shift_c    : unsigned(3 downto 0) := (others => '0');
   signal sram_re_n      : std_logic := '1'; 
   signal shreg_empty_n  : std_logic := '1';
-  signal v_porch_n      : std_logic := '1';
+  signal v_porch_n_c    : std_logic := '1';
   signal h_porch_n      : std_logic := '1';
 
   signal cnt_raddr_s    : unsigned(17 downto 0) := (others => '0');
@@ -73,8 +73,11 @@ architecture rtl of VGA_sram_mux is
   signal cnt_waddr_s    : unsigned(17 downto 0) := (others => '0');
   signal cnt_waddr_c    : unsigned(17 downto 0) := (others => '0');
 
-  signal cnt_ROM_col_s      : unsigned(11 downto 0) := (others => '0');
-  signal cnt_ROM_col_c      : unsigned(11 downto 0) := (others => '0');
+  signal cnt_ROM_col_s  : unsigned(11 downto 0) := (others => '0');
+  signal cnt_ROM_col_c  : unsigned(11 downto 0) := (others => '0');
+
+  signal ROM_addr       : unsigned(9 downto 0) := (others => '0');
+  signal ROM_data_o     : std_logic_vector(7 downto 0) := (others => '0');
 
   signal cnt_ROM_row_s  : unsigned(11 downto 0) := (others => '0');
   signal cnt_ROM_row_c  : unsigned(11 downto 0) := (others => '0');
@@ -87,6 +90,15 @@ architecture rtl of VGA_sram_mux is
 
   signal clk_half_en    : std_logic := '0';
 
+  -- fifo
+  signal WADDR_C        : std_logic_vector(17 downto 0);
+  signal DATA_O         : std_logic_vector(15 downto 0);
+  signal WE_N_W         : std_logic;
+  signal LB_N_W         : std_logic;
+  signal UB_N_W         : std_logic;
+
+  signal fifo_ren       : std_logic;
+
 begin
 
   process (CLK)
@@ -96,10 +108,8 @@ begin
       if RST = '1' then
         ctrl_en_int <= '0';
       else
-        if state = run and cnt_shift_s >= 15 then
+        if state = READ and cnt_shift_s >= 15 then
           ctrl_en_int <= '1';
-        -- else
-        --   ctrl_en_int <= ctrl_en_int;
         end if;
       end if;
 		end if;
@@ -113,10 +123,12 @@ begin
   u_row     <= unsigned(ROW);
 
   DATA <= bit_reverse(dataOutA) & bit_reverse(dataOutA) when state = init else
+          DATA_O when state = WRITE else
           (others => 'Z');
 
-  rw_addr_c <=  std_logic_vector(cnt_waddr_s) when ((v_porch_n = '0') and (u_row < c_FRAME-1)) or (state = init) else
-              std_logic_vector(cnt_raddr_c);
+  rw_addr_c <=  std_logic_vector(cnt_waddr_s) when (state = init) else
+                WADDR_C when state = WRITE else
+                std_logic_vector(cnt_raddr_c);
 
   OE_N    <= shreg_empty_n;-- sram_re_n; -- oe_n_int;
   CE_N    <= CLK;
@@ -158,9 +170,9 @@ begin
 
   
   shreg_empty_n <= '0' when cnt_shift_s = 2**cnt_shift_s'length-1 else '1'; -- when cnt_shift_s = 15
-  sram_re_n     <= (NOT shreg_empty_n) NAND v_porch_n; -- sram_re_n active when shreg is empty and we're not in vert porch
+  sram_re_n     <= (NOT shreg_empty_n) NAND v_porch_n_c; -- sram_re_n active when shreg is empty and we're not in vert porch
 
-  VGA_buffer_c  <= DATA when (shreg_empty_n = '0' and state = run) else
+  VGA_buffer_c  <= DATA when (shreg_empty_n = '0' and state = READ) else
                    '0' & VGA_buffer_s(VGA_buffer_s'high downto VGA_buffer_s'low+1);
   
 
@@ -177,23 +189,22 @@ begin
     cnt_ROM_col_c <= cnt_ROM_col_s;
     cnt_ROM_row_c <= cnt_ROM_row_s;
     if state = init then
-      cnt_ROM_col_c <= cnt_ROM_col_s + 16;
-      if cnt_ROM_col_s >= 79*16-1 then
+      cnt_ROM_col_c <= cnt_ROM_col_s + 12;
+      if cnt_ROM_col_s >= 79*12 then
         cnt_ROM_row_c <= cnt_ROM_row_s + 1;
         cnt_ROM_col_c <= cnt_ROM_row_s + 1;
       end if;
     end if;
 
-
     cnt_shift_c <= cnt_shift_s;
-    if state = run then 
+    if state = READ then 
       cnt_shift_c <= cnt_shift_s + 1;
     end if;
     
     
     cnt_raddr_c <= cnt_raddr_s;
     -- cnt_raddr_c <= (others => '0');
-    if (((u_column < c_H_PIXELS and u_row < c_V_PIXELS) or (u_column = c_LINE-1 and u_row = c_FRAME-1)) and (state = run) and (cnt_shift_s = 14)) then
+    if (((u_column < c_H_PIXELS and u_row < c_V_PIXELS) or (u_column = c_LINE-1 and u_row = c_FRAME-1)) and (state = READ) and (cnt_shift_s = 14)) then
       cnt_raddr_c <= cnt_raddr_s + 1;
     end if;
     if u_column < c_LINE-1 and u_row >= c_FRAME-1 then
@@ -201,9 +212,9 @@ begin
     end if;
 
     
-    v_porch_n   <= '1';
+    v_porch_n_c   <= '1';
     if u_row >= c_V_PIXELS then
-      v_porch_n   <= '0';
+      v_porch_n_c   <= '0';
     end if;
 
     h_porch_n   <= '1';
@@ -211,6 +222,8 @@ begin
       h_porch_n   <= '0';
     end if;
   end process;
+
+  fifo_ren <= '1' when ((u_row >= c_V_PIXELS) and not (u_row = c_FRAME-1 and u_column >= c_LINE - 16 - 1)) else '0';
 
   -- process (state, cnt_shift_s)
   -- begin
@@ -221,10 +234,9 @@ begin
   -- end process;
 
 
-  p_fsm: process (state, cnt_ROM_col_s, cnt_ROM_row_s, clk_half_en)
+  p_fsm: process (state, cnt_ROM_col_s, cnt_ROM_row_s, clk_half_en, u_row, u_column, WE_N_W, UB_N_W, LB_N_W)
   begin
     we_n_int  <= '1';
-    -- oe_n_int    <= '1';
     ub_n_int  <= '1';
     lb_n_int  <= '1';
 
@@ -236,16 +248,26 @@ begin
         lb_n_int  <= NOT clk_half_en;
 
         next_state <= init;
-        if cnt_ROM_row_s >= 15 and cnt_ROM_col_s >= 79*16-1 then 
-          next_state <= run;
+        if cnt_ROM_row_s >= 11 and cnt_ROM_col_s >= 79*12 then 
+          next_state <= READ;
         end if;
 
-      when run =>
+      when READ =>
         ub_n_int    <= '0';
         lb_n_int    <= '0';
-      -- oe_n_int    <= sram_re_n;
+        next_state <= READ;
+      if u_row >= c_V_PIXELS-1 and u_column >= c_LINE-1 then
+        next_state <= WRITE;
+      end if;
 
-        next_state <= run;
+      when WRITE =>
+      we_n_int    <= WE_N_W;
+      ub_n_int    <= UB_N_W;
+      lb_n_int    <= LB_N_W;
+        next_state <= WRITE;
+      if u_row >= c_FRAME-1 and u_column >= c_LINE-1 then
+        next_state <= READ;
+      end if;
     
       when others =>
         null;
@@ -253,20 +275,41 @@ begin
     
   end process;
 
-  fontROM_inst : entity work.fontROM
+  -- fontROM_inst : entity work.fontROM
+  -- generic map (
+  --   addrWidth => 11,
+  --   dataWidth => 8
+  -- )
+  -- port map (
+  --   clkA => CLK,
+  --   writeEnableA => '0',
+  --   addrA => std_logic_vector(cnt_ROM_col_s(cnt_ROM_col_s'high-1 downto cnt_ROM_col_s'low)),
+  --   dataOutA => dataOutA,
+  --   dataInA => dataInA
+  -- );
+
+  fontROM_8x12_inst : entity work.fontROM_8x12
   generic map (
-    addrWidth => 11,
+    addrWidth => 10,
     dataWidth => 8
   )
   port map (
-    clkA => CLK,
-    writeEnableA => '0',
-    addrA => std_logic_vector(cnt_ROM_col_s(cnt_ROM_col_s'high-1 downto cnt_ROM_col_s'low)),
-    dataOutA => dataOutA,
-    dataInA => dataInA
+    clkA      => CLK,
+    addrA     => std_logic_vector(cnt_ROM_col_s(cnt_ROM_col_s'high-2 downto cnt_ROM_col_s'low)),--std_logic_vector(ROM_addr),
+    dataOutA  => dataOutA
   );
 
-
+  VGA_cmd_fifo_inst : entity work.VGA_cmd_fifo
+  port map (
+    CLK       => CLK,
+    RST       => RST,
+    FIFO_REN  => fifo_ren,
+    WADDR_C   => WADDR_C,
+    DATA_O    => DATA_O,
+    WE_N_D2    => WE_N_W,
+    LB_N_W    => LB_N_W,
+    UB_N_W    => UB_N_W
+  );
 
   
 end rtl;

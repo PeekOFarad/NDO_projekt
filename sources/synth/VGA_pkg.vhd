@@ -35,6 +35,30 @@ package VGA_pkg is
   
   function bit_reverse (arg:std_logic_vector) return std_logic_vector;
 
+  constant c_COL_NUM      : integer := c_H_PIXELS/8; -- 80
+  constant c_COL_NUM_BIN  : integer := integer(ceil(log2(real(c_COL_NUM)))); -- 7
+
+  constant c_ROW_NUM      : integer := c_V_PIXELS/12; -- 40
+  constant c_ROW_NUM_BIN  : integer := integer(ceil(log2(real(c_ROW_NUM)))); -- 6
+
+  constant c_CHAR_NUM : integer := 85;
+
+  subtype t_char_col is integer range 0 to c_COL_NUM-1;
+  subtype t_char_row is integer range 0 to c_ROW_NUM-1;
+  subtype t_char_id  is integer range 0 to c_CHAR_NUM-1;
+
+  type t_char is record
+    column : t_char_col;
+    row    : t_char_row;
+    id     : t_char_id;
+  end record;
+
+  constant c_CHAR_FIFO_SIZE : integer := 7; -- ((c_FRAME-c_V_PIXELS)*c_LINE)
+  type t_char_fifo is array (0 to c_CHAR_FIFO_SIZE-1) of t_char;
+
+  -- type t_char_fifo is array (0 to C_CHAR_FIFO_SIZE-1) of t_char;
+
+
   
 
 end VGA_pkg;
