@@ -22,6 +22,13 @@ entity VGA_cmd_fifo is
   Port ( 
     CLK         : in  std_logic;
     RST         : in  std_logic;
+    -- System Interface
+    -- COL         : in  STD_LOGIC_VECTOR (2 downto 0);
+    -- ROW         : in  STD_LOGIC_VECTOR (5 downto 0);
+    -- UPD_ARR     : in  STD_LOGIC;
+    -- UPD_DATA    : in  STD_LOGIC;
+    -- DATA_OUT    : in  sprit_buff_t;
+    -- SRAM signals
     FIFO_REN    : in  std_logic; -- TODO this "read enable" signal will need to be deasserted sooner than v_porch (12 clocks), because we want to always print whole sprites to SRAM
     WADDR_C     : out std_logic_vector(17 downto 0);
     DATA_O      : out std_logic_vector(15 downto 0);
