@@ -166,6 +166,14 @@ begin
     data <= c_4;
     r_send_ps2_frame(c_4, par, ps2_clk, ps2_data);
     
+    -- press backspace
+    data <= c_bckspc;
+    r_send_ps2_frame(c_bckspc, par, ps2_clk, ps2_data);
+    
+    -- enter 5
+    data <= c_5;
+    r_send_ps2_frame(c_5, par, ps2_clk, ps2_data);
+    
     -- press esc
     data <= c_esc;
     r_send_ps2_frame(c_esc, par, ps2_clk, ps2_data);

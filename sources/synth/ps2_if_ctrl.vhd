@@ -72,8 +72,6 @@ architecture Behavioral of ps2_if_ctrl is
 
   signal new_number_c   : unsigned(15 downto 0);
   
-  signal prev_number_c  : unsigned(11 downto 0);
-  
   signal buff_rdy_c     : std_logic;
   signal buff_rdy_s     : std_logic := '0';
   
@@ -113,9 +111,8 @@ begin
   end process;
 
   process(KEYS, fsm_s, start_day_s, sel_cell_col_s, sel_cell_row_s,
-          node_sel_s, EDIT_ENA, char_sel_s,
-          char_buff_s, buff_rdy_s, upd_arr_s, upd_data_s, ACK, numb_buff_s,
-          new_number_c, prev_number_c, PS2_CODE)
+          node_sel_s, EDIT_ENA, char_sel_s, char_buff_s, buff_rdy_s,
+          upd_arr_s, upd_data_s, ACK, numb_buff_s, new_number_c, PS2_CODE)
   begin
     fsm_c          <= fsm_s;
     start_day_c    <= '0';
@@ -179,10 +176,8 @@ begin
         char_buff_c <= (others => (others => '0'));
         char_sel_c  <= (others => '0');
         upd_data_c  <= '1';
-
         numb_buff_c <= (others => '0');
-        
-        fsm_c <= edit;
+        fsm_c       <= edit;
       when edit =>
         upd_data_c <= '0';
         upd_arr_c  <= '0';
@@ -235,8 +230,7 @@ begin
           fsm_c <= idle;
         elsif(KEYS.bckspc = '1') then -- backspace
           if(sel_cell_col_s /= 0) then
-            -- numb_buff_c <= std_logic_vector(prev_number_c);
-            numb_buff_c <= prev_number_c;
+            numb_buff_c <= (others => '0');
             RW    <= '0';
             fsm_c <= wait4ack;
           end if;
@@ -247,7 +241,6 @@ begin
             upd_data_c <= '1';
           end if;
         elsif((KEYS.number = '1') and (sel_cell_col_s /= 0)) then -- number
-          -- DOUT        <= std_logic_vector(new_number_c(11 downto 0));
           numb_buff_c <= new_number_c(11 downto 0);
           RW    <= '0';
           fsm_c <= wait4ack;  
@@ -269,9 +262,6 @@ begin
   
   -- calculate summ of prev value and new number in dec format
   new_number_c <= resize((UNSIGNED(numb_buff_s) * 10), 16) + resize(UNSIGNED(NUMBER), 16);
-  
-  -- calculate number without last added digit
-  prev_number_c <= (UNSIGNED(numb_buff_s) - (UNSIGNED(numb_buff_s) rem 10)) / 10;
   
   -- output assignments
   START_DAY    <= start_day_s;
