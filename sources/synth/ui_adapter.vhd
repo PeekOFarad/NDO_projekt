@@ -41,6 +41,13 @@ end ui_adapter;
 
 architecture Behavioral of ui_adapter is
 
+  component binary_to_BCD is
+    Port ( 
+      binary_in : in  STD_LOGIC_VECTOR (11 downto 0);
+      BCD_out   : out digit_arr_t
+    );
+  end component;
+
   type t_fsm_ui_adapter is (cfg, node_upd, run, read);
 
   signal fsm_c : t_fsm_ui_adapter;
@@ -54,7 +61,7 @@ architecture Behavioral of ui_adapter is
   signal row_in_s : STD_LOGIC_VECTOR (5 downto 0) := (others => '0');
   signal smp_row_ena : STD_LOGIC;
   
-  signal digit : digit_t;
+  signal bcd_out_c : digit_arr_t;
 
 begin
 
@@ -143,30 +150,20 @@ begin
   end process;
       
   -- sprit output decoder
-  process(EDIT_ENA, fsm_s, CHAR_BUFF, DIN, digit) begin
+  binary_to_BCD_i : binary_to_BCD
+  port map(
+    binary_in => DIN,
+    BCD_out   => bcd_out_c
+  );
+
+  process(EDIT_ENA, fsm_s, CHAR_BUFF, bcd_out_c) begin
     DATA_OUT <= (others => (others => '0'));
-    digit    <= (others => (others => '0')); -- TODO: re-write logic digit(i) <= (UNSIGNED(DIN) / 10**i) rem 10;
 
     if((EDIT_ENA = '1') and (fsm_s = cfg)) then
       DATA_OUT <= CHAR_BUFF;
     else -- decimal number to sprit ID
-      
       for i in 0 to 3 loop
-        if((i = 0) or (to_integer(digit(i)) /= 0)) then
-          case(to_integer(digit(i))) is
-            when 0 => DATA_OUT(i) <= STD_LOGIC_VECTOR(TO_UNSIGNED(16#20#, 8));
-            when 1 => DATA_OUT(i) <= STD_LOGIC_VECTOR(TO_UNSIGNED(16#21#, 8));
-            when 2 => DATA_OUT(i) <= STD_LOGIC_VECTOR(TO_UNSIGNED(16#22#, 8));
-            when 3 => DATA_OUT(i) <= STD_LOGIC_VECTOR(TO_UNSIGNED(16#23#, 8));
-            when 4 => DATA_OUT(i) <= STD_LOGIC_VECTOR(TO_UNSIGNED(16#24#, 8));
-            when 5 => DATA_OUT(i) <= STD_LOGIC_VECTOR(TO_UNSIGNED(16#25#, 8));
-            when 6 => DATA_OUT(i) <= STD_LOGIC_VECTOR(TO_UNSIGNED(16#26#, 8));
-            when 7 => DATA_OUT(i) <= STD_LOGIC_VECTOR(TO_UNSIGNED(16#27#, 8));
-            when 8 => DATA_OUT(i) <= STD_LOGIC_VECTOR(TO_UNSIGNED(16#28#, 8));
-            when 9 => DATA_OUT(i) <= STD_LOGIC_VECTOR(TO_UNSIGNED(16#29#, 8));
-            when others => DATA_OUT(i) <= "00000000";
-          end case;
-        end if;
+        DATA_OUT(i) <= bcd_out_c(i);
       end loop;
     end if;
   end process;
