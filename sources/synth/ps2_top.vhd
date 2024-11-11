@@ -12,6 +12,7 @@ use work.ps2_pkg.all;
 
 entity ps2_top is
     Port ( CLK      : in STD_LOGIC;
+           RST      : in STD_LOGIC;
            PS2_CLK  : in STD_LOGIC;
            PS2_DATA : in STD_LOGIC;
            NUMBER   : out STD_LOGIC_VECTOR(3 downto 0);
@@ -24,6 +25,7 @@ architecture Behavioral of ps2_top is
   -- PS2 receiver
   component ps2_rx is
     Port ( CLK        : in  STD_LOGIC;
+           RST        : in STD_LOGIC;
            PS2_CLK    : in  STD_LOGIC;
            PS2_DATA   : in  STD_LOGIC;
            CODE_READY : out STD_LOGIC;
@@ -33,6 +35,7 @@ architecture Behavioral of ps2_top is
   -- PS2 output decoder
   component ps2_decoder is
     Port ( CLK        : in  STD_LOGIC;
+           RST        : in STD_LOGIC;
            CODE_READY : in  STD_LOGIC;
            PS2_CODE   : in  STD_LOGIC_VECTOR(7 downto 0);
            NUMBER     : out STD_LOGIC_VECTOR(3 downto 0);
@@ -47,6 +50,7 @@ begin
   ps2_rx_i : ps2_rx
   port map(
     CLK        => CLK,
+    RST        => RST,
     PS2_CLK    => PS2_CLK,
     PS2_DATA   => PS2_DATA,
     CODE_READY => code_ready_top,
@@ -56,6 +60,7 @@ begin
   ps2_decoder_i : ps2_decoder
   port map(
     CLK        => CLK,
+    RST        => RST,
     CODE_READY => code_ready_top,
     PS2_CODE   => ps2_code_top,
     NUMBER     => NUMBER,

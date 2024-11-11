@@ -13,6 +13,7 @@ use IEEE.NUMERIC_STD.ALL;
 
 entity ps2_decoder is
     Port ( CLK        : in  STD_LOGIC;
+           RST        : in STD_LOGIC;
            CODE_READY : in  STD_LOGIC;
            PS2_CODE   : in  STD_LOGIC_VECTOR(7 downto 0);
            NUMBER     : out STD_LOGIC_VECTOR(3 downto 0);
@@ -21,15 +22,21 @@ end ps2_decoder;
 
 architecture Behavioral of ps2_decoder is
 
-  signal fsm_c, fsm_s    : t_fsm_dekoder;
-  signal keys_c, keys_s  : t_keys;
-  signal number_c        : unsigned(3 downto 0);
-  signal number_s        : unsigned(3 downto 0) := (others => '0');
+  signal fsm_c    : t_fsm_dekoder;
+  signal fsm_s    : t_fsm_dekoder := idle;
+  signal keys_c   : t_keys;
+  signal keys_s   : t_keys := (others => '0');
+  signal number_c : unsigned(3 downto 0);
+  signal number_s : unsigned(3 downto 0) := (others => '0');
   
 begin
 
-  process(clk) begin
-    if(rising_edge(CLK)) then
+  process(clk, RST) begin
+    if(RST = '1') then
+      fsm_s    <= idle;
+      keys_s   <= (others => '0');
+      number_s <= (others => '0');
+    elsif(rising_edge(CLK)) then
       fsm_s  <= fsm_c;
       keys_s <= keys_c;
       number_s <= number_c;

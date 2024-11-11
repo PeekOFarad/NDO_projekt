@@ -35,6 +35,7 @@ architecture Behavioral of backend_top is
 
   component ps2_top is
       Port (  CLK      : in STD_LOGIC;
+              RST      : in STD_LOGIC;
               PS2_CLK  : in STD_LOGIC;
               PS2_DATA : in STD_LOGIC;
               NUMBER   : out STD_LOGIC_VECTOR(3 downto 0);
@@ -284,6 +285,7 @@ begin
 ps2_top_i : ps2_top
 port map(
   CLK      => CLK,
+  RST      => RST,
   PS2_CLK  => PS2_CLK,
   PS2_DATA => PS2_DATA,
   PS2_CODE => ps2_code,

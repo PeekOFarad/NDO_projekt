@@ -16,6 +16,7 @@ entity clk_divider is
         OUT_FREQ : positive
     );
     port ( CLK        : in  std_logic;
+           RST        : in  STD_LOGIC;
            CLK_DIV_EN : out std_logic
     );
 end clk_divider;
@@ -26,8 +27,11 @@ architecture Behavioral of clk_divider is
 
 begin
 
-  process(CLK) begin
-    if(rising_edge(CLK)) then
+  process(CLK, RST) begin
+    if(RST = '1') then
+      counter    <= 0;
+      CLK_DIV_EN <= '0';
+    elsif(rising_edge(CLK)) then
       if(counter = ((IN_FREQ/OUT_FREQ)-1)) then
         counter    <= 0;
         CLK_DIV_EN <= '1';
