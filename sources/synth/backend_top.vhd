@@ -13,14 +13,21 @@ use work.ps2_pkg.all;
 use work.server_pkg.all;
 
 entity backend_top is
+    Generic (
+           g_SLAVE_CNT : positive
+    );
     Port ( CLK      : in STD_LOGIC;
            RST      : in STD_LOGIC;
            PS2_CLK  : in STD_LOGIC;
            PS2_DATA : in STD_LOGIC;
-           COL      : out STD_LOGIC_VECTOR (2 downto 0);
-           ROW      : out STD_LOGIC_VECTOR (5 downto 0);
+           MISO     : in STD_LOGIC;
            UPD_ARR  : out STD_LOGIC;
            UPD_DATA : out STD_LOGIC;
+           SCLK     : out STD_LOGIC;
+           MOSI     : out STD_LOGIC;
+           SS_N     : out STD_LOGIC_VECTOR (g_SLAVE_CNT-1 downto 0);
+           COL      : out STD_LOGIC_VECTOR (2 downto 0);
+           ROW      : out STD_LOGIC_VECTOR (5 downto 0);
            DATA_OUT : out sprit_buff_t);
 end backend_top;
 
@@ -53,7 +60,7 @@ architecture Behavioral of backend_top is
             BUFF_RDY     : out STD_LOGIC;
             UPD_ARR      : out STD_LOGIC;
             UPD_DATA     : out STD_LOGIC;
-            NODE_SEL     : out STD_LOGIC_VECTOR(g_NODE_WIDTH downto 0);
+            NODE_SEL     : out STD_LOGIC_VECTOR(g_NODE_WIDTH-1 downto 0);
             SEL_CELL_COL : out STD_LOGIC_VECTOR (2 downto 0);
             SEL_CELL_ROW : out STD_LOGIC_VECTOR (5 downto 0);
             CHAR_BUFF    : out char_buff_t;
@@ -85,7 +92,7 @@ architecture Behavioral of backend_top is
             RW         : out STD_LOGIC;
             COL        : out STD_LOGIC_VECTOR (2 downto 0);
             ROW        : out STD_LOGIC_VECTOR (5 downto 0);
-            NODE       : out STD_LOGIC_VECTOR (g_NODE_WIDTH downto 0);
+            NODE       : out STD_LOGIC_VECTOR (g_NODE_WIDTH-1 downto 0);
             DIN        : out STD_LOGIC_VECTOR (11 downto 0)
         );
   end component;
@@ -103,7 +110,7 @@ architecture Behavioral of backend_top is
             RW       : in STD_LOGIC;
             COL      : in STD_LOGIC_VECTOR (2 downto 0);
             ROW      : in STD_LOGIC_VECTOR (5 downto 0);
-            NODE     : in STD_LOGIC_VECTOR (g_NODE_WIDTH downto 0);
+            NODE     : in STD_LOGIC_VECTOR (g_NODE_WIDTH-1 downto 0);
             DIN      : in STD_LOGIC_VECTOR (11 downto 0);
             DOUT     : out STD_LOGIC_VECTOR (11 downto 0));
   end component;
@@ -125,7 +132,7 @@ architecture Behavioral of backend_top is
             COL_IN       : in STD_LOGIC_VECTOR (2 downto 0);
             ROW_IN       : in STD_LOGIC_VECTOR (5 downto 0);
             CHAR_BUFF    : in char_buff_t;
-            NODE_SEL     : in STD_LOGIC_VECTOR(g_NODE_WIDTH downto 0);
+            NODE_SEL     : in STD_LOGIC_VECTOR(g_NODE_WIDTH-1 downto 0);
             DIN          : in STD_LOGIC_VECTOR (11 downto 0);
             REQ          : out STD_LOGIC;
             RW           : out STD_LOGIC;
@@ -136,6 +143,62 @@ architecture Behavioral of backend_top is
             DATA_OUT     : out sprit_buff_t);
   end component;
   
+--------------------------------------------------------------------------------
+
+component spi_ctrl is
+    Generic (
+      g_SLAVE_CNT   : positive;
+      g_DATA_WIDTH  : positive;
+      g_NODE_WIDTH  : positive
+    );
+    Port (CLK      : in STD_LOGIC;
+          RST      : in STD_LOGIC;
+          EDIT_ENA : in STD_LOGIC;
+          -- from PS2
+          UPD_DATA : in STD_LOGIC;
+          COL      : in STD_LOGIC_VECTOR (2 downto 0);
+          ROW      : in STD_LOGIC_VECTOR (5 downto 0);
+          NODE     : in STD_LOGIC_VECTOR (g_NODE_WIDTH-1 downto 0);
+          DATA     : in sprit_buff_t;
+          -- to bus_arbiter
+          RW       : out STD_LOGIC;
+          COL_OUT  : out STD_LOGIC_VECTOR (2 downto 0);
+          ROW_OUT  : out STD_LOGIC_VECTOR (5 downto 0);
+          NODE_OUT : out STD_LOGIC_VECTOR (g_NODE_WIDTH-1 downto 0);
+          REQ      : out STD_LOGIC;
+          ACK      : in STD_LOGIC;
+          DIN      : in STD_LOGIC_VECTOR (11 downto 0);
+          DOUT     : out STD_LOGIC_VECTOR (11 downto 0);
+          -- to spi_master
+          BUSY     : in STD_LOGIC;
+          RX_DATA  : in STD_LOGIC_VECTOR (g_DATA_WIDTH-1 downto 0);
+          SSEL     : out STD_LOGIC_VECTOR (g_SLAVE_CNT-1 downto 0);
+          SINGLE   : out STD_LOGIC;
+          TXN_ENA  : out STD_LOGIC;
+          TX_DATA  : out STD_LOGIC_VECTOR (g_DATA_WIDTH-1 downto 0));
+  end component;
+
+--------------------------------------------------------------------------------
+
+component spi_master is
+  Generic (
+         g_SLAVE_CNT   : positive;
+         g_DATA_WIDTH  : positive
+  );
+  Port ( CLK     : in STD_LOGIC;
+         RST     : in STD_LOGIC;
+         TXN_ENA : in STD_LOGIC;
+         MISO    : in STD_LOGIC;
+         SINGLE  : in STD_LOGIC; -- 1 - send frame to single slave, 0 - send frames to multiple slaves (ignore MISO)
+         SSEL    : in STD_LOGIC_VECTOR (g_SLAVE_CNT-1 downto 0);
+         TX_DATA : in STD_LOGIC_VECTOR (g_DATA_WIDTH-1 downto 0);
+         SCLK    : out STD_LOGIC;
+         MOSI    : out STD_LOGIC;
+         BUSY    : out STD_LOGIC;
+         SS_N    : out STD_LOGIC_VECTOR (g_SLAVE_CNT-1 downto 0);
+         RX_DATA : out STD_LOGIC_VECTOR (g_DATA_WIDTH-1 downto 0));
+  end component;
+
 --------------------------------------------------------------------------------
 
   -- PS2 TOP
@@ -149,7 +212,7 @@ architecture Behavioral of backend_top is
   signal   buff_rdy             : std_logic;
   signal   upd_arr_ctrl         : std_logic;
   signal   upd_data_ctrl        : std_logic;
-  signal   node_sel_ctrl        : std_logic_vector(c_NODE_WIDTH downto 0);
+  signal   node_sel_ctrl        : std_logic_vector(c_NODE_WIDTH-1 downto 0);
   signal   col_ctrl             : std_logic_vector(2 downto 0);
   signal   row_ctrl             : std_logic_vector(5 downto 0);
   signal   char_buff            : char_buff_t;
@@ -182,23 +245,39 @@ architecture Behavioral of backend_top is
   signal   row_in_ui            : std_logic_vector(5 downto 0);
   signal   col_out              : std_logic_vector(2 downto 0);
   signal   row_out              : std_logic_vector(5 downto 0);
-  signal   node_in_ui           : std_logic_vector(c_NODE_WIDTH downto 0);
+  signal   node_in_ui           : std_logic_vector(c_NODE_WIDTH-1 downto 0);
   signal   reg_ui               : std_logic;
   signal   ack_ui               : std_logic;
   signal   rw_ui                : std_logic;
+  signal   upd_data_out         : std_logic;
+  signal   data_out_ui          : sprit_buff_t;
 
   -- signals from SPI controller
-  signal   upd_data_spi         : std_logic;
-  signal   node_spi             : std_logic_vector(c_NODE_WIDTH downto 0);
+  -- to bus_arbiter
+  signal   rw_spi               : std_logic;
+  signal   col_spi              : std_logic_vector(2 downto 0);
   signal   row_spi              : std_logic_vector(5 downto 0);
+  signal   node_spi             : std_logic_vector(c_NODE_WIDTH-1 downto 0);
+  signal   reg_spi              : std_logic;
+  signal   ack_spi              : std_logic;
+  signal   dout_spi             : STD_LOGIC_VECTOR (11 downto 0);
+  -- to spi_master
+  signal   txn_ena              : std_logic;
+  signal   single               : std_logic;
+  signal   spi_busy             : std_logic;
+  signal   ssel                 : std_logic_vector(c_CLIENTS_CNT-1 downto 0);
+  signal   tx_data              : std_logic_vector(c_SPI_WIDTH-1 downto 0);
+  signal   rx_data              : std_logic_vector(c_SPI_WIDTH-1 downto 0);
+  
+
+  signal   upd_data_spi         : std_logic;
+
 
 begin
 
   -- temporary assigns
   edit_ena     <= '1';
   upd_data_spi <= '0';
-  node_spi     <= (others => '0');
-  row_spi      <= (others => '0');
 
 --------------------------------------------------------------------------------
 
@@ -267,18 +346,25 @@ port map(
 
 REQ(0)        <= reg_ctrl;
 REQ(1)        <= reg_ui;
+REQ(2)        <= reg_spi;
 block_RW(0)   <= rw_ctrl;
 block_RW(1)   <= rw_ui;
+block_RW(2)   <= rw_spi;
 block_COL(0)  <= col_ctrl;
 block_COL(1)  <= col_out;
+block_COL(2)  <= col_spi;
 block_ROW(0)  <= row_ctrl;
 block_ROW(1)  <= row_out;
+block_ROW(2)  <= row_spi;
 block_NODE(0) <= node_sel_ctrl;
 block_NODE(1) <= node_in_ui;
+block_NODE(2) <= node_spi;
 block_DIN(0)  <= dout_ctrl;
 block_DIN(1)  <= (others => '0');
+block_DIN(1)  <= dout_spi;
 ack_ctrl      <= ACK(0);
 ack_ui        <= ACK(1);
+ack_spi       <= ACK(2);
 
 --------------------------------------------------------------------------------
 
@@ -322,10 +408,68 @@ port map(
   REQ          => reg_ui,
   RW           => rw_ui,
   UPD_ARR_OUT  => UPD_ARR,
-  UPD_DATA_OUT => UPD_DATA,
+  UPD_DATA_OUT => upd_data_out,
   COL_OUT      => col_out,
   ROW_OUT      => row_out,
-  DATA_OUT     => DATA_OUT
+  DATA_OUT     => data_out_ui
+);
+
+--------------------------------------------------------------------------------
+
+spi_ctrl_i : spi_ctrl
+generic map(
+  g_SLAVE_CNT   => c_CLIENTS_CNT,
+  g_DATA_WIDTH  => c_SPI_WIDTH,
+  g_NODE_WIDTH  => c_NODE_WIDTH
+)
+port map(
+  CLK        => CLK,
+  RST        => RST,
+  EDIT_ENA   => edit_ena,
+  -- from PS2
+  UPD_DATA   => upd_data_out,
+  COL        => col_out,
+  ROW        => row_out,
+  NODE       => node_in_ui,
+  DATA       => data_out_ui,
+  -- to bus_arbiter
+  RW         => rw_spi,
+  COL_OUT    => col_spi,
+  ROW_OUT    => row_spi,
+  NODE_OUT   => node_spi,
+  REQ        => reg_spi,
+  ACK        => ack_spi,
+  DIN        => dout,
+  DOUT       => dout_spi,
+  -- to spi_master
+  BUSY       => spi_busy,
+  RX_DATA    => rx_data,
+  SSEL       => ssel,
+  SINGLE     => single,
+  TXN_ENA    => txn_ena,
+  TX_DATA    => tx_data
+);
+
+--------------------------------------------------------------------------------
+
+spi_master_i : spi_master
+generic map(
+  g_SLAVE_CNT   => c_CLIENTS_CNT,
+  g_DATA_WIDTH  => c_SPI_WIDTH
+)
+port map(
+  CLK        => CLK,
+  RST        => RST,
+  TXN_ENA    => txn_ena,
+  MISO       => MISO,
+  SINGLE     => single,
+  SSEL       => ssel,
+  TX_DATA    => tx_data,
+  SCLK       => SCLK,
+  MOSI       => MOSI,
+  BUSY       => spi_busy,
+  SS_N       => SS_N,
+  RX_DATA    => rx_data
 );
 
 --------------------------------------------------------------------------------
@@ -343,7 +487,7 @@ begin
   else
     col_in_ui   <= "001";
     row_in_ui   <= row_spi;
-    node_in_ui  <= node_spi;
+    node_in_ui  <= "00"; -- show server table in run mode
     upd_arr_ui  <= '0';
     upd_data_ui <= upd_data_spi;
   end if;
@@ -351,7 +495,9 @@ end process;
 
 --------------------------------------------------------------------------------
 -- Output assignments
-  COL <= col_out;
-  ROW <= row_out;
+  COL       <= col_out;
+  ROW       <= row_out;
+  UPD_DATA  <= upd_data_out;
+  DATA_OUT  <= data_out_ui;
 
 end Behavioral;
