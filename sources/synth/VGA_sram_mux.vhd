@@ -19,14 +19,20 @@ use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 use ieee.math_real.all;
 use work.VGA_pkg.all;
+use work.server_pkg.all;
 
 entity VGA_sram_mux is
-  generic (
-    g_SRAM_OFFSET   : integer := 0
-  );
   Port ( 
     CLK         : in  std_logic;
     RST         : in  std_logic;
+    --------------------------------------------------------------------------------
+    -- SYSTEM INTERFACE
+    COL_SYS     : in  STD_LOGIC_VECTOR (2 downto 0);
+    ROW_SYS     : in  STD_LOGIC_VECTOR (5 downto 0);
+    UPD_ARR     : in  STD_LOGIC;
+    UPD_DATA    : in  STD_LOGIC;
+    DATA_SYS    : in  sprit_buff_t;
+    --------------------------------------------------------------------------------
     COLUMN      : in  std_logic_vector (c_cnt_h_w-1 downto 0);  --! horizontal pixel coordinate
     ROW         : in  std_logic_vector (c_cnt_v_w-1 downto 0);  --! vertical pixel coordinate
     PIXEL_DATA  : out std_logic;
@@ -43,6 +49,9 @@ end VGA_sram_mux;
 
 architecture rtl of VGA_sram_mux is
 
+  -- SYSTEM INTERFACE
+  
+
   type t_fsm_sram_mux is (init, READ, WRITE);
     
   signal state, next_state : t_fsm_sram_mux := init;
@@ -52,7 +61,6 @@ architecture rtl of VGA_sram_mux is
   signal ub_n_int       : std_logic := '0';
   signal lb_n_int       : std_logic := '1';
   signal data_o_int     : std_logic_vector(15 downto 0) := (others => '0');
-
 
   signal ctrl_en_int    : std_logic := '0';
 
@@ -239,6 +247,7 @@ begin
     we_n_int  <= '1';
     ub_n_int  <= '1';
     lb_n_int  <= '1';
+    next_state <= init;
 
     case state is
 
@@ -246,8 +255,7 @@ begin
         we_n_int  <= '0';
         ub_n_int  <= clk_half_en;
         lb_n_int  <= NOT clk_half_en;
-
-        next_state <= init;
+        
         if cnt_ROM_row_s >= 11 and cnt_ROM_col_s >= 79*12 then 
           next_state <= READ;
         end if;
@@ -303,10 +311,15 @@ begin
   port map (
     CLK       => CLK,
     RST       => RST,
+    COL_SYS   => COL_SYS,     
+    ROW_SYS   => ROW_SYS,     
+    UPD_ARR   => UPD_ARR,
+    UPD_DATA  => UPD_DATA,
+    DATA_SYS  => DATA_SYS,
     FIFO_REN  => fifo_ren,
     WADDR_C   => WADDR_C,
     DATA_O    => DATA_O,
-    WE_N_D2    => WE_N_W,
+    WE_N_D2   => WE_N_W,
     LB_N_W    => LB_N_W,
     UB_N_W    => UB_N_W
   );
