@@ -28,7 +28,7 @@ entity ui_adapter is
            COL_IN       : in STD_LOGIC_VECTOR (2 downto 0);
            ROW_IN       : in STD_LOGIC_VECTOR (5 downto 0);
            CHAR_BUFF    : in char_buff_t;
-           NODE_SEL     : in STD_LOGIC_VECTOR(g_NODE_WIDTH downto 0);
+           NODE_SEL     : in STD_LOGIC_VECTOR(g_NODE_WIDTH-1 downto 0);
            DIN          : in STD_LOGIC_VECTOR (11 downto 0);
            REQ          : out STD_LOGIC;
            RW           : out STD_LOGIC;
@@ -46,7 +46,7 @@ architecture Behavioral of ui_adapter is
   signal fsm_c : t_fsm_ui_adapter;
   signal fsm_s : t_fsm_ui_adapter := cfg;
 
-  signal node_sel_s : STD_LOGIC_VECTOR(g_NODE_WIDTH downto 0);
+  signal node_sel_s : STD_LOGIC_VECTOR(g_NODE_WIDTH-1 downto 0);
 
   signal cnt_c : UNSIGNED(4 downto 0);
   signal cnt_s : UNSIGNED(4 downto 0) := (others => '0');

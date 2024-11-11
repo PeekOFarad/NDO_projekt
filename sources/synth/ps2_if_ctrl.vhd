@@ -30,7 +30,7 @@ entity ps2_if_ctrl is
            BUFF_RDY     : out STD_LOGIC;
            UPD_ARR      : out STD_LOGIC;
            UPD_DATA     : out STD_LOGIC;
-           NODE_SEL     : out STD_LOGIC_VECTOR(g_NODE_WIDTH downto 0);
+           NODE_SEL     : out STD_LOGIC_VECTOR(g_NODE_WIDTH-1 downto 0);
            SEL_CELL_COL : out STD_LOGIC_VECTOR (2 downto 0);
            SEL_CELL_ROW : out STD_LOGIC_VECTOR (5 downto 0);
            CHAR_BUFF    : out char_buff_t;
@@ -58,8 +58,8 @@ architecture Behavioral of ps2_if_ctrl is
   signal sel_cell_row_c : unsigned(5 downto 0);
   signal sel_cell_row_s : unsigned(5 downto 0) := (others => '0');
   
-  signal node_sel_c     : unsigned(g_NODE_WIDTH downto 0);
-  signal node_sel_s     : unsigned(g_NODE_WIDTH downto 0) := (others => '0');
+  signal node_sel_c     : unsigned(g_NODE_WIDTH-1 downto 0);
+  signal node_sel_s     : unsigned(g_NODE_WIDTH-1 downto 0) := (others => '0');
   
   signal char_buff_c    : char_buff_t;
   signal char_buff_s    : char_buff_t := (others => (others => '0'));
@@ -178,7 +178,7 @@ begin
                 if(node_sel_s /= g_CLIENTS_CNT) then
                   node_sel_c <= node_sel_s + 1;
                 else
-                  node_sel_c <= TO_UNSIGNED(0, (g_NODE_WIDTH + 1));
+                  node_sel_c <= TO_UNSIGNED(0, g_NODE_WIDTH);
                 end if;
               elsif((node_sel_s = 0) or (sel_cell_col_s = 1)) then -- prices and dishes can be changed only from server page
                 fsm_c <= cell_rst;

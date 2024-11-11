@@ -8,8 +8,8 @@
 
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
-use work.VGA_pkg.all; 
 use IEEE.NUMERIC_STD.ALL;
+use work.ps2_pkg.all;
 
 entity ps2_rx is
     Port ( CLK        : in  STD_LOGIC;

@@ -29,7 +29,7 @@ entity bus_arbiter is
            RW         : out STD_LOGIC;
            COL        : out STD_LOGIC_VECTOR (2 downto 0);
            ROW        : out STD_LOGIC_VECTOR (5 downto 0);
-           NODE       : out STD_LOGIC_VECTOR (g_NODE_WIDTH downto 0);
+           NODE       : out STD_LOGIC_VECTOR (g_NODE_WIDTH-1 downto 0);
            DIN        : out STD_LOGIC_VECTOR (11 downto 0)
         );
 end bus_arbiter;
