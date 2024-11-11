@@ -12,6 +12,7 @@ use IEEE.STD_LOGIC_1164.ALL;
 
 entity fall_edge_detector is
     Port ( CLK       : in  std_logic;
+           RST       : in  STD_LOGIC;
            INP_SIG   : in  std_logic;
            FALL_EDGE : out std_logic
     );
@@ -23,8 +24,10 @@ architecture Behavioral of fall_edge_detector is
 
 begin
     
-  process(CLK) begin
-    if(rising_edge(CLK)) then
+  process(CLK, RST) begin
+    if(RST = '1') then
+      q <= (others => '0');
+    elsif(rising_edge(CLK)) then
       q(0) <= INP_SIG;
       q(1) <= q(0);
     end if;

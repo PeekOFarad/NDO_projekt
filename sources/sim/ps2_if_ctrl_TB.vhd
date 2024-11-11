@@ -33,7 +33,7 @@ architecture Behavioral of ps2_if_ctrl_TB is
             BUFF_RDY     : out STD_LOGIC;
             UPD_ARR      : out STD_LOGIC;
             UPD_DATA     : out STD_LOGIC;
-            NODE_SEL     : out STD_LOGIC_VECTOR(g_NODE_WIDTH downto 0);
+            NODE_SEL     : out STD_LOGIC_VECTOR(g_NODE_WIDTH-1 downto 0);
             SEL_CELL_COL : out STD_LOGIC_VECTOR (2 downto 0);
             SEL_CELL_ROW : out STD_LOGIC_VECTOR (5 downto 0);
             CHAR_BUFF    : out char_buff_t;
@@ -58,7 +58,7 @@ architecture Behavioral of ps2_if_ctrl_TB is
            RW       : in STD_LOGIC;
            COL      : in STD_LOGIC_VECTOR (2 downto 0);
            ROW      : in STD_LOGIC_VECTOR (5 downto 0);
-           NODE     : in STD_LOGIC_VECTOR (g_NODE_WIDTH downto 0);
+           NODE     : in STD_LOGIC_VECTOR (g_NODE_WIDTH-1 downto 0);
            DIN      : in STD_LOGIC_VECTOR (11 downto 0); -- max width constrained by amount
            DOUT     : out STD_LOGIC_VECTOR (11 downto 0));
   end component;
@@ -84,7 +84,7 @@ architecture Behavioral of ps2_if_ctrl_TB is
            RW         : out STD_LOGIC;
            COL        : out STD_LOGIC_VECTOR (2 downto 0);
            ROW        : out STD_LOGIC_VECTOR (5 downto 0);
-           NODE       : out STD_LOGIC_VECTOR (g_NODE_WIDTH downto 0);
+           NODE       : out STD_LOGIC_VECTOR (g_NODE_WIDTH-1 downto 0);
            DIN        : out STD_LOGIC_VECTOR (11 downto 0)
         );
 end component;
@@ -142,7 +142,7 @@ begin
 bus_arbiter_i : bus_arbiter
 generic map(
   g_NUM_BLOCKS  => 2,
-  g_NODE_WIDTH  => 1
+  g_NODE_WIDTH  => 2
 )
 port map(
   CLK          => clk,
@@ -167,7 +167,7 @@ port map(
   generic map(
     g_FOOD_CNT    => c_FOOD_CNT,
     g_CLIENTS_CNT => c_CLIENTS_CNT,
-    g_NODE_WIDTH  => 1
+    g_NODE_WIDTH  => 2
   )
   port map(
     CLK          => clk,
@@ -196,7 +196,7 @@ port map(
   generic map(
     g_FOOD_CNT    => c_FOOD_CNT,
     g_CLIENTS_CNT => c_CLIENTS_CNT,
-    g_NODE_WIDTH  => 1
+    g_NODE_WIDTH  => 2
   )
   port map(
     CLK    => clk,

@@ -18,15 +18,22 @@ end top_tb;
 architecture bench of top_tb is
 
   component backend_top is
+    Generic (
+           g_SLAVE_CNT : positive
+    );
     Port ( CLK      : in STD_LOGIC;
            RST      : in STD_LOGIC;
            PS2_CLK  : in STD_LOGIC;
            PS2_DATA : in STD_LOGIC;
-           COL      : out STD_LOGIC_VECTOR (2 downto 0);
-           ROW      : out STD_LOGIC_VECTOR (5 downto 0);
+           MISO     : in STD_LOGIC;
            UPD_ARR  : out STD_LOGIC;
            UPD_DATA : out STD_LOGIC;
-           DATA_OUT : out sprit_buff_t);
+           SCLK     : out STD_LOGIC;
+           MOSI     : out STD_LOGIC;
+           SS_N     : out STD_LOGIC_VECTOR (g_SLAVE_CNT-1 downto 0);
+           COL      : out STD_LOGIC_VECTOR (2 downto 0);
+           ROW      : out STD_LOGIC_VECTOR (5 downto 0);
+           DATA_OUT : out char_buff_t);
   end component;
 
 --------------------------------------------------------------------------------
@@ -43,9 +50,14 @@ architecture bench of top_tb is
   signal   ps2_data         : std_logic := '1';
   signal   col              : std_logic_vector(2 downto 0);
   signal   row              : std_logic_vector(5 downto 0);
-  signal   data_out         : sprit_buff_t;
+  signal   data_out         : char_buff_t;
   signal   upd_arr          : std_logic;
   signal   upd_data         : std_logic;
+  signal   miso             : std_logic := '0';
+  signal   mosi             : std_logic;
+  signal   sclk             : std_logic;
+  signal   ss_n             : std_logic_vector(c_CLIENTS_CNT-1 downto 0);
+
   
   -- simulation related signals
   signal   par                  : std_logic := '0';
@@ -89,15 +101,22 @@ begin
 --------------------------------------------------------------------------------
 
   backend_top_i : backend_top
+  generic map(
+    g_SLAVE_CNT => c_CLIENTS_CNT
+  )
   port map(
     CLK      => clk,
     RST      => rst,
     PS2_CLK  => ps2_clk,
     PS2_DATA => ps2_data,
-    COL      => col,
-    ROW      => row,
+    MISO     => miso,
     UPD_ARR  => upd_arr,
     UPD_DATA => upd_data,
+    SCLK     => sclk,
+    MOSI     => mosi,
+    SS_N     => ss_n,
+    COL      => col,
+    ROW      => row,
     DATA_OUT => data_out
   );
 
@@ -114,22 +133,22 @@ begin
     r_send_ps2_frame(c_enter, par, ps2_clk, ps2_data);
     
     -- print "cesnecka"
-    data <= c_c;
-    r_send_ps2_frame(c_c, par, ps2_clk, ps2_data);
-    data <= c_e;
-    r_send_ps2_frame(c_e, par, ps2_clk, ps2_data);
-    data <= c_s;
-    r_send_ps2_frame(c_s, par, ps2_clk, ps2_data);
-    data <= c_n;
-    r_send_ps2_frame(c_n, par, ps2_clk, ps2_data);
-    data <= c_e;
-    r_send_ps2_frame(c_e, par, ps2_clk, ps2_data);
-    data <= c_c;
-    r_send_ps2_frame(c_c, par, ps2_clk, ps2_data);
-    data <= c_k;
-    r_send_ps2_frame(c_k, par, ps2_clk, ps2_data);
-    data <= c_a;
-    r_send_ps2_frame(c_a, par, ps2_clk, ps2_data);
+    data <= std_logic_vector(TO_UNSIGNED(c_c, 8));
+    r_send_ps2_frame(std_logic_vector(TO_UNSIGNED(c_c, 8)), par, ps2_clk, ps2_data);
+    data <= std_logic_vector(TO_UNSIGNED(c_e, 8));
+    r_send_ps2_frame(std_logic_vector(TO_UNSIGNED(c_e, 8)), par, ps2_clk, ps2_data);
+    data <= std_logic_vector(TO_UNSIGNED(c_s, 8));
+    r_send_ps2_frame(std_logic_vector(TO_UNSIGNED(c_s, 8)), par, ps2_clk, ps2_data);
+    data <= std_logic_vector(TO_UNSIGNED(c_n, 8));
+    r_send_ps2_frame(std_logic_vector(TO_UNSIGNED(c_n, 8)), par, ps2_clk, ps2_data);
+    data <= std_logic_vector(TO_UNSIGNED(c_e, 8));
+    r_send_ps2_frame(std_logic_vector(TO_UNSIGNED(c_e, 8)), par, ps2_clk, ps2_data);
+    data <= std_logic_vector(TO_UNSIGNED(c_c, 8));
+    r_send_ps2_frame(std_logic_vector(TO_UNSIGNED(c_c, 8)), par, ps2_clk, ps2_data);
+    data <= std_logic_vector(TO_UNSIGNED(c_k, 8));
+    r_send_ps2_frame(std_logic_vector(TO_UNSIGNED(c_k, 8)), par, ps2_clk, ps2_data);
+    data <= std_logic_vector(TO_UNSIGNED(c_a, 8));
+    r_send_ps2_frame(std_logic_vector(TO_UNSIGNED(c_a, 8)), par, ps2_clk, ps2_data);
 
     -- press right arrow
     data <= c_e0;

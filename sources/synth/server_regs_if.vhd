@@ -22,7 +22,7 @@ entity server_regs_if is
            RW       : in STD_LOGIC;
            COL      : in STD_LOGIC_VECTOR (2 downto 0);
            ROW      : in STD_LOGIC_VECTOR (5 downto 0);
-           NODE     : in STD_LOGIC_VECTOR (g_NODE_WIDTH downto 0);
+           NODE     : in STD_LOGIC_VECTOR (g_NODE_WIDTH-1 downto 0);
            DIN      : in STD_LOGIC_VECTOR (11 downto 0); -- max width constrained by amount
            DOUT     : out STD_LOGIC_VECTOR (11 downto 0));
 end server_regs_if;
@@ -54,7 +54,7 @@ begin
       end if;
     end process;
 
-    process(RW, COL, ROW, NODE, amount_s, st_price_s, em_price_s, ex_price_s) begin
+    process(RW, COL, ROW, NODE, amount_s, st_price_s, em_price_s, ex_price_s, DIN) begin
         amount_c    <= amount_s;
         st_price_c  <= st_price_s;
         em_price_c  <= em_price_s;

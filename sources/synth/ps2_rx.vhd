@@ -8,11 +8,12 @@
 
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
-use work.VGA_pkg.all; 
 use IEEE.NUMERIC_STD.ALL;
+use work.ps2_pkg.all;
 
 entity ps2_rx is
     Port ( CLK        : in  STD_LOGIC;
+           RST        : in  STD_LOGIC;
            PS2_CLK    : in  STD_LOGIC;
            PS2_DATA   : in  STD_LOGIC;
            CODE_READY : out STD_LOGIC;
@@ -28,6 +29,7 @@ component clk_divider is
         OUT_FREQ : positive
     );
     port ( CLK        : in  std_logic;
+           RST        : in  STD_LOGIC;
            CLK_DIV_EN : out std_logic
     );
 end component;
@@ -35,6 +37,7 @@ end component;
   -- falling edge detector
   component fall_edge_detector is
     Port ( CLK       : in  std_logic;
+           RST       : in  STD_LOGIC;
            INP_SIG   : in  std_logic;
            FALL_EDGE : out std_logic
     );
@@ -64,12 +67,16 @@ begin
                   OUT_FREQ => 1  --  1 MHz
                 )
     port map  ( CLK        => CLK,
+                RST        => RST,
                 CLK_DIV_EN => clk_div_en
               );
          
 -- PS2_clk signal debouncer
-  process(clk) begin
-    if(rising_edge(clk)) then
+  process(clk, rst) begin
+    if(rst = '1') then
+      ps2_clk_reg <= (others => '0');
+      ps2_clk_deb <= '0';
+    elsif(rising_edge(clk)) then
       if(clk_div_en = '1') then
         ps2_clk_reg <= PS2_CLK & ps2_clk_reg(3 downto 1);
         
@@ -85,14 +92,20 @@ begin
 -- detect falling edge of debounces PS2 CLK signal
   fall_edge_det_i: fall_edge_detector
     port map  ( CLK       => CLK,
+                RST       => RST,
                 INP_SIG   => ps2_clk_deb,
                 FALL_EDGE => ps2_clk_fe
               );
               
 ----------------------------------------------------------------------------------
 
-  process(clk) begin
-    if(rising_edge(clk)) then
+  process(clk, rst) begin
+    if(rst = '1') then
+      fsm_s        <= idle;
+      ps2_data_s   <= (others => '0');
+      data_cnt_s   <= (others => '0');
+      code_ready_s <= '0';
+    elsif(rising_edge(clk)) then
       fsm_s        <= fsm_c;
       ps2_data_s   <= ps2_data_c;
       data_cnt_s   <= data_cnt_c;
@@ -100,7 +113,7 @@ begin
     end if;
   end process;
   
-  process(fsm_s, ps2_clk_fe, PS2_DATA, data_cnt_s) begin
+  process(fsm_s, ps2_clk_fe, PS2_DATA, data_cnt_s, ps2_data_s, code_ready_s, ps2_data_parity) begin
     data_cnt_c   <= data_cnt_s;
     ps2_data_c   <= ps2_data_s;
     fsm_c        <= fsm_s;
