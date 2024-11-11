@@ -9,6 +9,7 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
+use IEEE.MATH_REAL.all;
 use work.server_pkg.all;
 
 entity spi_ctrl is
@@ -25,7 +26,7 @@ entity spi_ctrl is
            COL      : in STD_LOGIC_VECTOR (2 downto 0);
            ROW      : in STD_LOGIC_VECTOR (5 downto 0);
            NODE     : in STD_LOGIC_VECTOR (g_NODE_WIDTH-1 downto 0);
-           DATA     : in sprit_buff_t;
+           DATA     : in char_buff_t;
            -- to bus_arbiter
            RW       : out STD_LOGIC;
            COL_OUT  : out STD_LOGIC_VECTOR (2 downto 0);
@@ -51,12 +52,13 @@ architecture Behavioral of spi_ctrl is
   signal fsm_c : fsm_t;
   signal fsm_s : fsm_t := idle;
 
-  signal data_s : sprit_buff_t := (others => (others => '0'));
+  signal data_s : char_buff_t := (others => (others => '0'));
 
   signal char_idx_c : unsigned(4 downto 0);
   signal char_idx_s : unsigned(4 downto 0) := (others => '0');
 
-  signal is_empty_c : std_logic;
+  signal is_empty_c      : std_logic;
+  -- signal non_zero_data_c : std_logic_vector(31 downto 0);
 
   signal ssel_c     : std_logic_vector(g_SLAVE_CNT-1 downto 0);
   signal ssel_s     : std_logic_vector(g_SLAVE_CNT-1 downto 0) := (others => '1');
@@ -91,9 +93,14 @@ end process;
 -- set is_empty_c if data_s(31 downto char_idx_s) are all zero bytes
 process(char_idx_s, data_s) begin
   is_empty_c <= '1';
+  -- non_zero_data_c <= (others <= '0');
 
-  for i in to_integer(char_idx_s) to 31 loop
-    if(data_s(i) /= "00000000") then
+  -- for i in 0 to 31 loop
+  --   if()
+  -- end loop;
+
+  for i in 0 to 31 loop
+    if((data_s(i) /= "00000000") and (i >= to_integer(char_idx_s))) then
       is_empty_c <= '0';
     end if;
   end loop;
@@ -174,7 +181,7 @@ process(fsm_s, EDIT_ENA, BUSY, UPD_DATA, char_idx_s, is_empty_c, COL, NODE, data
 end process;
 
 -- calculate TX address
-tx_addr_c <= std_logic_vector((5 * unsigned(ROW)) + unsigned(COL));
+tx_addr_c <= std_logic_vector(resize(((5 * unsigned(ROW)) + unsigned(COL)), 8));
 tx_data_c <= "0000" & data_s(TO_INTEGER(char_idx_s));
 tx_par_c  <= not ('0' xor tx_addr_c(0) xor tx_addr_c(1) xor tx_addr_c(2) xor tx_addr_c(3) xor
                           tx_addr_c(4) xor tx_addr_c(5) xor tx_addr_c(6) xor tx_addr_c(7) xor

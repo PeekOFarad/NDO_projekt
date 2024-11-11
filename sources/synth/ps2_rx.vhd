@@ -100,7 +100,7 @@ begin
     end if;
   end process;
   
-  process(fsm_s, ps2_clk_fe, PS2_DATA, data_cnt_s) begin
+  process(fsm_s, ps2_clk_fe, PS2_DATA, data_cnt_s, ps2_data_s, code_ready_s, ps2_data_parity) begin
     data_cnt_c   <= data_cnt_s;
     ps2_data_c   <= ps2_data_s;
     fsm_c        <= fsm_s;

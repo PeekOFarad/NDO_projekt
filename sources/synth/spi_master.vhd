@@ -38,9 +38,6 @@ architecture Behavioral of spi_master is
   signal sclk_cnt_c : unsigned(5 downto 0);
   signal sclk_cnt_s : unsigned(5 downto 0) := (others => '0');
 
-  signal rw_c : std_logic;
-  signal rw_s : std_logic := '0';
-
   signal rx_buff_c : std_logic_vector(g_DATA_WIDTH-1 downto 0);
   signal rx_buff_s : std_logic_vector(g_DATA_WIDTH-1 downto 0) := (others => '0');
 
@@ -64,7 +61,6 @@ begin
     if(RST = '1') then
       fsm_s      <= idle;
       sclk_cnt_s <= (others => '0');
-      rw_s       <= '0';
       rx_buff_s  <= (others => '0');
       tx_buff_s  <= (others => '0');
       sclk_s     <= '0';
@@ -75,7 +71,6 @@ begin
     elsif(rising_edge(CLK)) then
       fsm_s      <= fsm_c;
       sclk_cnt_s <= sclk_cnt_c;
-      rw_s       <= rw_c;
       rx_buff_s  <= rx_buff_c;
       tx_buff_s  <= tx_buff_c;
       sclk_s     <= sclk_c;
@@ -86,11 +81,10 @@ begin
     end if;
   end process;
 
-  process(TXN_ENA, MISO, SSEL, TX_DATA, SINGLE, fsm_s, sclk_cnt_s, rw_s,
+  process(TXN_ENA, MISO, SSEL, TX_DATA, SINGLE, fsm_s, sclk_cnt_s,
           rx_buff_s, tx_buff_s, sclk_s, mosi_s, busy_s, s_sel_s, single_s) begin
     fsm_c      <= fsm_s;
     sclk_cnt_c <= sclk_cnt_s;
-    rw_c       <= rw_s;
     rx_buff_c  <= rx_buff_s;
     tx_buff_c  <= tx_buff_s;
     sclk_c     <= sclk_s;
@@ -109,7 +103,6 @@ begin
           busy_c     <= '1';
           s_sel_c    <= SSEL;
           single_c   <= SINGLE;
-          rw_c       <= '1';
           tx_buff_c  <= TX_DATA;
           sclk_cnt_c <= (others => '0');
           fsm_c      <= run;

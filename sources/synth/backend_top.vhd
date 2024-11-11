@@ -14,7 +14,7 @@ use work.server_pkg.all;
 
 entity backend_top is
     Generic (
-           g_SLAVE_CNT : positive
+           g_SLAVE_CNT : positive := c_CLIENTS_CNT
     );
     Port ( CLK      : in STD_LOGIC;
            RST      : in STD_LOGIC;
@@ -28,7 +28,7 @@ entity backend_top is
            SS_N     : out STD_LOGIC_VECTOR (g_SLAVE_CNT-1 downto 0);
            COL      : out STD_LOGIC_VECTOR (2 downto 0);
            ROW      : out STD_LOGIC_VECTOR (5 downto 0);
-           DATA_OUT : out sprit_buff_t);
+           DATA_OUT : out char_buff_t);
 end backend_top;
 
 architecture Behavioral of backend_top is
@@ -140,7 +140,7 @@ architecture Behavioral of backend_top is
             UPD_DATA_OUT : out STD_LOGIC;
             COL_OUT      : out STD_LOGIC_VECTOR (2 downto 0);
             ROW_OUT      : out STD_LOGIC_VECTOR (5 downto 0);
-            DATA_OUT     : out sprit_buff_t);
+            DATA_OUT     : out char_buff_t);
   end component;
   
 --------------------------------------------------------------------------------
@@ -159,7 +159,7 @@ component spi_ctrl is
           COL      : in STD_LOGIC_VECTOR (2 downto 0);
           ROW      : in STD_LOGIC_VECTOR (5 downto 0);
           NODE     : in STD_LOGIC_VECTOR (g_NODE_WIDTH-1 downto 0);
-          DATA     : in sprit_buff_t;
+          DATA     : in char_buff_t;
           -- to bus_arbiter
           RW       : out STD_LOGIC;
           COL_OUT  : out STD_LOGIC_VECTOR (2 downto 0);
@@ -250,7 +250,7 @@ component spi_master is
   signal   ack_ui               : std_logic;
   signal   rw_ui                : std_logic;
   signal   upd_data_out         : std_logic;
-  signal   data_out_ui          : sprit_buff_t;
+  signal   data_out_ui          : char_buff_t;
 
   -- signals from SPI controller
   -- to bus_arbiter
@@ -361,7 +361,7 @@ block_NODE(1) <= node_in_ui;
 block_NODE(2) <= node_spi;
 block_DIN(0)  <= dout_ctrl;
 block_DIN(1)  <= (others => '0');
-block_DIN(1)  <= dout_spi;
+block_DIN(2)  <= dout_spi;
 ack_ctrl      <= ACK(0);
 ack_ui        <= ACK(1);
 ack_spi       <= ACK(2);

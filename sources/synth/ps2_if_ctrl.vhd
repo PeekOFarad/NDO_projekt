@@ -71,10 +71,8 @@ architecture Behavioral of ps2_if_ctrl is
   signal numb_buff_s   : unsigned(11 downto 0) := (others => '0');
 
   signal new_number_c   : unsigned(15 downto 0);
-  signal new_number_s   : unsigned(15 downto 0) := (others => '0');
   
   signal prev_number_c  : unsigned(11 downto 0);
-  signal prev_number_s  : unsigned(11 downto 0) := (others => '0');
   
   signal buff_rdy_c     : std_logic;
   signal buff_rdy_s     : std_logic := '0';
@@ -84,8 +82,6 @@ architecture Behavioral of ps2_if_ctrl is
   
   signal upd_data_c     : std_logic;
   signal upd_data_s     : std_logic := '0';
-
-  signal number_s       : std_logic_vector(3 downto 0) := (others => '0');
 
 begin
 
@@ -101,8 +97,6 @@ begin
       upd_arr_s      <= '0';
       upd_data_s     <= '0';
       numb_buff_s    <= (others => '0');
-      new_number_s   <= (others => '0');
-      prev_number_s  <= (others => '0');
     elsif(rising_edge(CLK)) then
       fsm_s          <= fsm_c;
       start_day_s    <= start_day_c;
@@ -115,16 +109,13 @@ begin
       upd_arr_s      <= upd_arr_c;
       upd_data_s     <= upd_data_c;
       numb_buff_s    <= numb_buff_c;
-      new_number_s   <= new_number_c;
-      prev_number_s  <= prev_number_c;
     end if;
   end process;
 
   process(KEYS, fsm_s, start_day_s, sel_cell_col_s, sel_cell_row_s,
-          node_sel_s, EDIT_ENA, new_number_s, prev_number_s, char_sel_s,
+          node_sel_s, EDIT_ENA, char_sel_s,
           char_buff_s, buff_rdy_s, upd_arr_s, upd_data_s, ACK, numb_buff_s,
-          new_number_c, prev_number_c)
---  process(all)
+          new_number_c, prev_number_c, PS2_CODE)
   begin
     fsm_c          <= fsm_s;
     start_day_c    <= '0';
@@ -134,6 +125,8 @@ begin
     char_buff_c    <= char_buff_s;
     char_sel_c     <= char_sel_s;
     buff_rdy_c     <= buff_rdy_s;
+    upd_arr_c      <= '0';
+    upd_data_c     <= '0';
     RW             <= '1'; -- read
     REQ            <= '0';
     numb_buff_c    <= numb_buff_s;
@@ -141,9 +134,6 @@ begin
     case(fsm_s) is
       when idle =>
           buff_rdy_c     <= '0';
-          upd_arr_c      <= '0';
-          upd_data_c     <= '0';
-          DOUT           <= std_logic_vector(numb_buff_s);
           
           if(KEYS.up = '1') then
             if(sel_cell_row_s /= 0) then
@@ -245,7 +235,7 @@ begin
           fsm_c <= idle;
         elsif(KEYS.bckspc = '1') then -- backspace
           if(sel_cell_col_s /= 0) then
-            DOUT <= std_logic_vector(prev_number_c);
+            -- numb_buff_c <= std_logic_vector(prev_number_c);
             numb_buff_c <= prev_number_c;
             RW    <= '0';
             fsm_c <= wait4ack;
@@ -257,13 +247,13 @@ begin
             upd_data_c <= '1';
           end if;
         elsif((KEYS.number = '1') and (sel_cell_col_s /= 0)) then -- number
-          DOUT        <= std_logic_vector(new_number_c(11 downto 0));
+          -- DOUT        <= std_logic_vector(new_number_c(11 downto 0));
           numb_buff_c <= new_number_c(11 downto 0);
           RW    <= '0';
           fsm_c <= wait4ack;  
         end if;
         if(((KEYS.char = '1') or (KEYS.number = '1')) and (char_sel_s /= 31)) then -- char
-          char_buff_c(TO_INTEGER(char_sel_s)) <= PS2_CODE;
+          char_buff_c(TO_INTEGER(char_sel_s)) <= sprits_ROM(TO_INTEGER(UNSIGNED(PS2_CODE))); -- decode directly PS2 code to sprit number
           char_sel_c <= char_sel_s + 1;
           upd_data_c <= '1';
         end if;
@@ -275,17 +265,6 @@ begin
           fsm_c   <= edit;
         end if;
     end case;
-  end process;
-
-  -- sample NUMBER when KEYS.number = '1'
-  process(CLK, RST) begin
-    if(RST = '1') then
-      number_s <= (others => '0');
-    elsif(rising_edge(CLK)) then
-      if(KEYS.number = '1') then
-        number_s <= NUMBER;
-      end if;
-    end if;
   end process;
   
   -- calculate summ of prev value and new number in dec format
@@ -303,5 +282,7 @@ begin
   SEL_CELL_COL <= std_logic_vector(sel_cell_col_s);
   SEL_CELL_ROW <= std_logic_vector(sel_cell_row_s);
   CHAR_BUFF    <= char_buff_s;
+
+  DOUT         <= std_logic_vector(numb_buff_s);
 
 end Behavioral;

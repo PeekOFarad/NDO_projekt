@@ -34,8 +34,6 @@ package server_pkg is
   type block_row_t is array(0 to c_NUM_BLOCKS-1) of STD_LOGIC_VECTOR (5 downto 0);
   type block_node_t is array(0 to c_NUM_BLOCKS-1) of STD_LOGIC_VECTOR (c_NODE_WIDTH-1 downto 0);
   type block_data_t is array(0 to c_NUM_BLOCKS-1) of STD_LOGIC_VECTOR (11 downto 0);
-
-  type sprit_buff_t is array(0 to 31) of char_t;
   
   type digit_t is array(0 to 3) of unsigned(11 downto 0);
 

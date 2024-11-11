@@ -54,7 +54,7 @@ begin
       end if;
     end process;
 
-    process(RW, COL, ROW, NODE, amount_s, st_price_s, em_price_s, ex_price_s) begin
+    process(RW, COL, ROW, NODE, amount_s, st_price_s, em_price_s, ex_price_s, DIN) begin
         amount_c    <= amount_s;
         st_price_c  <= st_price_s;
         em_price_c  <= em_price_s;
