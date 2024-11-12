@@ -53,7 +53,7 @@ package VGA_pkg is
     id     : t_char_id;
   end record;
 
-  constant c_CHAR_FIFO_SIZE : integer := 7; -- ((c_FRAME-c_V_PIXELS)*c_LINE)
+  constant c_CHAR_FIFO_SIZE : integer := 32; -- ((c_FRAME-c_V_PIXELS)*c_LINE)
   type t_char_fifo is array (0 to c_CHAR_FIFO_SIZE-1) of t_char;
 
   -- type t_char_fifo is array (0 to C_CHAR_FIFO_SIZE-1) of t_char;

@@ -34,14 +34,26 @@ use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 use ieee.math_real.all;
 use work.VGA_pkg.all;
+use work.server_pkg.all;
 
 entity VGA_top is
   PORT(
     CLK : in std_logic;
+    --------------------------------------------------------------------------------
+    -- SYSTEM INTERFACE
+    COL_SYS     : in  STD_LOGIC_VECTOR (2 downto 0);
+    ROW_SYS     : in  STD_LOGIC_VECTOR (5 downto 0);
+    UPD_ARR     : in  STD_LOGIC;
+    UPD_DATA    : in  STD_LOGIC;
+    DATA_SYS    : in  sprit_buff_t;
+    --------------------------------------------------------------------------------
+    --------------------------------------------------------------------------------
     -- VGA
     H_SYNC    : out std_logic;
     V_SYNC    : out std_logic;
     RGB       : out std_logic_vector(2 downto 0);
+    --------------------------------------------------------------------------------
+    --------------------------------------------------------------------------------
     --SRAM
     RW_ADDR   : out std_logic_vector (17 downto 0);
     DATA      : inout  std_logic_vector (15 downto 0);
@@ -50,6 +62,7 @@ entity VGA_top is
     WE_N      : out std_logic; --! always high for reading
     LB_N      : out std_logic; --! Byte selection, always low
     UB_N      : out std_logic  --! Byte selection, always low
+    --------------------------------------------------------------------------------
   );
 end VGA_top;
 
@@ -65,8 +78,62 @@ architecture rtl of VGA_top is
   signal PIXEL_DATA		  : std_logic := '0';
   signal CTRL_EN        : std_logic := '0';
   signal RST            : std_logic := '1';
+
+  --------------------------------------------------------------------------------
+  -- SYSTEM MODEL
+  signal cnt_sys_div_s  : unsigned(15 downto 0) := (others => '0');
+  signal cnt_sys_div_c  : unsigned(15 downto 0) := (others => '0');
+  signal cnt_sys_s      : unsigned(1 downto 0) := (others => '0');
+  signal cnt_sys_c      : unsigned(1 downto 0) := (others => '0');
+
+  signal bfm_COL_SYS    : std_logic_vector(2 downto 0);
+  signal bfm_ROW_SYS    : std_logic_vector(5 downto 0);
+  signal bfm_UPD_ARR    : std_logic := '0';
+  signal bfm_UPD_DATA   : std_logic := '0';
+
+  signal bfm_DATA_SYS   : sprit_buff_t := ((others => (others => '0')));
+  signal bfm_DATA_SYS0  : sprit_buff_t := ( x"31", x"3e", x"3e",x"31",x"30",x"42",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00");
+  signal bfm_DATA_SYS1  : sprit_buff_t := ( x"30", x"41", x"34",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00");
+  signal bfm_DATA_SYS2  : sprit_buff_t := ( x"43", x"37", x"34",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00");
+  signal bfm_DATA_SYS3  : sprit_buff_t := ( x"42", x"37", x"43",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00");
+  --------------------------------------------------------------------------------
   
 begin
+
+  --------------------------------------------------------------------------------
+  -- SYSTEM MODEL
+  -- process (PIXEL_CLK)
+  -- begin
+  --   if rising_edge(PIXEL_CLK) then
+  --     cnt_sys_s       <= cnt_sys_c;
+  --     cnt_sys_div_s   <= cnt_sys_div_c;
+  --   end if;
+    
+  -- end process;
+
+  -- process (cnt_sys_div_s, cnt_sys_s)
+  -- begin
+  --   cnt_sys_c       <= cnt_sys_s;
+  --   cnt_sys_div_c   <= cnt_sys_div_s + 1;
+  --   if cnt_sys_div_s = (2**cnt_sys_div_s'length)-1 then
+  --     cnt_sys_c     <= cnt_sys_s + 1;
+  --   end if;
+  -- end process;
+
+  -- bfm_UPD_DATA <= '1' when cnt_sys_div_s = 0 else '0';
+
+  -- bfm_DATA_SYS <= bfm_DATA_SYS0 when cnt_sys_s = 0 else
+  --                 bfm_DATA_SYS1 when cnt_sys_s = 1 else
+  --                 bfm_DATA_SYS2 when cnt_sys_s = 2 else
+  --                 bfm_DATA_SYS3 when cnt_sys_s = 3 else
+  --                 (others => (others => '0'));
+
+  -- bfm_COL_SYS <=  std_logic_vector(resize(cnt_sys_s, bfm_COL_SYS'length));
+
+  -- bfm_ROW_SYS <=  std_logic_vector(to_unsigned(0, bfm_ROW_SYS'length));
+
+
+  --------------------------------------------------------------------------------
 
 	process (CLK)
 	begin
@@ -97,12 +164,14 @@ begin
 
 
   VGA_sram_mux_inst : entity work.VGA_sram_mux
-  generic map (
-    g_SRAM_OFFSET => 1
-  )
   port map (
     CLK         => PIXEL_CLK,
     RST         => '0',
+    COL_SYS     => COL_SYS,   -- bfm_COL_SYS  ,   
+    ROW_SYS     => ROW_SYS,   -- bfm_ROW_SYS  ,    
+    UPD_ARR     => UPD_ARR,   -- bfm_UPD_ARR  ,
+    UPD_DATA    => UPD_DATA,  -- bfm_UPD_DATA ,
+    DATA_SYS    => DATA_SYS,  -- bfm_DATA_SYS ,
     CTRL_EN     => CTRL_EN,
     COLUMN      => int_COLUMN,
     ROW         => int_ROW,
