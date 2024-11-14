@@ -28,7 +28,7 @@ entity VGA_cmd_fifo is
     ROW_SYS     : in  STD_LOGIC_VECTOR (5 downto 0); --! Food table row
     UPD_ARR     : in  STD_LOGIC; --! update cursor position -> shares col_sys and row_sys with upd_data
     UPD_DATA    : in  STD_LOGIC; --! update food table cell -> shares col_sys and row_sys with upd_arr
-    DATA_SYS    : in  sprit_buff_t; -- food cell data -> Array of 32 8bit vector, each coresponding to a single char in the cell
+    DATA_SYS    : in  char_buff_t; -- food cell data -> Array of 32 8bit vector, each coresponding to a single char in the cell
     -- SRAM signals
     FIFO_REN    : in  std_logic; -- TODO this "read enable" signal will need to be deasserted sooner than v_porch (12 clocks), because we want to always print whole sprites to SRAM
     WADDR_C     : out std_logic_vector(17 downto 0);

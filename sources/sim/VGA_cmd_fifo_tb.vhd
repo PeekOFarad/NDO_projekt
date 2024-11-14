@@ -19,7 +19,7 @@ architecture bench of VGA_cmd_fifo_tb is
   signal ROW_SYS : STD_LOGIC_VECTOR (5 downto 0) := (others => '0');
   signal UPD_ARR : STD_LOGIC := '0';
   signal UPD_DATA : STD_LOGIC;
-  signal DATA_SYS : sprit_buff_t := (
+  signal DATA_SYS : char_buff_t := (
     x"31",
     x"3e",
     x"3e",

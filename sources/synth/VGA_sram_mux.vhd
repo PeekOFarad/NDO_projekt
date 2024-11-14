@@ -31,7 +31,7 @@ entity VGA_sram_mux is
     ROW_SYS     : in  STD_LOGIC_VECTOR (5 downto 0);
     UPD_ARR     : in  STD_LOGIC;
     UPD_DATA    : in  STD_LOGIC;
-    DATA_SYS    : in  sprit_buff_t;
+    DATA_SYS    : in  char_buff_t;
     --------------------------------------------------------------------------------
     COLUMN      : in  std_logic_vector (c_cnt_h_w-1 downto 0);  --! horizontal pixel coordinate
     ROW         : in  std_logic_vector (c_cnt_v_w-1 downto 0);  --! vertical pixel coordinate
