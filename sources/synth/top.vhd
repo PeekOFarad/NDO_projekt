@@ -15,16 +15,33 @@ entity top is
   Generic (
         g_SLAVE_CNT : positive := c_CLIENTS_CNT
   );
-  Port (CLK      : in STD_LOGIC;
-        RST      : in STD_LOGIC;
-        -- PS2 interface
-        PS2_CLK  : in STD_LOGIC;
-        PS2_DATA : in STD_LOGIC;
-        -- SPI interface
-        MISO     : in STD_LOGIC;
-        SCLK     : out STD_LOGIC;
-        MOSI     : out STD_LOGIC;
-        SS_N     : out STD_LOGIC_VECTOR (g_SLAVE_CNT-1 downto 0)
+  Port (	CLK      : in STD_LOGIC;
+			RST      : in STD_LOGIC;
+			-- PS2 interface
+			PS2_CLK  : in STD_LOGIC;
+			PS2_DATA : in STD_LOGIC;
+			-- SPI interface
+			MISO     : in STD_LOGIC;
+			SCLK     : out STD_LOGIC;
+			MOSI     : out STD_LOGIC;
+			SS_N     : out STD_LOGIC_VECTOR (g_SLAVE_CNT-1 downto 0);
+			--------------------------------------------------------------------------------
+			--------------------------------------------------------------------------------
+			 -- VGA
+			 H_SYNC    : out std_logic;
+			 V_SYNC    : out std_logic;
+			 RGB       : out std_logic_vector(2 downto 0);
+			 --------------------------------------------------------------------------------
+			 --------------------------------------------------------------------------------
+			 --SRAM
+			 RW_ADDR   : out std_logic_vector (17 downto 0);
+			 DATA      : inout  std_logic_vector (15 downto 0);
+			 CE_N      : out std_logic; --! chip enable, always low
+			 OE_N      : out std_logic;
+			 WE_N      : out std_logic; --! always high for reading
+			 LB_N      : out std_logic; --! Byte selection, always low
+			 UB_N      : out std_logic  --! Byte selection, always low
+			 --------------------------------------------------------------------------------
   );
 end top;
 
@@ -83,6 +100,26 @@ begin
 
 --------------------------------------------------------------------------------
 
-  
+VGA_top_inst : entity work.VGA_top
+  port map (
+    CLK 			=> CLK,
+    COL_SYS 	=> COL,
+    ROW_SYS 	=> ROW,
+    UPD_ARR 	=> UPD_ARR,
+    UPD_DATA 	=> UPD_DATA,
+    DATA_SYS 	=> DATA_OUT,
+    H_SYNC 		=> H_SYNC,
+    V_SYNC 		=> V_SYNC,
+    RGB 			=> RGB,
+    RW_ADDR 	=> RW_ADDR,
+    DATA 		=> DATA,
+    CE_N 		=> CE_N,
+    OE_N 		=> OE_N,
+    WE_N 		=> WE_N,
+    LB_N 		=> LB_N,
+    UB_N 		=> UB_N
+  );
+
+
 
 end rtl;
