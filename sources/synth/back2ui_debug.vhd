@@ -63,9 +63,14 @@ begin
         end if;
       when wait4cnt =>
         cnt_c <= cnt_s + 1;
-        if(cnt_s = (others => '1')) then
+        if(cnt_s = x"3FFFFFF") then
           fsm_c <= idle;
         end if;
+      when others =>
+        fsm_c <= idle;
+        cnt_c <= (others => '0');
+        led0_c <= '0';
+        led1_c <= '0';
     end case;
   end process;
 
