@@ -46,7 +46,7 @@ architecture Behavioral of ui_adapter is
   signal fsm_c : t_fsm_ui_adapter;
   signal fsm_s : t_fsm_ui_adapter := cfg;
 
-  signal node_sel_s : STD_LOGIC_VECTOR(g_NODE_WIDTH-1 downto 0);
+  signal node_sel_s : STD_LOGIC_VECTOR(g_NODE_WIDTH-1 downto 0) := (others => '0');
 
   signal cnt_c : UNSIGNED(4 downto 0);
   signal cnt_s : UNSIGNED(4 downto 0) := (others => '0');
