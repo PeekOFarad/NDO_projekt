@@ -41,27 +41,38 @@ end ui_adapter;
 
 architecture Behavioral of ui_adapter is
 
-  component binary_to_BCD is
-    Port ( 
-      binary_in : in  STD_LOGIC_VECTOR (11 downto 0);
-      BCD_out   : out digit_arr_t
+  component binary_bcd is
+    generic(N: positive := 12);
+    port(
+      clk       : in std_logic;
+      rst       : in std_logic;
+      new_data  : in std_logic;
+      binary_in : in std_logic_vector(N-1 downto 0);
+      data_done : out std_logic;
+      bcd_out   : out digit_arr_t
     );
-  end component;
+  end component ;
 
-  type t_fsm_ui_adapter is (cfg, node_upd, run, read);
+-------------------------------------------------------------------------------
+
+  type t_fsm_ui_adapter is (cfg, node_upd, wait4BCD, run, read);
 
   signal fsm_c : t_fsm_ui_adapter;
   signal fsm_s : t_fsm_ui_adapter := cfg;
 
   signal node_sel_s : STD_LOGIC_VECTOR(g_NODE_WIDTH-1 downto 0) := (others => '0');
 
-  signal cnt_c : UNSIGNED(4 downto 0);
-  signal cnt_s : UNSIGNED(4 downto 0) := (others => '0');
+  signal cnt_c : UNSIGNED(5 downto 0);
+  signal cnt_s : UNSIGNED(5 downto 0) := (others => '0');
 
   signal row_in_s : STD_LOGIC_VECTOR (5 downto 0) := (others => '0');
   signal smp_row_ena : STD_LOGIC;
   
-  signal bcd_out_c : digit_arr_t;
+-------------------------------------------------------------------------------
+-- binary to BCD
+  signal new_data_c  : STD_LOGIC;
+  signal data_done_c : STD_LOGIC;
+  signal bcd_out     : digit_arr_t;
 
 begin
 
@@ -82,7 +93,7 @@ begin
   end process;
 
   process(fsm_s, cnt_s, EDIT_ENA, UPD_ARR_IN, UPD_DATA_IN, COL_IN,
-          ROW_IN, NODE_SEL, node_sel_s, ACK, row_in_s) begin
+          ROW_IN, NODE_SEL, node_sel_s, ACK, row_in_s, data_done_c) begin
     fsm_c        <= fsm_s;
     cnt_c        <= cnt_s;
     UPD_DATA_OUT <= '0';
@@ -90,6 +101,7 @@ begin
     smp_row_ena  <= '0';
     REQ          <= '0';
     RW           <= '1';
+    new_data_c   <= '0';
 
     case(fsm_s) is
       when cfg =>
@@ -107,10 +119,10 @@ begin
 
       when node_upd =>
         COL_OUT <= "001"; -- select amount column
-        ROW_OUT <= '0' & std_logic_vector(cnt_s);
+        ROW_OUT <= std_logic_vector(cnt_s);
         REQ     <= '1';
 
-        if(cnt_s = 31) then
+        if(cnt_s = 32) then
           REQ   <= '0';
           cnt_c <= (others => '0');
 
@@ -120,10 +132,16 @@ begin
             fsm_c <= cfg;
           end if;
         elsif(ACK = '1') then
-          UPD_DATA_OUT <= '1';
-          cnt_c <= cnt_s + 1;
+          new_data_c <= '1';
+          fsm_c      <= wait4BCD;
         end if;
-      
+      when wait4BCD =>
+        if(data_done_c = '1') then
+          cnt_c <= cnt_s + 1;
+          UPD_DATA_OUT <= '1';
+          fsm_c        <= node_upd;
+        end if;
+
       when run =>
         COL_OUT <= "001"; -- select amount column
         ROW_OUT <= ROW_IN;
@@ -150,20 +168,27 @@ begin
   end process;
       
   -- sprit output decoder
-  binary_to_BCD_i : binary_to_BCD
+  binary_bcd_i : binary_bcd
+  generic map (
+    N => 12
+  )
   port map(
+    clk       => CLK,
+    rst       => RST,
+    new_data  => new_data_c,
     binary_in => DIN,
-    BCD_out   => bcd_out_c
+    data_done => data_done_c,
+    bcd_out   => bcd_out
   );
 
-  process(EDIT_ENA, fsm_s, CHAR_BUFF, bcd_out_c) begin
+  process(EDIT_ENA, fsm_s, CHAR_BUFF, bcd_out) begin
     DATA_OUT <= (others => (others => '0'));
 
     if((EDIT_ENA = '1') and (fsm_s = cfg)) then
       DATA_OUT <= CHAR_BUFF;
     else -- decimal number to sprit ID
       for i in 0 to 3 loop
-        DATA_OUT(i) <= bcd_out_c(i);
+        DATA_OUT(i) <= bcd_out(3 - i);
       end loop;
     end if;
   end process;

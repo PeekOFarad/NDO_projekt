@@ -93,11 +93,6 @@ end process;
 -- set is_empty_c if data_s(31 downto char_idx_s) are all zero bytes
 process(char_idx_s, data_s) begin
   is_empty_c <= '1';
-  -- non_zero_data_c <= (others <= '0');
-
-  -- for i in 0 to 31 loop
-  --   if()
-  -- end loop;
 
   for i in 0 to 31 loop
     if((data_s(i) /= "00000000") and (i >= to_integer(char_idx_s))) then
