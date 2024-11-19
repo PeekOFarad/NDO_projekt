@@ -11,7 +11,75 @@ end;
 architecture bench of VGA_cmd_fifo_tb is
   -- Clock period
   constant clk_period : time := 5 ns;
-  -- Generics
+  -- constant
+  constant boob_cell : char_buff_t := (
+    x"31",
+    x"3e",
+    x"3e",
+    x"31",
+    x"30",
+    x"42",
+    x"03",
+    x"03",
+    x"03",
+    x"03",
+    x"03",
+    x"03",
+    x"03",
+    x"03",
+    x"03",
+    x"03",
+    x"03",
+    x"03",
+    x"03",
+    x"03",
+    x"03",
+    x"03",
+    x"03",
+    x"03",
+    x"03",
+    x"03",
+    x"03",
+    x"03",
+    x"03",
+    x"03",
+    x"03",
+    x"03"
+    );
+  constant ass_cell : char_buff_t := (
+    x"30",
+    x"42",
+    x"42",
+    x"03",
+    x"03",
+    x"42",
+    x"03",
+    x"03",
+    x"03",
+    x"03",
+    x"03",
+    x"03",
+    x"03",
+    x"03",
+    x"03",
+    x"03",
+    x"03",
+    x"03",
+    x"03",
+    x"03",
+    x"03",
+    x"03",
+    x"03",
+    x"03",
+    x"03",
+    x"03",
+    x"03",
+    x"03",
+    x"03",
+    x"03",
+    x"03",
+    x"03"
+    );
   -- Ports
   signal CLK : std_logic := '0';
   signal RST : std_logic;
@@ -53,6 +121,7 @@ architecture bench of VGA_cmd_fifo_tb is
     x"03",
     x"03"
     );
+  
   signal FIFO_REN : std_logic;
   signal WADDR_C : std_logic_vector(17 downto 0);
   signal DATA_O : std_logic_vector(15 downto 0);
@@ -61,6 +130,7 @@ architecture bench of VGA_cmd_fifo_tb is
   signal UB_N_W : std_logic;
   signal V_PORCH_N : std_logic := '1';
   signal PIXEL_CLK  : std_logic := '0';
+  signal VGA_RDY  : std_logic := '0';
 
 begin
 
@@ -81,6 +151,7 @@ begin
     UPD_ARR   => UPD_ARR,
     UPD_DATA  => UPD_DATA,
     DATA_SYS  => DATA_SYS,
+    VGA_RDY   => VGA_RDY,
     FIFO_REN  => not V_PORCH_N,
     WADDR_C   => WADDR_C,
     DATA_O    => DATA_O,
@@ -93,7 +164,12 @@ begin
  
   RST <= '1', '0' after clk_period*10;
 
-  UPD_DATA <= '0', '1' after clk_period*10, '0' after clk_period*12, '1' after clk_period*220, '0' after clk_period*222;
+  UPD_DATA  <= '0', '1' after clk_period*10, '0' after clk_period*12, '1' after clk_period*220, '0' after clk_period*222;
+  UPD_ARR   <= '0', '1' after clk_period*350, '0' after clk_period*352;
+
+  DATA_SYS  <= boob_cell, ass_cell after clk_period*350;
+  COL_SYS   <= std_logic_vector(to_unsigned(1, 3)), std_logic_vector(to_unsigned(2, 3)) after clk_period*350;
+  ROW_SYS   <= (others => '0');
 
   V_PORCH_N <= '1', '0' after clk_period*100;
 
