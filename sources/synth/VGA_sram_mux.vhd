@@ -283,19 +283,6 @@ begin
     
   end process;
 
-  -- fontROM_inst : entity work.fontROM
-  -- generic map (
-  --   addrWidth => 11,
-  --   dataWidth => 8
-  -- )
-  -- port map (
-  --   clkA => CLK,
-  --   writeEnableA => '0',
-  --   addrA => std_logic_vector(cnt_ROM_col_s(cnt_ROM_col_s'high-1 downto cnt_ROM_col_s'low)),
-  --   dataOutA => dataOutA,
-  --   dataInA => dataInA
-  -- );
-
   fontROM_8x12_inst : entity work.fontROM_8x12
   generic map (
     addrWidth => 10,
