@@ -36,27 +36,28 @@ end bus_arbiter;
 
 architecture Behavioral of bus_arbiter is
 
-    signal grant: integer := -1;  -- Track which block currently has access
+    signal grant : integer := -1;  -- Track which block currently has access
+    signal ack_s : block_bit_t := (others => '0');
 
 begin
 
     process(CLK, RST) begin
         if(RST = '1') then
             grant <= -1;
-            ACK   <= (others => '0');
+            ack_s   <= (others => '0');
         elsif(rising_edge(CLK)) then
             if(grant = -1) then
                 for i in 0 to (g_NUM_BLOCKS - 1) loop
                     if(REQ(i)) = '1' then
                         grant  <= i;
-                        ACK(i) <= '1';
+                        ack_s(i) <= '1';
                         exit;
                     end if;
                 end loop;
             elsif(REQ(grant) = '1') then
-                ACK(grant) <= '1';
+                ack_s(grant) <= '1';
             else
-                ACK(grant) <= '0';
+                ack_s(grant) <= '0';
                 grant      <= -1;
             end if;
         end if;
@@ -77,5 +78,7 @@ begin
             DIN  <= block_DIN(grant);
         end if;
     end process;
+    
+    ACK <= ack_s;
 
 end Behavioral;

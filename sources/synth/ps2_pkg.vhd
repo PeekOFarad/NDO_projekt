@@ -74,6 +74,7 @@ package ps2_pkg is
   constant  c_l      : integer := 16#4B#; -- 4B
   constant  c_semi   : integer := 16#4C#; -- 4C -- ;
   constant  c_ap     : integer := 16#52#; -- 52 -- '
+  constant  c_caps   : integer := 16#58#; -- 58
   constant  c_shft   : integer := 16#59#; -- 59
   constant  c_z      : integer := 16#1A#; -- 1A
   constant  c_x      : integer := 16#22#; -- 22

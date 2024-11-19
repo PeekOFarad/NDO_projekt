@@ -40,8 +40,12 @@ entity top is
 			 OE_N      : out std_logic;
 			 WE_N      : out std_logic; --! always high for reading
 			 LB_N      : out std_logic; --! Byte selection, always low
-			 UB_N      : out std_logic  --! Byte selection, always low
+			 UB_N      : out std_logic;  --! Byte selection, always low
 			 --------------------------------------------------------------------------------
+       --------------------------------------------------------------------------------
+       -- DEBUG INTERFACE
+       LED0      : out std_logic;
+       LED1      : out std_logic
   );
 end top;
 
@@ -64,6 +68,17 @@ architecture rtl of top is
            COL      : out STD_LOGIC_VECTOR (2 downto 0);
            ROW      : out STD_LOGIC_VECTOR (5 downto 0);
            DATA_OUT : out char_buff_t);
+  end component;
+
+-------------------------------------------------------------------------------
+
+  component back2ui_debug is
+    Port ( CLK : in STD_LOGIC;
+           RST : in STD_LOGIC;
+           UPD_ARR : in STD_LOGIC;
+           UPD_DATA : in STD_LOGIC;
+           LED0 : out STD_LOGIC;
+           LED1 : out STD_LOGIC);
   end component;
 
 -------------------------------------------------------------------------------
@@ -105,9 +120,9 @@ VGA_top_inst : entity work.VGA_top
     CLK 			=> CLK,
     COL_SYS 	=> COL,
     ROW_SYS 	=> ROW,
-    UPD_ARR 	=> UPD_ARR,
-    UPD_DATA 	=> UPD_DATA,
-    DATA_SYS 	=> DATA_OUT,
+    UPD_ARR 	=> upd_arr,
+    UPD_DATA 	=> upd_data,
+    DATA_SYS 	=> data_out,
     H_SYNC 		=> H_SYNC,
     V_SYNC 		=> V_SYNC,
     RGB 			=> RGB,
@@ -120,6 +135,16 @@ VGA_top_inst : entity work.VGA_top
     UB_N 		=> UB_N
   );
 
+--------------------------------------------------------------------------------
 
+back2ui_debug_i : back2ui_debug
+  port map(
+    CLK      => CLK,
+    RST      => RST,
+    UPD_ARR  => upd_arr,
+    UPD_DATA => upd_data,
+    LED0     => LED0,
+    LED1     => LED1
+  );
 
 end rtl;
