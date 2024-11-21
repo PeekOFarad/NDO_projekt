@@ -32,6 +32,7 @@ entity VGA_sram_mux is
     UPD_ARR     : in  STD_LOGIC;
     UPD_DATA    : in  STD_LOGIC;
     DATA_SYS    : in  char_buff_t;
+    VGA_RDY     : out std_logic;
     --------------------------------------------------------------------------------
     COLUMN      : in  std_logic_vector (c_cnt_h_w-1 downto 0);  --! horizontal pixel coordinate
     ROW         : in  std_logic_vector (c_cnt_v_w-1 downto 0);  --! vertical pixel coordinate
@@ -303,6 +304,7 @@ begin
     UPD_ARR   => UPD_ARR,
     UPD_DATA  => UPD_DATA,
     DATA_SYS  => DATA_SYS,
+    VGA_RDY   => VGA_RDY,
     FIFO_REN  => fifo_ren,
     WADDR_C   => WADDR_C,
     DATA_O    => DATA_O,
