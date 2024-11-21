@@ -29,6 +29,7 @@ entity VGA_cmd_fifo is
     UPD_ARR     : in  STD_LOGIC; --! update cursor position -> shares col_sys and row_sys with upd_data
     UPD_DATA    : in  STD_LOGIC; --! update food table cell -> shares col_sys and row_sys with upd_arr
     DATA_SYS    : in  char_buff_t; -- food cell data -> Array of 32 8bit vector, each coresponding to a single char in the cell
+    VGA_RDY     : out std_logic;
     -- SRAM signals
     FIFO_REN    : in  std_logic; -- TODO this "read enable" signal will need to be deasserted sooner than v_porch (12 clocks), because we want to always print whole sprites to SRAM
     WADDR_C     : out std_logic_vector(17 downto 0);
@@ -50,11 +51,8 @@ architecture rtl of VGA_cmd_fifo is
   signal cnt_ROW_max_d1     : std_logic := '0'; --! if cnt_ROW_s = 11 delayed by one clk -> for byte control signals
 
   signal sprite_base_addr_c : unsigned(9 downto 0);
-  signal sprite_base_addr_s : unsigned(9 downto 0) := (others => '0');
   signal sprite_raddr_c     : unsigned(9 downto 0) := (others => '0');
 
-  -- signal char_base_addr_c     : unsigned(17 downto 0) := (others => '0');
-  -- signal char_base_addr_s     : unsigned(17 downto 0) := (others => '0');
   signal char_addr_c        : unsigned(17 downto 0);
   signal char_addr_s        : unsigned(17 downto 0) := (others => '0');
 
@@ -67,17 +65,12 @@ architecture rtl of VGA_cmd_fifo is
 
   signal we_n_d           : std_logic_vector(1 downto 0) := (others => '0');
 
+
+
   -- shreg
-  signal char_shreg_s         : t_char_fifo := (  others => (others => 0));
-  --   (column => 74, row => 39, id => 49),
-  --   (column => 75, row => 39, id => 62),
-  --   (column => 76, row => 39, id => 62),
-  --   (column => 77, row => 39, id => 49),
-  --   (column => 78, row => 39, id => 48),
-  --   (column => 79, row => 39, id => 66),
-  --   (column => 79, row => 39, id => 2)
-  -- );
-  signal char_shreg_c         : t_char_fifo := (others => (others => 0));
+  signal char_shreg_s         : t_char_shreg := (others => (others => 0));
+  signal char_shreg_last      : t_char_shreg := (others => (others => 0));
+
 
   signal cnt_char_shreg_s     : unsigned(4 downto 0) := (others => '0');
   signal cnt_char_shreg_c     : unsigned(4 downto 0) := (others => '0');
@@ -85,23 +78,27 @@ architecture rtl of VGA_cmd_fifo is
   signal char             : t_char := (column => 0, row => 0, id => 0);
   constant c_char_rst_val : t_char := (column => 0, row => 0, id => 0);
 
-
-  -- char addr decoder
-  -- signal char_col_addr  : unsigned(c_COL_NUM_BIN-1 downto 0) := (others => '0');
-  -- signal column         : unsigned(c_COL_NUM_BIN-1 downto 0) := (others => '0');
-
   signal cell_size        : integer  := 0;
+  signal cell_size_last   : integer  := 0;
+  signal cell_size_sel    : integer  := 0;
   signal column_dcdr      : integer  := 0;
-  -- signal row_dcdr         : integer  := 0;
+
+  signal data_latch       : std_logic := '0';
+  signal arrow_latch      : std_logic_vector(1 downto 0) := (others => '0');
+  signal arrow_latch_fe   : std_logic := '0';
+  signal cell_written     : boolean := false;
+
 
   
 begin
 
-  DATA_O  <= bit_reverse(ROM_data_o) & bit_reverse(ROM_data_o);
+  DATA_O  <=  bit_reverse(ROM_data_o) & bit_reverse(ROM_data_o) when arrow_latch(arrow_latch'low) = '1' else
+              not (bit_reverse(ROM_data_o) & bit_reverse(ROM_data_o));
   WADDR_C <= std_logic_vector(char_addr_c); --note did _c to check timing -> this is the correct timing
   WE_N_D2 <= we_n_d(we_n_d'high);
   LB_N_W  <= lb_n_s;
   UB_N_W  <= ub_n_s;
+  VGA_RDY <= not (data_latch or arrow_latch(arrow_latch'low));
 
   process (CLK)
   begin
@@ -116,14 +113,29 @@ begin
         char_addr_s       <= (others => '0');
         cnt_char_shreg_s  <= (others => '0');
         char_shreg_s      <= (others => (others => 0));
+        char_shreg_last   <= (others => (others => 0));
         --------------------------------------------------------------------------------
         -- SYSTEM INTERFACE
         state             <= idle;
+        data_latch        <= '0';
         --------------------------------------------------------------------------------
       else
         --------------------------------------------------------------------------------
         -- SYSTEM INTERFACE
         state             <= next_state;
+
+        data_latch        <= data_latch;
+        if UPD_DATA = '1' or arrow_latch_fe = '1' then
+          data_latch <= '1';
+        elsif cell_written then
+          data_latch <= '0';
+        end if;
+
+        if UPD_ARR = '1' then
+          arrow_latch <= (others => '1');
+        elsif cell_written then
+          arrow_latch <= '0' & arrow_latch(arrow_latch'high);
+        end if;
         --------------------------------------------------------------------------------
 
         char_addr_s       <= char_addr_c;
@@ -135,26 +147,42 @@ begin
         end if;
 
         
-        
+        char_shreg_s      <= char_shreg_s;
+        char_shreg_last   <= char_shreg_last;
         if FIFO_REN = '1' then
           cnt_ROW_s       <= cnt_ROW_c;
-          if cnt_ROW_s = 11 and cnt_char_shreg_s /= cell_size then
+          if cnt_ROW_s = 11 and cnt_char_shreg_s /= cell_size_sel then
             char_shreg_s      <= char_shreg_s(char_shreg_s'low+1 to char_shreg_s'high) & c_char_rst_val;
             cnt_char_shreg_s  <= cnt_char_shreg_c;
           end if;
         end if;
 
-        if UPD_DATA = '1' and (ub_n_s and lb_n_s) = '1' then
+        if UPD_DATA = '1' then
+          cell_size_last          <=  cell_size;
+        end if;
+
+        if UPD_DATA = '1' or (UPD_ARR = '1' or arrow_latch_fe = '1') then
+          cnt_ROW_s               <= (others => '0'); --! reset counters
+          cnt_char_shreg_s        <= (others => '0'); --! reset counters
+          
           for i in 0 to 31 loop
-            cnt_ROW_s               <= (others => '0'); --! reset counters
-            cnt_char_shreg_s        <= (others => '0'); --! reset counters
             char_shreg_s(i).column  <= column_dcdr + i;
             char_shreg_s(i).row     <= to_integer(unsigned(ROW_SYS)) + 1;
             char_shreg_s(i).id      <= to_integer(unsigned(DATA_SYS(i)));
+            if UPD_ARR = '1' then
+              char_shreg_s(i).column      <= char_shreg_last(i).column;
+              char_shreg_s(i).row         <= char_shreg_last(i).row;
+              char_shreg_s(i).id          <= char_shreg_last(i).id;
+            end if;
+            -- save cell data of new cursor position
+            char_shreg_last(i).column   <= column_dcdr + i;
+            char_shreg_last(i).row      <= to_integer(unsigned(ROW_SYS)) + 1;
+            char_shreg_last(i).id       <= to_integer(unsigned(DATA_SYS(i)));
+            
           end loop;
         end if;
 
-        if cnt_char_shreg_s >= cell_size and cnt_ROW_max_d1 = '1' then
+        if cell_written then
           ub_n_s            <= '1';
           lb_n_s            <= '1';
         else
@@ -166,6 +194,9 @@ begin
     end if;
   end process;
 
+  cell_written <= true when cnt_char_shreg_s >= cell_size_sel and cnt_ROW_max_d1 = '1' else false;
+
+  arrow_latch_fe <= '1' when (arrow_latch(arrow_latch'high) = '0' and arrow_latch(arrow_latch'low) = '1') else '0';
 
   char                <= char_shreg_s(char_shreg_s'low);
   --! char_id decoder
@@ -189,12 +220,12 @@ begin
   end process;
 
 
-  p_cnt_ROW: process (cnt_ROW_s, cnt_char_shreg_s, cell_size)
+  p_cnt_ROW: process (cnt_ROW_s, cnt_char_shreg_s, cell_size_sel)
   begin
     cnt_ROW_c <= cnt_ROW_s + 1;
     if cnt_ROW_s >= 11 then
       cnt_ROW_c <= (others => '0');
-      if cnt_char_shreg_s >= cell_size then
+      if cnt_char_shreg_s >= cell_size_sel then
         cnt_ROW_c <= cnt_ROW_s;
       end if;
     end if;
@@ -202,10 +233,10 @@ begin
 
 
 
-  process (cnt_char_shreg_s, cell_size)
+  process (cnt_char_shreg_s, cell_size_sel)
   begin
     cnt_char_shreg_c <= cnt_char_shreg_s + 1;
-    if cnt_char_shreg_s >= cell_size then
+    if cnt_char_shreg_s >= cell_size_sel then
       cnt_char_shreg_c <= (others => '0');
     end if;
   end process;
@@ -225,7 +256,7 @@ begin
         end if;
 
       when update_arrow =>
-        if cnt_char_shreg_s >= 31 then
+        if cnt_char_shreg_s >= cell_size_sel then
           next_state <= idle;
         end if;
       
@@ -242,6 +273,9 @@ begin
     end case;
     
   end process;
+
+  cell_size_sel <=  cell_size_last when arrow_latch(arrow_latch'low) = '1' else
+                    cell_size;
 
   --! COL_SYS decoder
   cell_size <=  31  when unsigned(COL_SYS) = 0 else
