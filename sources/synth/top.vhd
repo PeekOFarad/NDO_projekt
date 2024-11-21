@@ -73,21 +73,22 @@ architecture rtl of top is
 -------------------------------------------------------------------------------
 
   component back2ui_debug is
-    Port ( CLK : in STD_LOGIC;
-           RST : in STD_LOGIC;
-           UPD_ARR : in STD_LOGIC;
+    Port ( CLK      : in STD_LOGIC;
+           RST      : in STD_LOGIC;
+           UPD_ARR  : in STD_LOGIC;
            UPD_DATA : in STD_LOGIC;
-           LED0 : out STD_LOGIC;
-           LED1 : out STD_LOGIC);
+           LED0     : out STD_LOGIC;
+           LED1     : out STD_LOGIC);
   end component;
 
 -------------------------------------------------------------------------------
   -- TOP
-  signal   col              : std_logic_vector(2 downto 0);
-  signal   row              : std_logic_vector(5 downto 0);
-  signal   data_out         : char_buff_t;
-  signal   upd_arr          : std_logic;
-  signal   upd_data         : std_logic;
+  signal  col              : std_logic_vector(2 downto 0);
+  signal  row              : std_logic_vector(5 downto 0);
+  signal  data_out         : char_buff_t;
+  signal  upd_arr          : std_logic;
+  signal  upd_data         : std_logic;
+  signal  VGA_RDY          : std_logic;
 
 begin
 
@@ -123,6 +124,7 @@ VGA_top_inst : entity work.VGA_top
     UPD_ARR 	=> upd_arr,
     UPD_DATA 	=> upd_data,
     DATA_SYS 	=> data_out,
+    VGA_RDY   => VGA_RDY,
     H_SYNC 		=> H_SYNC,
     V_SYNC 		=> V_SYNC,
     RGB 			=> RGB,
@@ -146,5 +148,6 @@ back2ui_debug_i : back2ui_debug
     LED0     => LED0,
     LED1     => LED1
   );
+
 
 end rtl;

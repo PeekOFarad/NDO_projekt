@@ -46,6 +46,7 @@ entity VGA_top is
     UPD_ARR     : in  STD_LOGIC;
     UPD_DATA    : in  STD_LOGIC;
     DATA_SYS    : in  char_buff_t;
+    VGA_RDY     : out std_logic;
     --------------------------------------------------------------------------------
     --------------------------------------------------------------------------------
     -- VGA
@@ -172,6 +173,7 @@ begin
     UPD_ARR     => UPD_ARR,   -- bfm_UPD_ARR  ,
     UPD_DATA    => UPD_DATA,  -- bfm_UPD_DATA ,
     DATA_SYS    => DATA_SYS,  -- bfm_DATA_SYS ,
+    VGA_RDY     => VGA_RDY,
     CTRL_EN     => CTRL_EN,
     COLUMN      => int_COLUMN,
     ROW         => int_ROW,
