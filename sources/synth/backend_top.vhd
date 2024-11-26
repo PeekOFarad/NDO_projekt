@@ -11,6 +11,7 @@ use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 use work.ps2_pkg.all;
 use work.server_pkg.all;
+use work.common_pkg.all;
 
 entity backend_top is
     Generic (
@@ -21,6 +22,7 @@ entity backend_top is
            PS2_CLK  : in STD_LOGIC;
            PS2_DATA : in STD_LOGIC;
            MISO     : in STD_LOGIC;
+           VGA_RDY  : in STD_LOGIC;
            UPD_ARR  : out STD_LOGIC;
            UPD_DATA : out STD_LOGIC;
            SCLK     : out STD_LOGIC;
@@ -127,6 +129,7 @@ architecture Behavioral of backend_top is
     Port ( CLK          : in STD_LOGIC;
             RST          : in STD_LOGIC;
             EDIT_ENA     : in STD_LOGIC;
+            VGA_RDY      : in STD_LOGIC;
             UPD_ARR_IN   : in STD_LOGIC;
             UPD_DATA_IN  : in STD_LOGIC;
             ACK          : in STD_LOGIC;
@@ -160,6 +163,7 @@ component spi_ctrl is
           COL      : in STD_LOGIC_VECTOR (2 downto 0);
           ROW      : in STD_LOGIC_VECTOR (5 downto 0);
           NODE     : in STD_LOGIC_VECTOR (g_NODE_WIDTH-1 downto 0);
+          NUMBER   : in STD_LOGIC_VECTOR (11 downto 0);
           DATA     : in char_buff_t;
           -- to bus_arbiter
           RW       : out STD_LOGIC;
@@ -399,6 +403,7 @@ port map(
   CLK          => CLK,
   RST          => RST,
   EDIT_ENA     => edit_ena,
+  VGA_RDY      => VGA_RDY,
   UPD_ARR_IN   => upd_arr_ui,
   UPD_DATA_IN  => upd_data_ui,
   ACK          => ack_ui,
@@ -433,6 +438,7 @@ port map(
   COL        => col_out,
   ROW        => row_out,
   NODE       => node_in_ui,
+  NUMBER     => dout_ctrl,
   DATA       => data_out_ui,
   -- to bus_arbiter
   RW         => rw_spi,

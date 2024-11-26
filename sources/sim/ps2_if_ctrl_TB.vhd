@@ -10,6 +10,7 @@ library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use work.ps2_pkg.all;
 use work.server_pkg.all;
+use work.common_pkg.all;
 use IEEE.Std_Logic_Arith.ALL;
 
 entity ps2_if_ctrl_TB is

@@ -10,12 +10,14 @@ library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 use work.server_pkg.all;
+use work.common_pkg.all;
 
 entity top is
   Generic (
         g_SLAVE_CNT : positive := c_CLIENTS_CNT
   );
-  Port (	CLK      : in STD_LOGIC;
+  Port (
+      CLK      : in STD_LOGIC;
 			RST      : in STD_LOGIC;
 			-- PS2 interface
 			PS2_CLK  : in STD_LOGIC;
@@ -59,7 +61,8 @@ architecture rtl of top is
            RST      : in  STD_LOGIC;
            PS2_CLK  : in  STD_LOGIC;
            PS2_DATA : in  STD_LOGIC;
-           MISO     : in  STD_LOGIC;
+           MISO     : in STD_LOGIC;
+           VGA_RDY  : in STD_LOGIC;
            UPD_ARR  : out STD_LOGIC;
            UPD_DATA : out STD_LOGIC;
            SCLK     : out STD_LOGIC;
@@ -104,6 +107,7 @@ begin
     PS2_CLK  => PS2_CLK,
     PS2_DATA => PS2_DATA,
     MISO     => MISO,
+    VGA_RDY  => VGA_RDY,
     UPD_ARR  => upd_arr,
     UPD_DATA => upd_data,
     SCLK     => SCLK,

@@ -10,6 +10,7 @@ library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use work.ps2_pkg.all;
 use work.server_pkg.all;
+use work.common_pkg.all;
 use IEEE.NUMERIC_STD.ALL;
 use IEEE.math_real.all;
 
@@ -22,6 +23,7 @@ entity ui_adapter is
     Port ( CLK          : in STD_LOGIC;
            RST          : in STD_LOGIC;
            EDIT_ENA     : in STD_LOGIC;
+           VGA_RDY      : in STD_LOGIC;
            UPD_ARR_IN   : in STD_LOGIC;
            UPD_DATA_IN  : in STD_LOGIC;
            ACK          : in STD_LOGIC;
@@ -118,22 +120,24 @@ begin
         end if;
 
       when node_upd =>
-        COL_OUT <= "001"; -- select amount column
-        ROW_OUT <= std_logic_vector(cnt_s);
-        REQ     <= '1';
+        if(VGA_RDY = '1') then -- wait for VGA ready
+          COL_OUT <= "001"; -- select amount column
+          ROW_OUT <= std_logic_vector(cnt_s);
+          REQ     <= '1';
 
-        if(cnt_s = 32) then
-          REQ   <= '0';
-          cnt_c <= (others => '0');
+          if(cnt_s = 32) then
+            REQ   <= '0';
+            cnt_c <= (others => '0');
 
-          if(EDIT_ENA = '0') then
-            fsm_c <= run;
-          else
-            fsm_c <= cfg;
+            if(EDIT_ENA = '0') then
+              fsm_c <= run;
+            else
+              fsm_c <= cfg;
+            end if;
+          elsif(ACK = '1') then
+            new_data_c <= '1';
+            fsm_c      <= wait4BCD;
           end if;
-        elsif(ACK = '1') then
-          new_data_c <= '1';
-          fsm_c      <= wait4BCD;
         end if;
       when wait4BCD =>
         if(data_done_c = '1') then
