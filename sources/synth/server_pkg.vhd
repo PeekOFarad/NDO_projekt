@@ -23,7 +23,7 @@ package server_pkg is
   constant c_CLIENTS_CNT  : integer := 2;
   constant c_NODE_WIDTH   : integer := 2;
   constant c_NUM_BLOCKS   : integer := 3;
-  constant c_SPI_WIDTH    : integer := 22;
+  constant c_SPI_WIDTH    : integer := 23;
   
   type amount_table_t is array(0 to c_CLIENTS_CNT, 0 to (c_FOOD_CNT - 1)) of amount_t;
   type price_table_t is array(0 to (c_FOOD_CNT - 1)) of price_t;
