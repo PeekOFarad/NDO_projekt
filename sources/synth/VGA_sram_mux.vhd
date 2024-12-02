@@ -100,8 +100,9 @@ architecture rtl of VGA_sram_mux is
   signal clk_half_en    : std_logic := '0';
 
   -- fifo
-  signal WADDR_C        : std_logic_vector(17 downto 0);
-  signal DATA_O         : std_logic_vector(15 downto 0);
+  signal RWADDR_C        : std_logic_vector(17 downto 0);
+  signal DATA_IO         : std_logic_vector(15 downto 0);
+  signal OE_N_W         : std_logic;
   signal WE_N_W         : std_logic;
   signal LB_N_W         : std_logic;
   signal UB_N_W         : std_logic;
@@ -132,11 +133,11 @@ begin
   u_row     <= unsigned(ROW);
 
   DATA <= bit_reverse(dataOutA) & bit_reverse(dataOutA) when state = init else
-          DATA_O when state = WRITE else
+          DATA_IO when state = WRITE else
           (others => 'Z');
 
   rw_addr_c <=  std_logic_vector(cnt_waddr_s) when (state = init) else
-                WADDR_C when state = WRITE else
+                RWADDR_C when state = WRITE else
                 std_logic_vector(cnt_raddr_c);
 
   OE_N    <= shreg_empty_n;-- sram_re_n; -- oe_n_int;
@@ -243,8 +244,9 @@ begin
   -- end process;
 
 
-  p_fsm: process (state, cnt_ROM_col_s, cnt_ROM_row_s, clk_half_en, u_row, u_column, WE_N_W, UB_N_W, LB_N_W)
+  p_fsm: process (state, cnt_ROM_col_s, cnt_ROM_row_s, clk_half_en, u_row, u_column, WE_N_W, UB_N_W, LB_N_W, shreg_empty_n)
   begin
+    oe_n_int  <= '1';
     we_n_int  <= '1';
     ub_n_int  <= '1';
     lb_n_int  <= '1';
@@ -253,6 +255,7 @@ begin
     case state is
 
       when init =>
+        oe_n_int  <= shreg_empty_n;
         we_n_int  <= '0';
         ub_n_int  <= clk_half_en;
         lb_n_int  <= NOT clk_half_en;
@@ -262,6 +265,7 @@ begin
         end if;
 
       when READ =>
+        oe_n_int    <= shreg_empty_n;
         ub_n_int    <= '0';
         lb_n_int    <= '0';
         next_state <= READ;
@@ -270,10 +274,12 @@ begin
       end if;
 
       when WRITE =>
+      
+      oe_n_int    <= OE_N_W;
       we_n_int    <= WE_N_W;
       ub_n_int    <= UB_N_W;
       lb_n_int    <= LB_N_W;
-        next_state <= WRITE;
+      next_state <= WRITE;
       if u_row >= c_FRAME-1 and u_column >= c_LINE-1 then
         next_state <= READ;
       end if;
@@ -306,8 +312,9 @@ begin
     DATA_SYS  => DATA_SYS,
     VGA_RDY   => VGA_RDY,
     FIFO_REN  => fifo_ren,
-    WADDR_C   => WADDR_C,
-    DATA_O    => DATA_O,
+    RWADDR_C  => RWADDR_C,
+    DATA_IO   => DATA_IO,
+    OE_N_W    => OE_N_W,
     WE_N_D2   => WE_N_W,
     LB_N_W    => LB_N_W,
     UB_N_W    => UB_N_W
