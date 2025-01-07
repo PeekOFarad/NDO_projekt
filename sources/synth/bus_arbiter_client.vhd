@@ -1,18 +1,18 @@
 ----------------------------------------------------------------------------------
--- bus_arbiter.vhd
--- Registers bus arbiter.
--- 28 Oct, 2024
+-- bus_arbiter_client.vhd
+-- Registers bus arbiter. Client version.
+-- 26 Nov, 2024
 -- Semestral project in the autumn semester of 2024 in MPC-NDO.
 -- Artem Gumenyuk (xgumen00@vutbr.cz)
 ----------------------------------------------------------------------------------
 
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
-use work.server_pkg.all;
+use work.client_pkg.all;
 use work.common_pkg.all;
 use IEEE.NUMERIC_STD.ALL;
 
-entity bus_arbiter is
+entity bus_arbiter_client is
     Generic (
         g_NUM_BLOCKS : positive;
         g_NODE_WIDTH : positive
@@ -33,9 +33,9 @@ entity bus_arbiter is
            NODE       : out STD_LOGIC_VECTOR (g_NODE_WIDTH-1 downto 0);
            DIN        : out STD_LOGIC_VECTOR (11 downto 0)
         );
-end bus_arbiter;
+end bus_arbiter_client;
 
-architecture Behavioral of bus_arbiter is
+architecture Behavioral of bus_arbiter_client is
 
     signal grant : integer := -1;  -- Track which block currently has access
     signal ack_s : block_bit_t := (others => '0');

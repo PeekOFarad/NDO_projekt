@@ -9,6 +9,7 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use work.server_pkg.all;
+use work.common_pkg.all;
 use IEEE.NUMERIC_STD.ALL;
 
 entity bus_arbiter_TB is
