@@ -310,6 +310,18 @@ begin
       r_send_ps2_special(c_down, par, sps2_clk, sps2_data);
     end loop;
     
+    -- go to the "start day" col (6)
+    for i in 1 to 3 loop
+      data <= c_right;
+      wait for clk_per;
+      r_send_ps2_special(c_right, par, sps2_clk, sps2_data);
+    end loop;
+    
+    -- press down
+    data <= c_down;
+    wait for clk_per;
+    r_send_ps2_special(c_down, par, sps2_clk, sps2_data);
+    
     -- press enter
     data <= c_enter;
     wait for clk_per;

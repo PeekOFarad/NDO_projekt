@@ -49,29 +49,29 @@ architecture Behavioral of client_backend_top is
   
   component ps2_if_ctrl is
     Generic (
-            g_FOOD_CNT     : positive;
-            g_CLIENTS_CNT  : positive;
-            g_NODE_WIDTH   : positive
+           g_FOOD_CNT     : positive;
+           g_CLIENTS_CNT  : positive;
+           g_NODE_WIDTH   : positive
     );
-    Port (  CLK          : in STD_LOGIC;
-            RST          : in STD_LOGIC;
-            EDIT_ENA     : in STD_LOGIC;
-            KEYS         : in t_keys;
-            NUMBER       : in STD_LOGIC_VECTOR(3 downto 0);
-            PS2_CODE     : in STD_LOGIC_VECTOR (7 downto 0);
-            START_DAY    : out STD_LOGIC;
-            BUFF_RDY     : out STD_LOGIC;
-            UPD_ARR      : out STD_LOGIC;
-            UPD_DATA     : out STD_LOGIC;
-            NODE_SEL     : out STD_LOGIC_VECTOR(g_NODE_WIDTH-1 downto 0);
-            SEL_CELL_COL : out STD_LOGIC_VECTOR (2 downto 0);
-            SEL_CELL_ROW : out STD_LOGIC_VECTOR (5 downto 0);
-            CHAR_BUFF    : out char_buff_t;
-            -- reg interface
-            REQ          : out STD_LOGIC;
-            ACK          : in  STD_LOGIC;
-            RW           : out STD_LOGIC;
-            DOUT         : out STD_LOGIC_VECTOR (11 downto 0)
+    Port ( 
+           CLK          : in STD_LOGIC;
+           RST          : in STD_LOGIC;
+           KEYS         : in t_keys;
+           NUMBER       : in STD_LOGIC_VECTOR(3 downto 0);
+           PS2_CODE     : in STD_LOGIC_VECTOR (7 downto 0);
+           EDIT_ENA     : out STD_LOGIC;
+           BUFF_RDY     : out STD_LOGIC;
+           UPD_ARR      : out STD_LOGIC;
+           UPD_DATA     : out STD_LOGIC;
+           NODE_SEL     : out STD_LOGIC_VECTOR(g_NODE_WIDTH-1 downto 0);
+           SEL_CELL_COL : out STD_LOGIC_VECTOR (2 downto 0);
+           SEL_CELL_ROW : out STD_LOGIC_VECTOR (5 downto 0);
+           CHAR_BUFF    : out char_buff_t;
+           -- reg interface
+           REQ          : out STD_LOGIC;
+           ACK          : in  STD_LOGIC;
+           RW           : out STD_LOGIC;
+           DOUT         : out STD_LOGIC_VECTOR (11 downto 0)
           );
   end component;
   
@@ -204,7 +204,6 @@ end component;
 
   -- PS2 IF CONTROLLER
   signal   edit_ena             : std_logic;
-  signal   start_day            : std_logic;
   signal   buff_rdy             : std_logic;
   signal   upd_arr_ctrl         : std_logic;
   signal   upd_data_ctrl        : std_logic;
@@ -270,9 +269,6 @@ end component;
 
 begin
 
-  -- temporary assigns
-  -- edit_ena     <= '1';
-
 --------------------------------------------------------------------------------
 
 -- ps2_top_i : ps2_top
@@ -297,11 +293,10 @@ begin
 -- port map(
 --   CLK          => CLK,
 --   RST          => RST ,
---   EDIT_ENA     => edit_ena,
 --   KEYS         => keys,
 --   NUMBER       => number,
 --   PS2_CODE     => ps2_code,
---   START_DAY    => start_day,
+--   EDIT_ENA     => edit_ena,
 --   BUFF_RDY     => buff_rdy,
 --   UPD_ARR      => upd_arr_ctrl,
 --   UPD_DATA     => upd_data_ctrl,
@@ -349,7 +344,7 @@ ack_spi       <= ACK(0);
 
 --------------------------------------------------------------------------------
 
-server_regs_if_i : server_regs_if
+client_regs_if_i : server_regs_if
 generic map(
   g_FOOD_CNT    => c_FOOD_CNT,
   g_CLIENTS_CNT => c_CLIENTS_CNT,
