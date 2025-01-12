@@ -22,7 +22,7 @@ package client_pkg is
   constant c_FOOD_CNT     : integer := 32;
   constant c_CLIENTS_CNT  : integer := 1;
   constant c_NODE_WIDTH   : integer := 1;
-  constant c_NUM_BLOCKS   : integer := 1;
+  constant c_NUM_BLOCKS   : integer := 3;
   constant c_SPI_WIDTH    : integer := 23;
   
   type amount_table_t is array(0 to c_CLIENTS_CNT, 0 to (c_FOOD_CNT - 1)) of amount_t;
@@ -33,8 +33,6 @@ package client_pkg is
   type block_row_t is array(0 to c_NUM_BLOCKS-1) of STD_LOGIC_VECTOR (5 downto 0);
   type block_node_t is array(0 to c_NUM_BLOCKS-1) of STD_LOGIC_VECTOR (c_NODE_WIDTH-1 downto 0);
   type block_data_t is array(0 to c_NUM_BLOCKS-1) of STD_LOGIC_VECTOR (11 downto 0);
-  
-  type digit_arr_t is array(0 to 3) of char_t;
 
 end client_pkg;
 
