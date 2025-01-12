@@ -43,8 +43,8 @@ architecture Behavioral of spi_slave is
   signal rx_buff_c : std_logic_vector(g_DATA_WIDTH-1 downto 0);
   signal rx_buff_s : std_logic_vector(g_DATA_WIDTH-1 downto 0) := (others => '0');
 
-  signal tx_buff_c : std_logic_vector(g_DATA_WIDTH-1 downto 0);
-  signal tx_buff_s : std_logic_vector(g_DATA_WIDTH-1 downto 0) := (others => '0');
+  signal tx_buff_c : std_logic_vector(g_DATA_WIDTH-2 downto 0);
+  signal tx_buff_s : std_logic_vector(g_DATA_WIDTH-2 downto 0) := (others => '0');
 
   signal miso_c : std_logic;
   signal miso_s : std_logic;
@@ -83,6 +83,26 @@ begin
     end if;
   end process;
 
+  -- process(RST, SCLK) begin
+  --   if(RST = '1') then
+  --     miso_s <= '0';
+  --   elsif(rising_edge(SCLK)) then
+  --     miso_s <= miso_c;
+      
+  --   end if;
+  -- end process;
+  -- process(SCLK, shift_ena) begin
+  --   if(rising_edge(SCLK)) then
+  --     if(shift_ena = '0') then
+  --       o_miso                 <= i_data_parallel(N-1);
+  --       r_tx_data              <= i_data_parallel(N-2 downto 0);
+  --     else
+  --       o_miso                 <= r_tx_data(N-2);
+  --       r_tx_data              <= r_tx_data(N-3 downto 0)&'0';
+  --     end if;
+  --   end if;
+  -- end process;
+
   process(fsm_s, scsb_re, scsb_fe, sclk_re, sclk_fe, TX_DATA, tx_buff_s,
           rx_buff_s, busy_s, data_rdy_s, data_cnt_s, miso_s, MOSI, parity_c) begin
     fsm_c      <= fsm_s;
@@ -102,8 +122,9 @@ begin
 
         if(scsb_fe = '1') then
           fsm_c     <= run;
+          miso_c    <= TX_DATA(0);
           busy_c    <= '1';
-          tx_buff_c <= TX_DATA;
+          tx_buff_c <= TX_DATA(g_DATA_WIDTH-1 downto 1);
         end if;
       when run =>
         if(scsb_re = '1') then
@@ -111,10 +132,13 @@ begin
           if((data_cnt_s = g_DATA_WIDTH) and (rx_buff_s(0) = parity_c)) then -- length and parity check
             data_rdy_c <= '1';
           end if;
-        elsif(sclk_re = '1') then
+        -- elsif(sclk_re = '1') then
+        --   miso_c <= tx_buff_s(0);
+        --   tx_buff_c <= '0' & tx_buff_s(tx_buff_s'left downto 1);
+        elsif(sclk_fe = '1') then
           miso_c <= tx_buff_s(0);
           tx_buff_c <= '0' & tx_buff_s(tx_buff_s'left downto 1);
-        elsif(sclk_fe = '1') then
+
           rx_buff_c <= MOSI & rx_buff_s(g_DATA_WIDTH-1 downto 1);
           data_cnt_c <= data_cnt_s + 1;
         end if;

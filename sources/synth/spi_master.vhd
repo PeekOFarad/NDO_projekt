@@ -105,6 +105,7 @@ begin
           single_c   <= SINGLE;
           tx_buff_c  <= TX_DATA;
           sclk_cnt_c <= (others => '0');
+          rx_buff_c  <= (others => '0');
           fsm_c      <= run;
         end if;
       when run =>
