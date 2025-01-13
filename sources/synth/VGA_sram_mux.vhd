@@ -20,6 +20,7 @@ use IEEE.NUMERIC_STD.ALL;
 use ieee.math_real.all;
 use work.VGA_pkg.all;
 use work.server_pkg.all;
+use work.common_pkg.all;
 
 entity VGA_sram_mux is
   Port ( 

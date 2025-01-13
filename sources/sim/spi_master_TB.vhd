@@ -10,6 +10,7 @@ library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 use work.server_pkg.all;
+use work.common_pkg.all;
 
 entity spi_master_TB is
 end spi_master_TB;

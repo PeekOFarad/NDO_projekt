@@ -11,6 +11,7 @@ use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 use IEEE.MATH_REAL.all;
 use work.server_pkg.all;
+use work.common_pkg.all;
 
 entity spi_ctrl is
     Generic (
@@ -26,6 +27,7 @@ entity spi_ctrl is
            COL      : in STD_LOGIC_VECTOR (2 downto 0);
            ROW      : in STD_LOGIC_VECTOR (5 downto 0);
            NODE     : in STD_LOGIC_VECTOR (g_NODE_WIDTH-1 downto 0);
+           NUMBER   : in STD_LOGIC_VECTOR (11 downto 0);
            DATA     : in char_buff_t;
            -- to bus_arbiter
            RW       : out STD_LOGIC;
@@ -57,9 +59,6 @@ architecture Behavioral of spi_ctrl is
   signal char_idx_c : unsigned(4 downto 0);
   signal char_idx_s : unsigned(4 downto 0) := (others => '0');
 
-  signal is_empty_c      : std_logic;
-  -- signal non_zero_data_c : std_logic_vector(31 downto 0);
-
   signal ssel_c     : std_logic_vector(g_SLAVE_CNT-1 downto 0);
   signal ssel_s     : std_logic_vector(g_SLAVE_CNT-1 downto 0) := (others => '1');
   signal single_c   : std_logic;
@@ -69,11 +68,14 @@ architecture Behavioral of spi_ctrl is
   signal tx_frame_c  : std_logic_vector(g_DATA_WIDTH-1 downto 0);
   signal tx_frame_s  : std_logic_vector(g_DATA_WIDTH-1 downto 0) := (others => '0');
 
-  signal tx_addr_c  : std_logic_vector(7 downto 0);
   signal tx_data_c  : std_logic_vector(11 downto 0);
   signal tx_par_c   : std_logic;
   
-  signal busy_s     : std_logic := '0';
+  signal number_s   : std_logic_vector(11 downto 0) := (others => '0');
+
+  -- save column and row
+  signal col_s      : std_logic_vector(2 downto 0) := (others => '0');
+  signal row_s      : std_logic_vector(5 downto 0) := (others => '0');
 
 begin
 
@@ -84,26 +86,12 @@ process(CLK, RST) begin
     data_s <= (others => (others => '0'));
   elsif(rising_edge(CLK)) then
     if(UPD_DATA = '1') then
-      data_s <= DATA;
+      col_s    <= COL;
+      row_s    <= ROW;
+      data_s   <= DATA;
+      number_s <= NUMBER;
     end if;
   end if;
-end process;
-
--------------------------------------------------------------------------------
--- set is_empty_c if data_s(31 downto char_idx_s) are all zero bytes
-process(char_idx_s, data_s) begin
-  is_empty_c <= '1';
-  -- non_zero_data_c <= (others <= '0');
-
-  -- for i in 0 to 31 loop
-  --   if()
-  -- end loop;
-
-  for i in 0 to 31 loop
-    if((data_s(i) /= "00000000") and (i >= to_integer(char_idx_s))) then
-      is_empty_c <= '0';
-    end if;
-  end loop;
 end process;
 
 -------------------------------------------------------------------------------
@@ -116,7 +104,6 @@ process(CLK, RST) begin
     single_s   <= '0';
     txn_ena_s  <= '0';
     tx_frame_s <= (others => '0');
-    busy_s     <= '0';
   elsif(rising_edge(CLK)) then
     fsm_s      <= fsm_c;
     char_idx_s <= char_idx_c;
@@ -124,19 +111,18 @@ process(CLK, RST) begin
     single_s   <= single_c;
     txn_ena_s  <= txn_ena_c;
     tx_frame_s <= tx_frame_c;
-    busy_s     <= BUSY;
   end if;
 end process;
 
 -------------------------------------------------------------------------------
 
-process(fsm_s, EDIT_ENA, BUSY, UPD_DATA, char_idx_s, is_empty_c, COL, NODE, data_s,
-        txn_ena_s, tx_frame_s, tx_addr_c, tx_data_c, tx_par_c, ssel_s, single_s, busy_s) begin
+process(fsm_s, EDIT_ENA, BUSY, UPD_DATA, char_idx_s, COL, ROW, NODE, data_s,
+        txn_ena_s, tx_frame_s, tx_data_c, tx_par_c, single_s) begin
   fsm_c      <= fsm_s;
   char_idx_c <= char_idx_s;
-  ssel_c     <= ssel_s;
+  ssel_c     <= (others => '1');
   single_c   <= single_s;
-  txn_ena_c  <= txn_ena_s;
+  txn_ena_c  <= '0';
   tx_frame_c  <= tx_frame_s;
 
   case(fsm_s) is
@@ -150,41 +136,46 @@ process(fsm_s, EDIT_ENA, BUSY, UPD_DATA, char_idx_s, is_empty_c, COL, NODE, data
     when wait4data =>
       if(EDIT_ENA = '0') then
         fsm_c <= wait4event;
-      elsif(UPD_DATA = '1' and (COL = "000" or (TO_INTEGER(unsigned(NODE)) /= 0))) then
-        char_idx_c <= (others => '0');
+      elsif(UPD_DATA = '1' and not(COL = "001" and (TO_INTEGER(unsigned(NODE)) = 0))) then
+        if(COL /= col_s or ROW /= row_s) then
+          char_idx_c <= (others => '0');
+        end if;
         fsm_c      <= tx_spi;
       end if;
     ---------------------------------------------------------------------------
     when tx_spi =>
-      if(is_empty_c = '0') then
-        if(BUSY = '0') then -- send SPI frame
-          if(COL = "000") then -- send dishes names to all slaves in one time
-            ssel_c    <= (others => '0');
-            single_c  <= '0';
-          else
-            ssel_c <= (others => '1');
-            ssel_c(TO_INTEGER(unsigned(NODE) - 1)) <= '0';
-            single_c  <= '1';
-          end if;
-          tx_frame_c <= tx_par_c & tx_data_c & tx_addr_c & '0'; -- 1b'rw, 8b'addr, 12b'data, 1b'parity
-          txn_ena_c <= '1';
-        elsif(BUSY = '1' and busy_s = '0') then -- wait for SPI frame done
-          char_idx_c <= char_idx_s + 1;
-          txn_ena_c <= '0';
+      if(BUSY = '0') then -- if SPI is not busy
+        if(COL = "001") then -- send amount to selected client
+          ssel_c <= (others => '1');
+          ssel_c(TO_INTEGER(unsigned(NODE) - 1)) <= '0';
+          single_c  <= '1';
+        else -- send dishes names and prices to all slaves in one time
+          ssel_c    <= (others => '0');
+          single_c  <= '0';
         end if;
-      elsif(BUSY = '0') then -- turn back when last byte has been transmitted
+
+        tx_frame_c <= tx_par_c & tx_data_c & ROW & COL & '0'; -- 1b'rw, 9b'addr, 12b'data, 1b'parity
+        txn_ena_c <= '1';
         fsm_c <= wait4data;
+        if(data_s(0) /= x"00") then
+          char_idx_c <= char_idx_s + 1;
+        end if;
       end if;
     ---------------------------------------------------------------------------
     when others => fsm_c <= idle;
   end case;
 end process;
 
--- calculate TX address
-tx_addr_c <= std_logic_vector(resize(((5 * unsigned(ROW)) + unsigned(COL)), 8));
-tx_data_c <= "0000" & data_s(TO_INTEGER(char_idx_s));
-tx_par_c  <= not ('0' xor tx_addr_c(0) xor tx_addr_c(1) xor tx_addr_c(2) xor tx_addr_c(3) xor
-                          tx_addr_c(4) xor tx_addr_c(5) xor tx_addr_c(6) xor tx_addr_c(7) xor
+-- calculate TX
+process(COL, data_s, char_idx_s, number_s) begin
+  if(COL = "000") then
+    tx_data_c <= "0000" & data_s(TO_INTEGER(char_idx_s));
+  else
+    tx_data_c <= number_s;
+  end if;
+end process;
+tx_par_c  <= not ('0' xor COL(0) xor COL(1) xor COL(2) xor ROW(0) xor
+                          ROW(1) xor ROW(2) xor ROW(3) xor ROW(4) xor ROW(5) xor
                           tx_data_c(0) xor tx_data_c(1) xor tx_data_c(2) xor tx_data_c(3) xor
                           tx_data_c(4) xor tx_data_c(5) xor tx_data_c(6) xor tx_data_c(7) xor
                           tx_data_c(8) xor tx_data_c(9) xor tx_data_c(10) xor tx_data_c(11));
