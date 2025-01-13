@@ -57,6 +57,12 @@ package VGA_pkg is
   type t_char_shreg is array (0 to c_CHAR_FIFO_SIZE-1) of t_char;
 
   -- type t_char_shreg is array (0 to C_CHAR_FIFO_SIZE-1) of t_char;
+  
+  type t_cursor_pos is record
+    column : t_char_col;
+    row    : t_char_row;
+  end record;
+  type t_cursor_pos_array is array (natural range <>) of t_cursor_pos;
 
 
   
