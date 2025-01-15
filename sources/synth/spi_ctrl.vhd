@@ -59,7 +59,7 @@ architecture Behavioral of spi_ctrl is
   -- WAIT4EVENT:      Wait for the signal from timer.
   --                  Next state: POLLING
   -- POLLING:         Send SPI frame to the selected slave (in the round).
-  --                  Next state: WAIT4EVENT (if no request from slave), READ_FROM_REGS (is slave request send some products from the sever).
+  --                  Next state: WAIT4EVENT (if no request from the client), READ_FROM_REGS (is slave request send some products from the sever).
   -- READ_FROM_REGS:  Read amount of requested product from the regs.
   --                  Next state: WAIT4EVENT (if server hasn't any requested products), SEND_PRODUCTS (if server has requested products).
   -- SEND_PRODUCTS:   Send up to 10 peaces of requested product.
@@ -225,20 +225,7 @@ process(fsm_s, EDIT_ENA, BUSY, UPD_DATA, char_idx_s, COL, ROW, NODE, data_s,
         tx_frame_c <= tx_par_c & tx_data_c & ROW & COL & '0'; -- 1b'rw, 9b'addr, 12b'data, 1b'parity
         txn_ena_c <= '1';
         fsm_c <= wait4data;
-        if(data_s(0) /= x"00") then
-      if(BUSY = '0') then -- if SPI is not busy
-        if(COL = "001") then -- send amount to selected client
-          ssel_c <= (others => '1');
-          ssel_c(TO_INTEGER(unsigned(NODE) - 1)) <= '0';
-          single_c  <= '1';
-        else -- send dishes names and prices to all slaves in one time
-          ssel_c    <= (others => '0');
-          single_c  <= '0';
-        end if;
-
-        tx_frame_c <= tx_par_c & tx_data_c & ROW & COL & '0'; -- 1b'rw, 9b'addr, 12b'data, 1b'parity
-        txn_ena_c <= '1';
-        fsm_c <= wait4data;
+        
         if(data_s(0) /= x"00") then
           char_idx_c <= char_idx_s + 1;
         end if;
@@ -258,9 +245,9 @@ process(fsm_s, EDIT_ENA, BUSY, UPD_DATA, char_idx_s, COL, ROW, NODE, data_s,
     when polling =>
       -- wait for falling edge of SPI BUSY
       if((not BUSY and spi_busy_s) = '1') then
-        if(spi_rx_par = spi_rx_calc_par_c) then -- check parity
-          if((spi_rx_data(11) = '1') and (spi_rx_data(10) = '0')) then -- check that server is in the run, non-"end of day" mode
-            if(spi_rx_data(9) = '1') then -- client request send a product from server
+        if( (spi_rx_par = spi_rx_calc_par_c) and                        -- check parity
+            ((spi_rx_data(11) = '1') and (spi_rx_data(10) = '0')) and   -- check that server is in the run, non-"end of day" mode
+            (spi_rx_data(9) = '1')) then                                -- client request send a product from server
               fsm_c <= read_from_regs;
               -- read from regs
               RW       <= '1';
@@ -268,16 +255,13 @@ process(fsm_s, EDIT_ENA, BUSY, UPD_DATA, char_idx_s, COL, ROW, NODE, data_s,
               ROW_OUT  <= spi_rx_row;
               NODE_OUT <= (others => '0');
               REQ      <= '1';
-            else
-              fsm_c <= wait4event;
-
-              -- increment selected client
-              if(sel_node_s = (g_SLAVE_CNT-1)) then
-                sel_node_c <= (others => '0');
-              else
-                sel_node_c <= sel_node_s + 1;
-              end if;
-            end if;
+        else
+          fsm_c <= wait4event;
+          -- increment selected client
+          if(sel_node_s = (g_SLAVE_CNT-1)) then
+            sel_node_c <= (others => '0');
+          else
+            sel_node_c <= sel_node_s + 1;
           end if;
         end if;
       end if;
@@ -312,14 +296,6 @@ process(fsm_s, EDIT_ENA, BUSY, UPD_DATA, char_idx_s, COL, ROW, NODE, data_s,
           end if;
         else -- server can send at least 1 peace of product 
           fsm_c <= send_products;
-
-          -- re-write amount in the register
-          REQ      <= '1';
-          RW       <= '0';
-          COL_OUT  <= "001"; -- amount column
-          ROW_OUT  <= spi_rx_row;
-          NODE_OUT <= std_logic_vector(sel_node_s + 1);
-          DOUT     <= std_logic_vector(decremented_din_c);
           
           -- send frame with some amount of product
           ssel_c <= (others => '1');
@@ -348,6 +324,7 @@ process(fsm_s, EDIT_ENA, BUSY, UPD_DATA, char_idx_s, COL, ROW, NODE, data_s,
       --wait for ACK
       if(ACK = '1') then
         fsm_c <= wait4event;
+        REQ   <= '0';
 
         -- increment selected client
         if(sel_node_s = (g_SLAVE_CNT-1)) then
@@ -419,10 +396,10 @@ TXN_ENA <= txn_ena_s;
 TX_DATA <= tx_frame_s;
 
 -- RX SPI frame
-spi_rx_rw   <= RX_DATA(22);
-spi_rx_col  <= RX_DATA(21 downto 19);
-spi_rx_row  <= RX_DATA(18 downto 13); 
-spi_rx_data <= RX_DATA(12 downto 1);
-spi_rx_par  <= RX_DATA(0);
+spi_rx_rw   <= RX_DATA(0);
+spi_rx_col  <= RX_DATA(3 downto 1);
+spi_rx_row  <= RX_DATA(9 downto 4); 
+spi_rx_data <= RX_DATA(21 downto 10);
+spi_rx_par  <= RX_DATA(22);
 
 end Behavioral;

@@ -327,7 +327,7 @@ port map(
 
 bus_arbiter_i : bus_arbiter
 generic map(
-  g_NUM_BLOCKS  => 2,
+  g_NUM_BLOCKS  => c_NUM_BLOCKS,
   g_NODE_WIDTH  => c_NODE_WIDTH
 )
 port map(
