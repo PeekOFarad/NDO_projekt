@@ -23,11 +23,10 @@ entity ps2_if_ctrl is
     Port ( 
            CLK          : in STD_LOGIC;
            RST          : in STD_LOGIC;
-           EDIT_ENA     : in STD_LOGIC;
            KEYS         : in t_keys;
            NUMBER       : in STD_LOGIC_VECTOR(3 downto 0);
            PS2_CODE     : in STD_LOGIC_VECTOR (7 downto 0);
-           START_DAY    : out STD_LOGIC;
+           EDIT_ENA     : out STD_LOGIC;
            BUFF_RDY     : out STD_LOGIC;
            UPD_ARR      : out STD_LOGIC;
            UPD_DATA     : out STD_LOGIC;
@@ -52,8 +51,8 @@ architecture Behavioral of ps2_if_ctrl is
   
   signal fsm_c          : t_fsm_ps2_ctrl;
   signal fsm_s          : t_fsm_ps2_ctrl := idle;
-  signal start_day_c    : std_logic;
-  signal start_day_s    : std_logic := '0';
+  signal edit_ena_c     : std_logic;
+  signal edit_ena_s     : std_logic := '1';
   signal sel_cell_col_c : unsigned(2 downto 0);
   signal sel_cell_col_s : unsigned(2 downto 0) := to_unsigned(c_MIN_COL, 3);
   signal sel_cell_row_c : unsigned(5 downto 0);
@@ -87,7 +86,7 @@ begin
   process(CLK, RST) begin
     if(RST = '1') then
       fsm_s          <= idle;
-      start_day_s    <= '0';
+      edit_ena_s     <= '1';
       sel_cell_col_s <= to_unsigned(c_MIN_COL, 3);
       sel_cell_row_s <= (others => '0');
       char_buff_s    <= (others => (others => '0'));
@@ -98,7 +97,7 @@ begin
       numb_buff_s    <= (others => '0');
     elsif(rising_edge(CLK)) then
       fsm_s          <= fsm_c;
-      start_day_s    <= start_day_c;
+      edit_ena_s     <= edit_ena_c;
       sel_cell_col_s <= sel_cell_col_c;
       sel_cell_row_s <= sel_cell_row_c;
       node_sel_s     <= node_sel_c;
@@ -111,12 +110,12 @@ begin
     end if;
   end process;
 
-  process(KEYS, fsm_s, start_day_s, sel_cell_col_s, sel_cell_row_s,
-          node_sel_s, EDIT_ENA, char_sel_s, char_buff_s, buff_rdy_s,
-          upd_arr_s, upd_data_s, ACK, numb_buff_s, new_number_c, PS2_CODE)
+  process(KEYS, fsm_s, edit_ena_s, sel_cell_col_s, sel_cell_row_s,
+          node_sel_s, char_sel_s, char_buff_s, buff_rdy_s, upd_arr_s,
+          upd_data_s, ACK, numb_buff_s, new_number_c, PS2_CODE)
   begin
     fsm_c          <= fsm_s;
-    start_day_c    <= '0';
+    edit_ena_c     <= edit_ena_s;
     sel_cell_col_c <= sel_cell_col_s;
     sel_cell_row_c <= sel_cell_row_s;
     node_sel_c     <= node_sel_s;
@@ -159,10 +158,10 @@ begin
               upd_arr_c      <= '1';
             end if;
           elsif(KEYS.enter = '1') then
-            if(EDIT_ENA = '1') then
-              if((sel_cell_col_s = to_unsigned(c_MAX_COL, 3)) and (sel_cell_row_s = to_unsigned(g_FOOD_CNT, 6))) then
-                start_day_c <= '1';
-              elsif((sel_cell_col_s = (to_unsigned(c_MAX_COL, 3) - 1)) and (sel_cell_row_s = to_unsigned(g_FOOD_CNT, 6))) then
+            if((sel_cell_col_s = to_unsigned(c_MAX_COL, 3)) and (sel_cell_row_s = to_unsigned(g_FOOD_CNT, 6))) then
+              edit_ena_c <= not edit_ena_s;
+            elsif(edit_ena_s = '1') then
+              if((sel_cell_col_s = (to_unsigned(c_MAX_COL, 3) - 1)) and (sel_cell_row_s = to_unsigned(g_FOOD_CNT, 6))) then
                 if(node_sel_s /= g_CLIENTS_CNT) then
                   node_sel_c <= node_sel_s + 1;
                 else
@@ -265,7 +264,7 @@ begin
   new_number_c <= resize((UNSIGNED(numb_buff_s) * 10), 16) + resize(UNSIGNED(NUMBER), 16);
   
   -- output assignments
-  START_DAY    <= start_day_s;
+  EDIT_ENA     <= edit_ena_s;
   BUFF_RDY     <= buff_rdy_s;
   UPD_ARR      <= upd_arr_s;
   UPD_DATA     <= upd_data_s;

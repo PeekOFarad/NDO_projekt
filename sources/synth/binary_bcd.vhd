@@ -9,7 +9,6 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use IEEE.NUMERIC_STD.ALL;
-use work.server_pkg.all;
 use work.common_pkg.all;
  
 entity binary_bcd is
@@ -42,6 +41,9 @@ architecture behaviour of binary_bcd is
     signal shft_cnt_c : natural range 0 to N;
     signal shft_cnt_s : natural range 0 to N := 0;
 
+    signal data_done_c : std_logic;
+    signal data_done_s : std_logic := '0';
+
 begin
  
     process(clk, rst)
@@ -52,23 +54,25 @@ begin
           fsm_s <= start;
           bcds_out_s <= (others => '0');
           shft_cnt_s <= 0;
+          data_done_s <= '0';
         elsif rising_edge(clk) then
           binary_s <= binary_c;
           bcds_s <= bcds_c;
           fsm_s <= fsm_c;
           bcds_out_s <= bcds_out_c;
           shft_cnt_s <= shft_cnt_c;
+          data_done_s <= data_done_c;
         end if;
     end process;
  
     convert:
-    process(fsm_s, binary_s, new_data, binary_in, bcds_s, bcds_reg_c, shft_cnt_s)
+    process(fsm_s, binary_s, new_data, binary_in, bcds_s, bcds_reg_c, shft_cnt_s, data_done_s)
     begin
-      fsm_c      <= fsm_s;
-      bcds_c     <= bcds_s;
-      binary_c   <= binary_s;
-      shft_cnt_c <= shft_cnt_s;
-      data_done  <= '0';
+      fsm_c       <= fsm_s;
+      bcds_c      <= bcds_s;
+      binary_c    <= binary_s;
+      shft_cnt_c  <= shft_cnt_s;
+      data_done_c <= '0';
 
       case fsm_s is
         when start =>
@@ -87,8 +91,8 @@ begin
             shft_cnt_c <= shft_cnt_s + 1;
           end if;
         when done =>
-          fsm_c      <= start;
-          data_done  <= '1';
+          fsm_c       <= start;
+          data_done_c <= '1';
       end case;
     end process;
  
@@ -117,5 +121,7 @@ begin
     bcd_out(1) <= STD_LOGIC_VECTOR(bcds_out_s(15 downto 8));
     bcd_out(2) <= STD_LOGIC_VECTOR(bcds_out_s(23 downto 16));
     bcd_out(3) <= STD_LOGIC_VECTOR(bcds_out_s(31 downto 24));
+
+    data_done <= data_done_s;
  
 end behaviour;

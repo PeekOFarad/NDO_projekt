@@ -20,42 +20,46 @@ architecture bench of system_top_tb is
 
   component backend_top is
     Generic (
-           g_SLAVE_CNT : positive
+          g_SLAVE_CNT : positive
     );
-    Port ( CLK      : in STD_LOGIC;
-           RST      : in STD_LOGIC;
-           PS2_CLK  : in STD_LOGIC;
-           PS2_DATA : in STD_LOGIC;
-           MISO     : in STD_LOGIC;
-           VGA_RDY  : in STD_LOGIC;
-           UPD_ARR  : out STD_LOGIC;
-           UPD_DATA : out STD_LOGIC;
-           SCLK     : out STD_LOGIC;
-           MOSI     : out STD_LOGIC;
-           SS_N     : out STD_LOGIC_VECTOR (g_SLAVE_CNT-1 downto 0);
-           COL      : out STD_LOGIC_VECTOR (2 downto 0);
-           ROW      : out STD_LOGIC_VECTOR (5 downto 0);
-           DATA_OUT : out char_buff_t);
+    Port (CLK      : in STD_LOGIC;
+          RST      : in STD_LOGIC;
+          PS2_CLK  : in STD_LOGIC;
+          PS2_DATA : in STD_LOGIC;
+          MISO     : in STD_LOGIC;
+          VGA_RDY  : in STD_LOGIC;
+          UPD_ARR  : out STD_LOGIC;
+          UPD_DATA : out STD_LOGIC;
+          SCLK     : out STD_LOGIC;
+          MOSI     : out STD_LOGIC;
+          SS_N     : out STD_LOGIC_VECTOR (g_SLAVE_CNT-1 downto 0);
+          COL      : out STD_LOGIC_VECTOR (2 downto 0);
+          ROW      : out STD_LOGIC_VECTOR (5 downto 0);
+          DATA_OUT : out char_buff_t);
   end component;
 
   component client_backend_top is
-    Port ( CLK      : in STD_LOGIC;
-           RST      : in STD_LOGIC;
-           -- PS2
-           PS2_CLK  : in STD_LOGIC;
-           PS2_DATA : in STD_LOGIC;
-           -- SPI
-           SCSB     : in STD_LOGIC;
-           SCLK     : in STD_LOGIC;
-           MOSI     : in STD_LOGIC;
-           MISO     : out STD_LOGIC;
-           -- UI TOP
-           VGA_RDY  : in STD_LOGIC;
-           UPD_ARR  : out STD_LOGIC;
-           UPD_DATA : out STD_LOGIC;
-           COL      : out STD_LOGIC_VECTOR (2 downto 0);
-           ROW      : out STD_LOGIC_VECTOR (5 downto 0);
-           DATA_OUT : out char_buff_t);
+    Port (CLK      : in STD_LOGIC;
+          RST      : in STD_LOGIC;
+          -- PS2
+          PS2_CLK  : in STD_LOGIC;
+          PS2_DATA : in STD_LOGIC;
+          -- SPI
+          SCSB     : in STD_LOGIC;
+          SCLK     : in STD_LOGIC;
+          MOSI     : in STD_LOGIC;
+          MISO     : out STD_LOGIC;
+          -- Buttons
+		      BTN_S    : in STD_LOGIC;
+          BTN_Z    : in STD_LOGIC;
+          BTN_E    : in STD_LOGIC;
+          -- UI TOP
+          VGA_RDY  : in STD_LOGIC;
+          UPD_ARR  : out STD_LOGIC;
+          UPD_DATA : out STD_LOGIC;
+          COL      : out STD_LOGIC_VECTOR (2 downto 0);
+          ROW      : out STD_LOGIC_VECTOR (5 downto 0);
+          DATA_OUT : out char_buff_t);
   end component;
 
 --------------------------------------------------------------------------------
@@ -90,6 +94,9 @@ architecture bench of system_top_tb is
   signal   upd_arr_client   : std_logic;
   signal   upd_data_client  : std_logic;
   signal   data_out_client  : char_buff_t;
+  signal   BTN_S            : std_logic;
+  signal   BTN_Z            : std_logic;
+  signal   BTN_E            : std_logic;
   
   -- simulation related signals
   signal   par                  : std_logic := '0';
@@ -175,6 +182,9 @@ begin
     SCLK     => sclk,
     MOSI     => mosi,
     MISO     => miso,
+    BTN_S    => BTN_S,
+    BTN_Z    => BTN_Z,
+    BTN_E    => BTN_E,
     VGA_RDY  => vga_rdy,
     UPD_ARR  => upd_arr_client,
     UPD_DATA => upd_data_client,
@@ -188,11 +198,15 @@ begin
   par <= not (data(0) xor data(1) xor data(2) xor data(3) xor data(4) xor data(5) xor data(6) xor data(7));
 
   proc_stim : PROCESS BEGIN
+    BTN_S <= '0';
+    BTN_Z <= '0';
+    BTN_E <= '0';
+    
     wait until rising_edge(clk);
     wait for clk_per * 10;
     
-    data <= c_down;
-    r_send_ps2_special(c_down, par, sps2_clk, sps2_data);
+--    data <= c_down;
+--    r_send_ps2_special(c_down, par, sps2_clk, sps2_data);
     
     wait for 200us;
 
@@ -247,23 +261,13 @@ begin
     wait for clk_per;
     r_send_ps2_frame(c_enter, par, sps2_clk, sps2_data);
     
-    -- enter "14"
+    -- enter amount "14"
     data <= c_1;
     wait for clk_per;
     r_send_ps2_frame(c_1, par, sps2_clk, sps2_data);
     data <= c_4;
     wait for clk_per;
     r_send_ps2_frame(c_4, par, sps2_clk, sps2_data);
-    
-    -- press backspace
-    data <= c_bckspc;
-    wait for clk_per;
-    r_send_ps2_frame(c_bckspc, par, sps2_clk, sps2_data);
-    
-    -- enter 5
-    data <= c_5;
-    wait for clk_per;
-    r_send_ps2_frame(c_5, par, sps2_clk, sps2_data);
     
     -- press esc
     data <= c_esc;
@@ -280,20 +284,10 @@ begin
     wait for clk_per;
     r_send_ps2_frame(c_enter, par, sps2_clk, sps2_data);
 
-    -- enter "14"
+    -- enter price "15"
     data <= c_1;
     wait for clk_per;
     r_send_ps2_frame(c_1, par, sps2_clk, sps2_data);
-    data <= c_4;
-    wait for clk_per;
-    r_send_ps2_frame(c_4, par, sps2_clk, sps2_data);
-
-    -- press backspace
-    data <= c_bckspc;
-    wait for clk_per;
-    r_send_ps2_frame(c_bckspc, par, sps2_clk, sps2_data);
-    
-    -- enter 5
     data <= c_5;
     wait for clk_per;
     r_send_ps2_frame(c_5, par, sps2_clk, sps2_data);
@@ -302,6 +296,11 @@ begin
     data <= c_enter;
     wait for clk_per;
     r_send_ps2_frame(c_enter, par, sps2_clk, sps2_data);
+
+    -- press right arrow (under NEXT button)
+    data <= c_right;
+    wait for clk_per;
+    r_send_ps2_special(c_right, par, sps2_clk, sps2_data);
     
     -- go to the next node button row (32)
     for i in 1 to 32 loop
@@ -309,45 +308,88 @@ begin
       wait for clk_per;
       r_send_ps2_special(c_down, par, sps2_clk, sps2_data);
     end loop;
-    
+
+    -- press enter - NEXT btn
+    data <= c_enter;
+    wait for clk_per;
+    r_send_ps2_frame(c_enter, par, sps2_clk, sps2_data);
+
+    -- go to the 0 row
+    for i in 1 to 32 loop
+      data <= c_up;
+      wait for clk_per;
+      r_send_ps2_special(c_up, par, sps2_clk, sps2_data);
+    end loop;
+
+    -- press left arrow 2x (AMOUNT col)
+    data <= c_left;
+    wait for clk_per;
+    r_send_ps2_special(c_left, par, sps2_clk, sps2_data);
+    wait for clk_per;
+    r_send_ps2_special(c_left, par, sps2_clk, sps2_data);
+
     -- press enter
     data <= c_enter;
     wait for clk_per;
     r_send_ps2_frame(c_enter, par, sps2_clk, sps2_data);
 
-    -- press up
-    data <= c_up;
+    -- enter amount "4"
+    data <= c_4;
     wait for clk_per;
-    r_send_ps2_special(c_up, par, sps2_clk, sps2_data);
+    r_send_ps2_frame(c_4, par, sps2_clk, sps2_data);
 
-    -- press up
-    data <= c_up;
+    -- press enter
+    data <= c_enter;
     wait for clk_per;
-    r_send_ps2_special(c_up, par, sps2_clk, sps2_data);
-
-    -- press right
+    r_send_ps2_frame(c_enter, par, sps2_clk, sps2_data);
+    
+    -- press right arrow 3x (START col)
     data <= c_right;
     wait for clk_per;
     r_send_ps2_special(c_right, par, sps2_clk, sps2_data);
+    wait for clk_per;
+    r_send_ps2_special(c_right, par, sps2_clk, sps2_data);
+    wait for clk_per;
+    r_send_ps2_special(c_right, par, sps2_clk, sps2_data);
     
---    for i in 1 to 16 loop
---      data <= c_left;
---      r_send_ps2_special(c_left, par, sps2_clk, sps2_data);
---      r_send_ps2_special(c_left, par, sps2_clk, sps2_data);
---      r_send_ps2_special(c_left, par, sps2_clk, sps2_data);
---      r_send_ps2_special(c_left, par, sps2_clk, sps2_data);
---      r_send_ps2_special(c_left, par, sps2_clk, sps2_data);
---      data <= c_up;
---      r_send_ps2_special(c_up, par, sps2_clk, sps2_data);
---      data <= c_right;
---      r_send_ps2_special(c_right, par, sps2_clk, sps2_data);
---      r_send_ps2_special(c_right, par, sps2_clk, sps2_data);
---      r_send_ps2_special(c_right, par, sps2_clk, sps2_data);
---      r_send_ps2_special(c_right, par, sps2_clk, sps2_data);
---      r_send_ps2_special(c_right, par, sps2_clk, sps2_data);
---      data <= c_up;
---      r_send_ps2_special(c_up, par, sps2_clk, sps2_data);
---    end loop;
+    -- go to start button row (32)
+    for i in 1 to 32 loop
+      data <= c_down;
+      wait for clk_per;
+      r_send_ps2_special(c_down, par, sps2_clk, sps2_data);
+    end loop;
+
+    -- press enter (START the day)
+    data <= c_enter;
+    wait for clk_per;
+    r_send_ps2_frame(c_enter, par, sps2_clk, sps2_data);
+
+    -- CLIENT: press enter
+    data <= c_enter;
+    wait for clk_per;
+    r_send_ps2_frame(c_enter, par, cps2_clk, cps2_data);
+    
+    wait for clk_per * 50;
+    
+    -- CLIENT: press enter 3x
+    data <= c_enter;
+    wait for clk_per;
+    r_send_ps2_frame(c_enter, par, cps2_clk, cps2_data);
+    wait for clk_per;
+    r_send_ps2_frame(c_enter, par, cps2_clk, cps2_data);
+    wait for clk_per;
+    r_send_ps2_frame(c_enter, par, cps2_clk, cps2_data);
+    
+    -- REQ to SERVER shall be done at this point
+    
+    -- CLIENT: press enter 3x
+    data <= c_enter;
+    wait for clk_per;
+    r_send_ps2_frame(c_enter, par, cps2_clk, cps2_data);
+    wait for clk_per;
+    r_send_ps2_frame(c_enter, par, cps2_clk, cps2_data);
+    wait for clk_per;
+    r_send_ps2_frame(c_enter, par, cps2_clk, cps2_data);
     
     wait for clk_per * 1000;
 
