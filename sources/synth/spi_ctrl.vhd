@@ -19,32 +19,35 @@ entity spi_ctrl is
       g_DATA_WIDTH  : positive;
       g_NODE_WIDTH  : positive
     );
-    Port ( CLK      : in STD_LOGIC;
-           RST      : in STD_LOGIC;
-           EDIT_ENA : in STD_LOGIC;
+    Port ( CLK          : in STD_LOGIC;
+           RST          : in STD_LOGIC;
+           EDIT_ENA     : in STD_LOGIC;
            -- from PS2
-           UPD_DATA : in STD_LOGIC;
-           COL      : in STD_LOGIC_VECTOR (2 downto 0);
-           ROW      : in STD_LOGIC_VECTOR (5 downto 0);
-           NODE     : in STD_LOGIC_VECTOR (g_NODE_WIDTH-1 downto 0);
-           NUMBER   : in STD_LOGIC_VECTOR (11 downto 0);
-           DATA     : in char_buff_t;
+           UPD_DATA     : in STD_LOGIC;
+           COL          : in STD_LOGIC_VECTOR (2 downto 0);
+           ROW          : in STD_LOGIC_VECTOR (5 downto 0);
+           NODE         : in STD_LOGIC_VECTOR (g_NODE_WIDTH-1 downto 0);
+           NUMBER       : in STD_LOGIC_VECTOR (11 downto 0);
+           DATA         : in char_buff_t;
            -- to bus_arbiter
-           RW       : out STD_LOGIC;
-           COL_OUT  : out STD_LOGIC_VECTOR (2 downto 0);
-           ROW_OUT  : out STD_LOGIC_VECTOR (5 downto 0);
-           NODE_OUT : out STD_LOGIC_VECTOR (g_NODE_WIDTH-1 downto 0);
-           REQ      : out STD_LOGIC;
-           ACK      : in STD_LOGIC;
-           DIN      : in STD_LOGIC_VECTOR (11 downto 0);
-           DOUT     : out STD_LOGIC_VECTOR (11 downto 0);
+           RW           : out STD_LOGIC;
+           COL_OUT      : out STD_LOGIC_VECTOR (2 downto 0);
+           ROW_OUT      : out STD_LOGIC_VECTOR (5 downto 0);
+           NODE_OUT     : out STD_LOGIC_VECTOR (g_NODE_WIDTH-1 downto 0);
+           REQ          : out STD_LOGIC;
+           ACK          : in STD_LOGIC;
+           DIN          : in STD_LOGIC_VECTOR (11 downto 0);
+           DOUT         : out STD_LOGIC_VECTOR (11 downto 0);
            -- to spi_master
-           BUSY     : in STD_LOGIC;
-           RX_DATA  : in STD_LOGIC_VECTOR (g_DATA_WIDTH-1 downto 0);
-           SSEL     : out STD_LOGIC_VECTOR (g_SLAVE_CNT-1 downto 0);
-           SINGLE   : out STD_LOGIC;
-           TXN_ENA  : out STD_LOGIC;
-           TX_DATA  : out STD_LOGIC_VECTOR (g_DATA_WIDTH-1 downto 0));
+           BUSY         : in STD_LOGIC;
+           RX_DATA      : in STD_LOGIC_VECTOR (g_DATA_WIDTH-1 downto 0);
+           SSEL         : out STD_LOGIC_VECTOR (g_SLAVE_CNT-1 downto 0);
+           SINGLE       : out STD_LOGIC;
+           TXN_ENA      : out STD_LOGIC;
+           TX_DATA      : out STD_LOGIC_VECTOR (g_DATA_WIDTH-1 downto 0);
+           -- to UI adapter
+           UPD_DATA_OUT : out STD_LOGIC
+      );
 end spi_ctrl;
 
 architecture Behavioral of spi_ctrl is
@@ -121,6 +124,11 @@ architecture Behavioral of spi_ctrl is
   signal decremented_din_c : unsigned(11 downto 0);
   signal decremented_din_s : unsigned(11 downto 0) := (others => '0');
 
+  -- update server's amount to UI
+  signal upd_data_c        : std_logic;
+  signal upd_data_s        : std_logic := '0';
+
+  signal rx_data_s         : std_logic_vector(g_DATA_WIDTH-1 downto 0) := (others => '0');
 begin
 
 -------------------------------------------------------------------------------
@@ -152,6 +160,7 @@ process(CLK, RST) begin
     sel_node_s        <= (others => '0');
     spi_busy_s        <= '0';
     decremented_din_s <= (others => '0');
+    upd_data_s        <= '0';
   elsif(rising_edge(CLK)) then
     fsm_s      <= fsm_c;
     char_idx_s <= char_idx_c;
@@ -162,9 +171,14 @@ process(CLK, RST) begin
     timer_s    <= timer_c;
     sel_node_s <= sel_node_c;
     spi_busy_s <= BUSY;
+    upd_data_s <= upd_data_c;
 
     if(ACK = '1') then
       decremented_din_s <= decremented_din_c;
+    end if;
+
+    if((not BUSY and spi_busy_s) = '1') then
+      rx_data_s <= RX_DATA;
     end if;
   end if;
 end process;
@@ -185,6 +199,7 @@ process(fsm_s, EDIT_ENA, BUSY, UPD_DATA, char_idx_s, COL, ROW, NODE, data_s,
   spi_col    <= "001";
   spi_row    <= (others => '0');
   spi_amount_data <= (others => '0');
+  upd_data_c      <= '0';
   -- bus_arbiter
   RW       <= '1';
   COL_OUT  <= (others => '0');
@@ -279,7 +294,7 @@ process(fsm_s, EDIT_ENA, BUSY, UPD_DATA, char_idx_s, COL, ROW, NODE, data_s,
           fsm_c <= wait4event;
           REQ   <= '0';
 
-          -- send frame with no zero amount
+          -- send frame with zero amount
           ssel_c <= (others => '1');
           ssel_c(TO_INTEGER(sel_node_s)) <= '0';
           single_c  <= '1';
@@ -296,6 +311,7 @@ process(fsm_s, EDIT_ENA, BUSY, UPD_DATA, char_idx_s, COL, ROW, NODE, data_s,
           end if;
         else -- server can send at least 1 peace of product 
           fsm_c <= send_products;
+          REQ   <= '0';
           
           -- send frame with some amount of product
           ssel_c <= (others => '1');
@@ -318,13 +334,15 @@ process(fsm_s, EDIT_ENA, BUSY, UPD_DATA, char_idx_s, COL, ROW, NODE, data_s,
       RW       <= '0';
       COL_OUT  <= "001"; -- amount column
       ROW_OUT  <= spi_rx_row;
-      NODE_OUT <= std_logic_vector(sel_node_s + 1);
+      NODE_OUT <= (others => '0');
+      -- NODE_OUT <= std_logic_vector(sel_node_s + 1);
       DOUT     <= std_logic_vector(decremented_din_s);
 
       --wait for ACK
       if(ACK = '1') then
-        fsm_c <= wait4event;
-        REQ   <= '0';
+        fsm_c       <= wait4event;
+        REQ         <= '0';
+        upd_data_c  <= '1';
 
         -- increment selected client
         if(sel_node_s = (g_SLAVE_CNT-1)) then
@@ -352,7 +370,7 @@ process(timer_s) begin
 end process;
 
 -- calculate TX
-process(COL, data_s, char_idx_s, number_s, EDIT_ENA, spi_amount_data) begin
+process(COL, ROW, data_s, char_idx_s, number_s, EDIT_ENA, spi_amount_data, spi_col, spi_row) begin
   if(EDIT_ENA = '1') then
     if(COL = "000") then
       tx_data_c <= "0000" & data_s(TO_INTEGER(char_idx_s));
@@ -396,10 +414,22 @@ TXN_ENA <= txn_ena_s;
 TX_DATA <= tx_frame_s;
 
 -- RX SPI frame
-spi_rx_rw   <= RX_DATA(0);
-spi_rx_col  <= RX_DATA(3 downto 1);
-spi_rx_row  <= RX_DATA(9 downto 4); 
-spi_rx_data <= RX_DATA(21 downto 10);
-spi_rx_par  <= RX_DATA(22);
+process(fsm_s, RX_DATA, rx_data_s) begin
+  if(fsm_s = polling) then
+    spi_rx_rw   <= RX_DATA(0);
+    spi_rx_col  <= RX_DATA(3 downto 1);
+    spi_rx_row  <= RX_DATA(9 downto 4); 
+    spi_rx_data <= RX_DATA(21 downto 10);
+    spi_rx_par  <= RX_DATA(22);
+  else
+    spi_rx_rw   <= rx_data_s(0);
+    spi_rx_col  <= rx_data_s(3 downto 1);
+    spi_rx_row  <= rx_data_s(9 downto 4); 
+    spi_rx_data <= rx_data_s(21 downto 10);
+    spi_rx_par  <= rx_data_s(22);
+  end if;
+end process;
+
+UPD_DATA_OUT <= upd_data_s;
 
 end Behavioral;
