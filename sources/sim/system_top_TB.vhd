@@ -250,6 +250,53 @@ begin
     r_send_ps2_frame(std_logic_vector(TO_UNSIGNED(c_a, 8)), par, sps2_clk, sps2_data);
     wait for 200us;
 
+    -- press down arrow
+    data <= c_down;
+    wait for clk_per;
+    r_send_ps2_special(c_down, par, sps2_clk, sps2_data);
+    wait for clk_per;
+
+    -- press enter
+    data <= c_enter;
+    r_send_ps2_frame(c_enter, par, sps2_clk, sps2_data);
+    wait for clk_per;
+
+    -- print "kulajda"
+    data <= std_logic_vector(TO_UNSIGNED(c_k, 8));
+    wait for clk_per;
+    r_send_ps2_frame(std_logic_vector(TO_UNSIGNED(c_k, 8)), par, sps2_clk, sps2_data);
+    wait for 200us;
+    data <= std_logic_vector(TO_UNSIGNED(c_u, 8));
+    wait for clk_per;
+    r_send_ps2_frame(std_logic_vector(TO_UNSIGNED(c_u, 8)), par, sps2_clk, sps2_data);
+    wait for 200us;
+    data <= std_logic_vector(TO_UNSIGNED(c_l, 8));
+    wait for clk_per;
+    r_send_ps2_frame(std_logic_vector(TO_UNSIGNED(c_l, 8)), par, sps2_clk, sps2_data);
+    wait for 200us;
+    data <= std_logic_vector(TO_UNSIGNED(c_a, 8));
+    wait for clk_per;
+    r_send_ps2_frame(std_logic_vector(TO_UNSIGNED(c_a, 8)), par, sps2_clk, sps2_data);
+    wait for 200us;
+    data <= std_logic_vector(TO_UNSIGNED(c_j, 8));
+    wait for clk_per;
+    r_send_ps2_frame(std_logic_vector(TO_UNSIGNED(c_j, 8)), par, sps2_clk, sps2_data);
+    wait for 200us;
+    data <= std_logic_vector(TO_UNSIGNED(c_d, 8));
+    wait for clk_per;
+    r_send_ps2_frame(std_logic_vector(TO_UNSIGNED(c_d, 8)), par, sps2_clk, sps2_data);
+    wait for 200us;
+    data <= std_logic_vector(TO_UNSIGNED(c_a, 8));
+    wait for clk_per;
+    r_send_ps2_frame(std_logic_vector(TO_UNSIGNED(c_a, 8)), par, sps2_clk, sps2_data);
+    wait for 200us;
+
+    -- press up arrow
+    data <= c_up;
+    wait for clk_per;
+    r_send_ps2_special(c_up, par, sps2_clk, sps2_data);
+    wait for clk_per;
+
     -- press right arrow
     data <= c_right;
     wait for clk_per;
@@ -273,7 +320,32 @@ begin
     data <= c_esc;
     wait for clk_per;
     r_send_ps2_frame(c_esc, par, sps2_clk, sps2_data);
+
+    -- press down arrow
+    data <= c_down;
+    wait for clk_per;
+    r_send_ps2_special(c_down, par, sps2_clk, sps2_data);
+
+    -- press enter
+    data <= c_enter;
+    wait for clk_per;
+    r_send_ps2_frame(c_enter, par, sps2_clk, sps2_data);
     
+    -- enter amount "5"
+    data <= c_5;
+    wait for clk_per;
+    r_send_ps2_frame(c_5, par, sps2_clk, sps2_data);
+    
+    -- press esc
+    data <= c_esc;
+    wait for clk_per;
+    r_send_ps2_frame(c_esc, par, sps2_clk, sps2_data);
+    
+    -- press up arrow
+    data <= c_up;
+    wait for clk_per;
+    r_send_ps2_special(c_up, par, sps2_clk, sps2_data);
+
     -- press right arrow
     data <= c_right;
     wait for clk_per;
@@ -284,7 +356,7 @@ begin
     wait for clk_per;
     r_send_ps2_frame(c_enter, par, sps2_clk, sps2_data);
 
-    -- enter price "15"
+    -- enter student price "15"
     data <= c_1;
     wait for clk_per;
     r_send_ps2_frame(c_1, par, sps2_clk, sps2_data);
@@ -298,6 +370,121 @@ begin
     r_send_ps2_frame(c_enter, par, sps2_clk, sps2_data);
 
     -- press right arrow (under NEXT button)
+    data <= c_right;
+    wait for clk_per;
+    r_send_ps2_special(c_right, par, sps2_clk, sps2_data);
+
+    -- press enter
+    data <= c_enter;
+    wait for clk_per;
+    r_send_ps2_frame(c_enter, par, sps2_clk, sps2_data);
+
+    -- enter employee price "10"
+    data <= c_1;
+    wait for clk_per;
+    r_send_ps2_frame(c_1, par, sps2_clk, sps2_data);
+    data <= c_0;
+    wait for clk_per;
+    r_send_ps2_frame(c_0, par, sps2_clk, sps2_data);
+
+    -- press enter
+    data <= c_enter;
+    wait for clk_per;
+    r_send_ps2_frame(c_enter, par, sps2_clk, sps2_data);
+
+    -- press right arrow
+    data <= c_right;
+    wait for clk_per;
+    r_send_ps2_special(c_right, par, sps2_clk, sps2_data);
+
+    -- press enter
+    data <= c_enter;
+    wait for clk_per;
+    r_send_ps2_frame(c_enter, par, sps2_clk, sps2_data);
+
+    -- enter external price "20"
+    data <= c_2;
+    wait for clk_per;
+    r_send_ps2_frame(c_2, par, sps2_clk, sps2_data);
+    data <= c_0;
+    wait for clk_per;
+    r_send_ps2_frame(c_0, par, sps2_clk, sps2_data);
+
+    -- press enter
+    data <= c_enter;
+    wait for clk_per;
+    r_send_ps2_frame(c_enter, par, sps2_clk, sps2_data);
+
+    -- press down arrow
+    data <= c_down;
+    wait for clk_per;
+    r_send_ps2_special(c_down, par, sps2_clk, sps2_data);
+
+    -- press enter
+    data <= c_enter;
+    wait for clk_per;
+    r_send_ps2_frame(c_enter, par, sps2_clk, sps2_data);
+
+    -- enter external price "22"
+    data <= c_2;
+    wait for clk_per;
+    r_send_ps2_frame(c_2, par, sps2_clk, sps2_data);
+    data <= c_2;
+    wait for clk_per;
+    r_send_ps2_frame(c_2, par, sps2_clk, sps2_data);
+
+    -- press enter
+    data <= c_enter;
+    wait for clk_per;
+    r_send_ps2_frame(c_enter, par, sps2_clk, sps2_data);
+
+    -- press left arrow
+    data <= c_left;
+    wait for clk_per;
+    r_send_ps2_special(c_left, par, sps2_clk, sps2_data);
+
+    -- press enter
+    data <= c_enter;
+    wait for clk_per;
+    r_send_ps2_frame(c_enter, par, sps2_clk, sps2_data);
+
+    -- enter employee price "11"
+    data <= c_1;
+    wait for clk_per;
+    r_send_ps2_frame(c_1, par, sps2_clk, sps2_data);
+    data <= c_1;
+    wait for clk_per;
+    r_send_ps2_frame(c_1, par, sps2_clk, sps2_data);
+
+    -- press enter
+    data <= c_enter;
+    wait for clk_per;
+    r_send_ps2_frame(c_enter, par, sps2_clk, sps2_data);
+
+    -- press left arrow
+    data <= c_left;
+    wait for clk_per;
+    r_send_ps2_special(c_left, par, sps2_clk, sps2_data);
+
+    -- press enter
+    data <= c_enter;
+    wait for clk_per;
+    r_send_ps2_frame(c_enter, par, sps2_clk, sps2_data);
+
+    -- enter student price "16"
+    data <= c_1;
+    wait for clk_per;
+    r_send_ps2_frame(c_1, par, sps2_clk, sps2_data);
+    data <= c_6;
+    wait for clk_per;
+    r_send_ps2_frame(c_6, par, sps2_clk, sps2_data);
+
+    -- press enter
+    data <= c_enter;
+    wait for clk_per;
+    r_send_ps2_frame(c_enter, par, sps2_clk, sps2_data);
+
+    -- press right arrow
     data <= c_right;
     wait for clk_per;
     r_send_ps2_special(c_right, par, sps2_clk, sps2_data);
@@ -342,6 +529,26 @@ begin
     data <= c_enter;
     wait for clk_per;
     r_send_ps2_frame(c_enter, par, sps2_clk, sps2_data);
+
+    -- press down
+    data <= c_down;
+    wait for clk_per;
+    r_send_ps2_special(c_down, par, sps2_clk, sps2_data);
+
+    -- press enter
+    data <= c_enter;
+    wait for clk_per;
+    r_send_ps2_frame(c_enter, par, sps2_clk, sps2_data);
+
+    -- enter amount "5"
+    data <= c_5;
+    wait for clk_per;
+    r_send_ps2_frame(c_5, par, sps2_clk, sps2_data);
+
+    -- press enter
+    data <= c_enter;
+    wait for clk_per;
+    r_send_ps2_frame(c_enter, par, sps2_clk, sps2_data);
     
     -- press right arrow 3x (START col)
     data <= c_right;
@@ -368,28 +575,72 @@ begin
     data <= c_enter;
     wait for clk_per;
     r_send_ps2_frame(c_enter, par, cps2_clk, cps2_data);
+
+    -- CLIENT: press down arrow
+    data <= c_down;
+    wait for clk_per;
+    r_send_ps2_special(c_down, par, cps2_clk, cps2_data);
+
+    -- CLIENT: press enter
+    data <= c_enter;
+    wait for clk_per;
+    r_send_ps2_frame(c_enter, par, cps2_clk, cps2_data);
     
     wait for clk_per * 50;
+
+    -- change price on employee
+    BTN_Z <= '1';
     
     -- CLIENT: press enter 3x
     data <= c_enter;
     wait for clk_per;
     r_send_ps2_frame(c_enter, par, cps2_clk, cps2_data);
+    BTN_Z <= '0';
     wait for clk_per;
     r_send_ps2_frame(c_enter, par, cps2_clk, cps2_data);
     wait for clk_per;
     r_send_ps2_frame(c_enter, par, cps2_clk, cps2_data);
+
+    -- CLIENT: press up arrow
+    data <= c_up;
+    wait for clk_per;
+    r_send_ps2_special(c_up, par, cps2_clk, cps2_data);
+
+    -- CLIENT: press enter 3x
+    data <= c_enter;
+    wait for clk_per;
+    r_send_ps2_frame(c_enter, par, cps2_clk, cps2_data);
+    BTN_Z <= '0';
+    wait for clk_per;
+    r_send_ps2_frame(c_enter, par, cps2_clk, cps2_data);
+    wait for clk_per;
+    r_send_ps2_frame(c_enter, par, cps2_clk, cps2_data);
+
+    -- change price on external
+    BTN_E <= '1';
+    wait for clk_per * 10;
+    BTN_E <= '0';
     
     -- REQ to SERVER shall be done at this point
     
-    -- CLIENT: press enter 3x
+    -- CLIENT: press enter 15x
     data <= c_enter;
+    for i in 1 to 15 loop
+      wait for clk_per;
+      r_send_ps2_frame(c_enter, par, cps2_clk, cps2_data);
+    end loop;
+
+    -- CLIENT: press down arrow
+    data <= c_down;
     wait for clk_per;
-    r_send_ps2_frame(c_enter, par, cps2_clk, cps2_data);
-    wait for clk_per;
-    r_send_ps2_frame(c_enter, par, cps2_clk, cps2_data);
-    wait for clk_per;
-    r_send_ps2_frame(c_enter, par, cps2_clk, cps2_data);
+    r_send_ps2_special(c_down, par, cps2_clk, cps2_data);
+
+    -- CLIENT: press enter 15x
+    data <= c_enter;
+    for i in 1 to 15 loop
+      wait for clk_per;
+      r_send_ps2_frame(c_enter, par, cps2_clk, cps2_data);
+    end loop;
     
     wait for clk_per * 1000;
 

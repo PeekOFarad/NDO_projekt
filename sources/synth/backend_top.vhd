@@ -180,7 +180,10 @@ component spi_ctrl is
           SSEL     : out STD_LOGIC_VECTOR (g_SLAVE_CNT-1 downto 0);
           SINGLE   : out STD_LOGIC;
           TXN_ENA  : out STD_LOGIC;
-          TX_DATA  : out STD_LOGIC_VECTOR (g_DATA_WIDTH-1 downto 0));
+          TX_DATA      : out STD_LOGIC_VECTOR (g_DATA_WIDTH-1 downto 0);
+          -- to UI adapter
+          UPD_DATA_OUT : out STD_LOGIC
+    );
   end component;
 
 --------------------------------------------------------------------------------
@@ -276,11 +279,7 @@ component spi_master is
 
   signal   upd_data_spi         : std_logic;
 
-
 begin
-
-  -- temporary assigns
-  upd_data_spi <= '0';
 
 --------------------------------------------------------------------------------
 
@@ -452,7 +451,9 @@ port map(
   SSEL       => ssel,
   SINGLE     => single,
   TXN_ENA    => txn_ena,
-  TX_DATA    => tx_data
+  TX_DATA    => tx_data,
+  -- to UI adapter
+  UPD_DATA_OUT => upd_data_spi
 );
 
 --------------------------------------------------------------------------------
