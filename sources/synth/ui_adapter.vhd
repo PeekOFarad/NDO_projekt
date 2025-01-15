@@ -57,7 +57,7 @@ architecture Behavioral of ui_adapter is
 
 -------------------------------------------------------------------------------
 
-  type t_fsm_ui_adapter is (cfg, node_upd, wait4BCD, run, read);
+  type t_fsm_ui_adapter is (cfg, node_upd, wait4BCD, run, read_from_regs, wait4vga);
 
   signal fsm_c : t_fsm_ui_adapter;
   signal fsm_s : t_fsm_ui_adapter := cfg;
@@ -69,6 +69,18 @@ architecture Behavioral of ui_adapter is
 
   signal row_in_s : STD_LOGIC_VECTOR (5 downto 0) := (others => '0');
   signal smp_row_ena : STD_LOGIC;
+
+  signal upd_arr_c : std_logic;
+  signal upd_arr_s : std_logic := '0';
+
+  signal upd_data_c : std_logic;
+  signal upd_data_s : std_logic := '0';
+
+  signal upd_arr_req_c : std_logic;
+  signal upd_arr_req_s : std_logic := '0';
+
+  signal upd_data_req_c : std_logic;
+  signal upd_data_req_s : std_logic := '0';
   
 -------------------------------------------------------------------------------
 -- binary to BCD
@@ -80,72 +92,99 @@ begin
 
   process(CLK, RST) begin
     if(RST = '1') then
-      fsm_s      <= cfg;
-      node_sel_s <= (others => '0');
-      cnt_s      <= (others => '0');
-      row_in_s   <= (others => '0');
+      fsm_s           <= cfg;
+      node_sel_s      <= (others => '0');
+      cnt_s           <= (others => '0');
+      row_in_s        <= (others => '0');
+      upd_arr_s       <= '0';
+      upd_data_s      <= '0';
+      upd_arr_req_s   <= '0';
+      upd_data_req_s  <= '0';
     elsif(rising_edge(CLK)) then
-      fsm_s      <= fsm_c;
-      node_sel_s <= NODE_SEL;
-      cnt_s      <= cnt_c;
+      fsm_s           <= fsm_c;
+      node_sel_s      <= NODE_SEL;
+      cnt_s           <= cnt_c;
+      upd_arr_s       <= upd_arr_c;
+      upd_data_s      <= upd_data_c;
+      upd_arr_req_s   <= upd_arr_req_c;
+      upd_data_req_s  <= upd_data_req_c;
       if(smp_row_ena = '1') then
         row_in_s   <= ROW_IN;
       end if;
     end if;
   end process;
 
-  process(fsm_s, cnt_s, EDIT_ENA, UPD_ARR_IN, UPD_DATA_IN, COL_IN,
-          ROW_IN, NODE_SEL, node_sel_s, ACK, row_in_s, data_done_c) begin
-    fsm_c        <= fsm_s;
-    cnt_c        <= cnt_s;
-    UPD_DATA_OUT <= '0';
-    UPD_ARR_OUT  <= '0';
-    smp_row_ena  <= '0';
-    REQ          <= '0';
-    RW           <= '1';
-    new_data_c   <= '0';
+  process(fsm_s, cnt_s, EDIT_ENA, COL_IN, VGA_RDY,
+          ROW_IN, NODE_SEL, node_sel_s, ACK, row_in_s, data_done_c, UPD_DATA_IN) begin
+    fsm_c         <= fsm_s;
+    cnt_c         <= cnt_s;
+    smp_row_ena   <= '0';
+    REQ           <= '0';
+    RW            <= '1';
+    new_data_c    <= '0';
 
     case(fsm_s) is
       when cfg =>
         COL_OUT      <= COL_IN;
         ROW_OUT      <= ROW_IN;
-        UPD_ARR_OUT  <= UPD_ARR_IN;
-        UPD_DATA_OUT <= UPD_DATA_IN;
 
         if(node_sel_s /= NODE_SEL) then
           fsm_c <= node_upd;
+          COL_OUT <= "001"; -- select amount column
+          ROW_OUT <= std_logic_vector(cnt_s);
+          REQ     <= '1';
         end if;
         if(EDIT_ENA = '0') then
           fsm_c <= run;
         end if;
 
       when node_upd =>
-        if(VGA_RDY = '1') then -- wait for VGA ready
-          COL_OUT <= "001"; -- select amount column
-          ROW_OUT <= std_logic_vector(cnt_s);
-          REQ     <= '1';
+        COL_OUT <= "001"; -- select amount column
+        ROW_OUT <= std_logic_vector(cnt_s);
+        REQ     <= '1';
 
-          if(cnt_s = 32) then
-            REQ   <= '0';
-            cnt_c <= (others => '0');
+        if(cnt_s = 32) then
+          REQ   <= '0';
+          cnt_c <= (others => '0');
 
-            if(EDIT_ENA = '0') then
-              fsm_c <= run;
-            else
-              fsm_c <= cfg;
-            end if;
-          elsif(ACK = '1') then
-            new_data_c <= '1';
-            fsm_c      <= wait4BCD;
+          if(EDIT_ENA = '0') then
+            fsm_c <= run;
+          else
+            fsm_c <= cfg;
           end if;
+        elsif(ACK = '1') then
+          REQ         <= '0';
+          new_data_c  <= '1';
+          fsm_c       <= wait4BCD;
         end if;
       when wait4BCD =>
-        if(data_done_c = '1') then
-          cnt_c <= cnt_s + 1;
-          UPD_DATA_OUT <= '1';
-          fsm_c        <= node_upd;
-        end if;
+        COL_OUT <= "001"; -- select amount column
+        if(EDIT_ENA = '1') then
+          ROW_OUT <= std_logic_vector(cnt_s);
 
+          if(data_done_c = '1') then
+            if(VGA_RDY = '1') then
+              cnt_c <= cnt_s + 1;
+              fsm_c <= node_upd;
+            else
+              fsm_c <= wait4vga;
+            end if;
+          end if;
+        else -- in run mode
+          ROW_OUT <= row_in_s;
+
+          if(data_done_c = '1') then
+            fsm_c <= run;
+          end if;
+        end if;
+      when wait4vga =>
+        COL_OUT <= "001"; -- select amount column
+        ROW_OUT <= std_logic_vector(cnt_s);
+
+        if(VGA_RDY = '1') then
+          cnt_c <= cnt_s + 1;
+          fsm_c <= node_upd;
+        end if;
       when run =>
         COL_OUT <= "001"; -- select amount column
         ROW_OUT <= ROW_IN;
@@ -153,20 +192,20 @@ begin
         if(EDIT_ENA = '1') then
           fsm_c <= cfg;
         elsif(UPD_DATA_IN = '1') then
-          fsm_c <= read;
-          REQ   <= '1';
+          fsm_c       <= read_from_regs;
+          REQ         <= '1';
           smp_row_ena <= '1';
         end if;
         
-      when read =>
+      when read_from_regs =>
         COL_OUT <= "001"; -- select amount column
         ROW_OUT <= row_in_s;
-        REQ   <= '1';
+        REQ     <= '1';
 
         if(ACK = '1') then
-          REQ          <= '0';
-          UPD_DATA_OUT <= '1';
-          fsm_c <= run;
+          REQ         <= '0';
+          new_data_c  <= '1';
+          fsm_c       <= wait4BCD;
         end if;
     end case;
   end process;
@@ -196,5 +235,39 @@ begin
       end loop;
     end if;
   end process;
+
+  -- User interface
+  process(upd_arr_req_s, upd_data_req_s, VGA_RDY, UPD_ARR_IN, UPD_DATA_IN, data_done_c) begin
+    upd_arr_c       <= '0';
+    upd_data_c      <= '0';
+    upd_arr_req_c   <= upd_arr_req_s;
+    upd_data_req_c  <= upd_data_req_s;
+
+    if(VGA_RDY = '1') then
+      -- array update
+      if((upd_arr_req_s = '1') or (UPD_ARR_IN = '1')) then
+        upd_arr_req_c <= '0';
+        upd_arr_c     <= '1';
+      end if;
+
+      -- data update
+      if((upd_data_req_s = '1') or (data_done_c = '1') or ((UPD_DATA_IN = '1') and (EDIT_ENA = '1'))) then
+        upd_data_req_c <= '0';
+        upd_data_c     <= '1';
+      end if;
+    else -- save update requests
+      -- array update
+      if(UPD_ARR_IN = '1') then
+        upd_arr_req_c <= '1';
+      end if;
+      -- data update
+      if((data_done_c = '1') or (UPD_DATA_IN = '1')) then
+        upd_data_req_c <= '1';
+      end if;
+    end if;
+  end process;
+
+  UPD_ARR_OUT   <= upd_arr_s;
+  UPD_DATA_OUT  <= upd_data_s;
 
 end Behavioral;
