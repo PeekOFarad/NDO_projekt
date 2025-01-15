@@ -9,34 +9,40 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
-use work.server_pkg.all;
+use work.client_pkg.all;
 use work.common_pkg.all;
 
 entity client_ctrl is
     Generic (
-           g_DATA_WIDTH  : positive
+           g_DATA_WIDTH  : positive := c_SPI_WIDTH
     );
-    Port(  CLK       : in STD_LOGIC;
-           RST       : in STD_LOGIC;
-           -- from/to SPI_SLAVE
-           BUSY      : in STD_LOGIC;
-           DATA_RDY  : in STD_LOGIC;
-           RX_DATA   : in STD_LOGIC_VECTOR (g_DATA_WIDTH-1 downto 0);
-           TX_DATA   : out STD_LOGIC_VECTOR (g_DATA_WIDTH-1 downto 0);
-           -- from/to UI_ADAPTER
-           VGA_RDY   : in STD_LOGIC;
-           UPD_DATA  : out STD_LOGIC;
-           COL       : out STD_LOGIC_VECTOR (2 downto 0);
-           ROW       : out STD_LOGIC_VECTOR (5 downto 0);
-           CHAR_BUFF : out char_buff_t;
-           -- from/to bus_arbiter
-           RW       : out STD_LOGIC;
-           COL_OUT  : out STD_LOGIC_VECTOR (2 downto 0);
-           ROW_OUT  : out STD_LOGIC_VECTOR (5 downto 0);
-           REQ      : out STD_LOGIC;
-           ACK      : in STD_LOGIC;
-           DIN      : in STD_LOGIC_VECTOR (11 downto 0);
-           DOUT     : out STD_LOGIC_VECTOR (11 downto 0)
+    Port( CLK       : in STD_LOGIC;
+          RST       : in STD_LOGIC;
+          -- from/to SPI_SLAVE
+          BUSY      : in STD_LOGIC;
+          DATA_RDY  : in STD_LOGIC;
+          RX_DATA   : in STD_LOGIC_VECTOR (g_DATA_WIDTH-1 downto 0);
+          TX_DATA   : out STD_LOGIC_VECTOR (g_DATA_WIDTH-1 downto 0);
+          -- from/to UI
+          VGA_RDY   : in STD_LOGIC;
+          UPD_DATA  : out STD_LOGIC;
+          COL       : out STD_LOGIC_VECTOR (2 downto 0);
+          ROW       : out STD_LOGIC_VECTOR (5 downto 0);
+          CHAR_BUFF : out char_buff_t;
+          -- from/to bus_arbiter
+          RW       : out STD_LOGIC;
+          COL_OUT  : out STD_LOGIC_VECTOR (2 downto 0);
+          ROW_OUT  : out STD_LOGIC_VECTOR (5 downto 0);
+          REQ      : out STD_LOGIC;
+          ACK      : in STD_LOGIC;
+          DIN      : in STD_LOGIC_VECTOR (11 downto 0);
+          DOUT     : out STD_LOGIC_VECTOR (11 downto 0);
+          -- from/to CLIENT_CORE
+          REQ_TO_SERV : in STD_LOGIC;
+          REQ_ROW     : in STD_LOGIC_VECTOR (5 downto 0);
+          RSP_RDY     : out STD_LOGIC;
+          RSP_AMOUNT  : out STD_LOGIC_VECTOR (3 downto 0);
+          EDIT_ENA    : out STD_LOGIC
         );
 end client_ctrl;
 
@@ -56,7 +62,9 @@ architecture Behavioral of client_ctrl is
 
 -------------------------------------------------------------------------------
 
-  type fsm_t IS(cfg, wait4ack);
+  constant ALL_ONES_VECTOR : std_logic_vector(g_DATA_WIDTH-1 downto 0) := (others => '1');
+
+  type fsm_t IS(cfg, wait4ack, run, wait4rsp);
 
   signal fsm_c : fsm_t;
   signal fsm_s : fsm_t := cfg;
@@ -105,6 +113,20 @@ architecture Behavioral of client_ctrl is
   signal rw_c : STD_LOGIC;
   signal rw_s : STD_LOGIC := '1';
 
+  -- edit ena
+  signal edit_ena_c : STD_LOGIC;
+  signal edit_ena_s : STD_LOGIC := '1';
+
+  -- TX frame
+  signal tx_fr_data_c : std_logic_vector(11 downto 0);
+  signal tx_col_c     : std_logic_vector(2 downto 0);
+  signal tx_row_c     : std_logic_vector(5 downto 0);
+  signal tx_par_c     : std_logic;
+
+  -- client core connection
+  -- signal req_row_c : std_logic_vector(3 downto 0);
+  -- signal req_row_s : std_logic_vector(3 downto 0) := (others => '0');
+
 begin
 
   process(CLK, RST) begin
@@ -119,6 +141,8 @@ begin
       ch_cnt_s        <= (others => '0');
       rw_s            <= '1';
       upd_data_req_s  <= '0';
+      edit_ena_s      <= '1';
+      tx_data_s       <= (others => '0');
     elsif(rising_edge(CLK)) then
       fsm_s           <= fsm_c;
       upd_data_s      <= upd_data_c;
@@ -130,13 +154,15 @@ begin
       ch_cnt_s        <= ch_cnt_c;
       rw_s            <= rw_c;
       upd_data_req_s  <= upd_data_req_c;
+      edit_ena_s      <= edit_ena_c;
+      tx_data_s       <= tx_data_c;
     end if;
   end process;
 
-  process(fsm_s, frm_col, frm_row, frm_data, upd_data_s, col_s, row_s, char_buff_s, ch_cnt_s,
-          DATA_RDY, data_done_c, bcd_out, ACK, rw_s, last_col_s, last_row_s, upd_data_req_s, VGA_RDY) begin
+  process(fsm_s, frm_col, frm_row, frm_data, col_s, row_s, char_buff_s, ch_cnt_s,
+          DATA_RDY, data_done_c, bcd_out, ACK, rw_s, last_col_s, last_row_s,
+          edit_ena_s, tx_col_c, tx_row_c, tx_fr_data_c, tx_par_c, REQ_TO_SERV, REQ_ROW) begin
     fsm_c           <= fsm_s;
-    upd_data_c      <= '0';
     col_c           <= col_s;
     last_col_c      <= last_col_s;
     row_c           <= row_s;
@@ -147,48 +173,48 @@ begin
     RW              <= '1';
     REQ             <= '0';
     rw_c            <= rw_s;
-
-    if(VGA_RDY = '1' and upd_data_req_s = '1') then -- set UPD_DATA if request is active and clear request
-      upd_data_c     <= '1';
-      upd_data_req_c <= '0';
-    else
-      upd_data_req_c  <= upd_data_req_s; -- wait
-    end if;
+    edit_ena_c      <= edit_ena_s;
+    tx_data_c       <= tx_data_s;
+    tx_col_c        <= "000";
+    tx_row_c        <= "000000";
+    tx_fr_data_c    <= (others => '0');
+    RSP_RDY         <= '0';
+    RSP_AMOUNT      <= (others => '0');
 
     case(fsm_s) is
 -------------------------------------------------------------------------------
       when cfg =>
+        -- 1b'rw, 9b'addr, 12b'data, 1b'parity
+        tx_data_c <= tx_par_c & tx_fr_data_c & tx_row_c & tx_col_c & '0';
+        edit_ena_c <= '1';
 
         if(DATA_RDY = '1') then
-          -- save last position of cursor
-          last_col_c <= col_s;
-          last_row_c <= row_s;
-          
-          -- clear char buffer if cell is changed
-          if((frm_col /= last_col_s) or (frm_row /= last_row_s)) then
-            char_buff_c <= (others => (others => '0'));
-          end if;
-
-          if(frm_col = "000") then -- char
-            col_c      <= frm_col;
-            row_c      <= frm_row;
-
-            if((frm_col = col_s) and (frm_row = row_s)) then
-              ch_cnt_c <= ch_cnt_s + 1;
-              char_buff_c(TO_INTEGER(ch_cnt_s)) <= frm_data(7 downto 0);
-            else
-              ch_cnt_c <= (others => '0');
-              char_buff_c(0) <= frm_data(7 downto 0);
+          if(RX_DATA = ALL_ONES_VECTOR) then -- go to the run mode
+            fsm_c <= run;
+          else -- stay at cfg mode
+            -- save last position of cursor
+            last_col_c <= col_s;
+            last_row_c <= row_s;
+            
+            -- clear char buffer if cell is changed
+            if((frm_col /= last_col_s) or (frm_row /= last_row_s)) then
+              char_buff_c <= (others => (others => '0'));
             end if;
 
-            -- assign UPD_DATA if VGA is ready, else save a request and wait
-            if(VGA_RDY = '1') then
-              upd_data_c <= '1';
-            else
-              upd_data_req_c <= '1';
+            if(frm_col = "000") then -- char
+              col_c      <= frm_col;
+              row_c      <= frm_row;
+
+              if((frm_col = col_s) and (frm_row = row_s)) then
+                ch_cnt_c <= ch_cnt_s + 1;
+                char_buff_c(TO_INTEGER(ch_cnt_s)) <= frm_data(7 downto 0);
+              else
+                ch_cnt_c <= (others => '0');
+                char_buff_c(0) <= frm_data(7 downto 0);
+              end if;
+            else -- number
+              new_data_c <= '1';
             end if;
-          else -- number
-            new_data_c <= '1';
           end if;
         elsif(data_done_c = '1') then
           col_c          <= frm_col;
@@ -197,13 +223,6 @@ begin
           char_buff_c(1) <= bcd_out(1);
           char_buff_c(2) <= bcd_out(2);
           char_buff_c(3) <= bcd_out(3);
-
-          -- assign UPD_DATA if VGA is ready, else save a request and wait
-          if(VGA_RDY = '1') then
-            upd_data_c <= '1';
-          else
-            upd_data_req_c <= '1';
-          end if;
           
           -- save number to the register
           fsm_c   <= wait4ack;
@@ -218,6 +237,32 @@ begin
 
         if(ACK = '1') then
           fsm_c <= cfg;
+        end if;
+-------------------------------------------------------------------------------
+      when run =>
+        edit_ena_c       <= '0';
+        tx_col_c         <= "000";
+        tx_row_c         <= "000000";
+        tx_fr_data_c     <= (others => '0');
+        tx_fr_data_c(11) <= '1'; -- 0 - client is in the config mode, 1 - client is in the run mode
+        tx_fr_data_c(10) <= '0'; -- 0 - Reserved, 1 - sending "end of the day info"
+        tx_fr_data_c(9)  <= '0'; -- 1 - client is out of product on selected row
+
+        if(REQ_TO_SERV = '1') then
+          tx_fr_data_c(9)  <= '1';
+          tx_col_c         <= "001";
+          tx_row_c         <= REQ_ROW;
+          fsm_c            <= wait4rsp;
+        end if;
+
+        -- 1b'rw, 9b'addr, 12b'data, 1b'parity
+        tx_data_c <= tx_par_c & tx_fr_data_c & tx_row_c & tx_col_c & '0';
+-------------------------------------------------------------------------------
+      when wait4rsp =>
+        if((DATA_RDY = '1') and (frm_row = REQ_ROW)) then
+          RSP_RDY     <= '1';
+          RSP_AMOUNT  <= frm_data(3 downto 0);
+          fsm_c       <= run;
         end if;
     end case;
   end process;
@@ -242,6 +287,33 @@ begin
     data_done => data_done_c,
     bcd_out   => bcd_out
   );
+
+  -- User interface
+  process(upd_data_req_s, VGA_RDY, data_done_c, frm_col, DATA_RDY) begin
+    upd_data_c      <= '0';
+    upd_data_req_c  <= upd_data_req_s;
+
+    if(VGA_RDY = '1') then
+      -- data update
+      if( (upd_data_req_s = '1') or (data_done_c = '1') or
+          ((DATA_RDY = '1') and (frm_col = "000"))) then
+        upd_data_req_c <= '0';
+        upd_data_c     <= '1';
+      end if;
+    else -- save update requests
+      -- data update
+      if((data_done_c = '1') or ((DATA_RDY = '1') and (frm_col = "000"))) then
+        upd_data_req_c <= '1';
+      end if;
+    end if;
+  end process;
+  
+  -- TX frame parity calc
+  tx_par_c  <=  not ('0' xor tx_col_c(0) xor tx_col_c(1) xor tx_col_c(2) xor tx_row_c(0) xor
+              tx_row_c(1) xor tx_row_c(2) xor tx_row_c(3) xor tx_row_c(4) xor tx_row_c(5) xor
+              tx_fr_data_c(0) xor tx_fr_data_c(1) xor tx_fr_data_c(2) xor tx_fr_data_c(3) xor
+              tx_fr_data_c(4) xor tx_fr_data_c(5) xor tx_fr_data_c(6) xor tx_fr_data_c(7) xor
+              tx_fr_data_c(8) xor tx_fr_data_c(9) xor tx_fr_data_c(10) xor tx_fr_data_c(11));
   
   -- output assignments
   UPD_DATA    <= upd_data_s;
@@ -251,5 +323,7 @@ begin
   COL_OUT     <= col_s;
   ROW_OUT     <= row_s;
   DOUT        <= frm_data;
+  TX_DATA     <= tx_data_s;
+  EDIT_ENA    <= edit_ena_s;
 
 end Behavioral;

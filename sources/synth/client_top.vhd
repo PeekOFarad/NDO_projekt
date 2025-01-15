@@ -24,6 +24,10 @@ entity client_top is
 			SCLK     : in STD_LOGIC;
 			MOSI     : in STD_LOGIC;
 			MISO     : out STD_LOGIC;
+			-- Buttons
+			BTN_S    : in STD_LOGIC;
+      BTN_Z    : in STD_LOGIC;
+      BTN_E    : in STD_LOGIC;
 			--------------------------------------------------------------------------------
 			--------------------------------------------------------------------------------
 			-- VGA
@@ -51,23 +55,27 @@ end client_top;
 architecture rtl of client_top is
 
 	component client_backend_top is
-    Port ( CLK      : in STD_LOGIC;
-           RST      : in STD_LOGIC;
-           -- PS2
-           PS2_CLK  : in STD_LOGIC;
-           PS2_DATA : in STD_LOGIC;
-           -- SPI
-           SCSB     : in STD_LOGIC;
-           SCLK     : in STD_LOGIC;
-           MOSI     : in STD_LOGIC;
-           MISO     : out STD_LOGIC;
-           -- UI TOP
-           VGA_RDY  : in STD_LOGIC;
-           UPD_ARR  : out STD_LOGIC;
-           UPD_DATA : out STD_LOGIC;
-           COL      : out STD_LOGIC_VECTOR (2 downto 0);
-           ROW      : out STD_LOGIC_VECTOR (5 downto 0);
-           DATA_OUT : out char_buff_t);
+    Port (CLK      : in STD_LOGIC;
+          RST      : in STD_LOGIC;
+          -- PS2
+          PS2_CLK  : in STD_LOGIC;
+          PS2_DATA : in STD_LOGIC;
+          -- SPI
+          SCSB     : in STD_LOGIC;
+          SCLK     : in STD_LOGIC;
+          MOSI     : in STD_LOGIC;
+          MISO     : out STD_LOGIC;
+          -- BUTTONS
+          BTN_S    : in STD_LOGIC;
+          BTN_Z    : in STD_LOGIC;
+          BTN_E    : in STD_LOGIC;
+          -- UI TOP
+          VGA_RDY  : in STD_LOGIC;
+          UPD_ARR  : out STD_LOGIC;
+          UPD_DATA : out STD_LOGIC;
+          COL      : out STD_LOGIC_VECTOR (2 downto 0);
+          ROW      : out STD_LOGIC_VECTOR (5 downto 0);
+          DATA_OUT : out char_buff_t);
 	end component;
 
 -------------------------------------------------------------------------------
@@ -104,6 +112,9 @@ port map(
 	SCLK     => SCLK,
 	MOSI     => MOSI,
 	MISO     => MISO,
+	BTN_S    => BTN_S,
+    BTN_Z    => BTN_Z,
+    BTN_E    => BTN_E,
 	VGA_RDY  => VGA_RDY,
 	UPD_ARR  => upd_arr,
 	UPD_DATA => upd_data,

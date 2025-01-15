@@ -14,23 +14,27 @@ use work.client_pkg.all;
 use work.common_pkg.all;
 
 entity client_backend_top is
-    Port ( CLK      : in STD_LOGIC;
-           RST      : in STD_LOGIC;
-           -- PS2
-           PS2_CLK  : in STD_LOGIC;
-           PS2_DATA : in STD_LOGIC;
-           -- SPI
-           SCSB     : in STD_LOGIC;
-           SCLK     : in STD_LOGIC;
-           MOSI     : in STD_LOGIC;
-           MISO     : out STD_LOGIC;
-           -- UI TOP
-           VGA_RDY  : in STD_LOGIC;
-           UPD_ARR  : out STD_LOGIC;
-           UPD_DATA : out STD_LOGIC;
-           COL      : out STD_LOGIC_VECTOR (2 downto 0);
-           ROW      : out STD_LOGIC_VECTOR (5 downto 0);
-           DATA_OUT : out char_buff_t);
+    Port (CLK      : in STD_LOGIC;
+          RST      : in STD_LOGIC;
+          -- PS2
+          PS2_CLK  : in STD_LOGIC;
+          PS2_DATA : in STD_LOGIC;
+          -- SPI
+          SCSB     : in STD_LOGIC;
+          SCLK     : in STD_LOGIC;
+          MOSI     : in STD_LOGIC;
+          MISO     : out STD_LOGIC;
+          -- BUTTONS
+          BTN_S    : in STD_LOGIC;
+          BTN_Z    : in STD_LOGIC;
+          BTN_E    : in STD_LOGIC;
+          -- UI TOP
+          VGA_RDY  : in STD_LOGIC;
+          UPD_ARR  : out STD_LOGIC;
+          UPD_DATA : out STD_LOGIC;
+          COL      : out STD_LOGIC_VECTOR (2 downto 0);
+          ROW      : out STD_LOGIC_VECTOR (5 downto 0);
+          DATA_OUT : out char_buff_t);
 end client_backend_top;
 
 architecture Behavioral of client_backend_top is
@@ -119,62 +123,39 @@ architecture Behavioral of client_backend_top is
   end component;
   
 --------------------------------------------------------------------------------
-  
-  component ui_adapter is
-    Generic (
-      g_FOOD_CNT     : positive;
-      g_CLIENTS_CNT  : positive;
-      g_NODE_WIDTH   : positive
-    );
-    Port ( CLK          : in STD_LOGIC;
-            RST          : in STD_LOGIC;
-            EDIT_ENA     : in STD_LOGIC;
-            VGA_RDY      : in STD_LOGIC;
-            UPD_ARR_IN   : in STD_LOGIC;
-            UPD_DATA_IN  : in STD_LOGIC;
-            ACK          : in STD_LOGIC;
-            COL_IN       : in STD_LOGIC_VECTOR (2 downto 0);
-            ROW_IN       : in STD_LOGIC_VECTOR (5 downto 0);
-            CHAR_BUFF    : in char_buff_t;
-            NODE_SEL     : in STD_LOGIC_VECTOR(g_NODE_WIDTH-1 downto 0);
-            DIN          : in STD_LOGIC_VECTOR (11 downto 0);
-            REQ          : out STD_LOGIC;
-            RW           : out STD_LOGIC;
-            UPD_ARR_OUT  : out STD_LOGIC;
-            UPD_DATA_OUT : out STD_LOGIC;
-            COL_OUT      : out STD_LOGIC_VECTOR (2 downto 0);
-            ROW_OUT      : out STD_LOGIC_VECTOR (5 downto 0);
-            DATA_OUT     : out char_buff_t);
-  end component;
-  
---------------------------------------------------------------------------------
 
 component client_ctrl is
     Generic (
-           g_DATA_WIDTH  : positive
-    );
-    Port(  CLK       : in STD_LOGIC;
-           RST       : in STD_LOGIC;
-           -- from/to SPI_SLAVE
-           BUSY      : in STD_LOGIC;
-           DATA_RDY  : in STD_LOGIC;
-           RX_DATA   : in STD_LOGIC_VECTOR (g_DATA_WIDTH-1 downto 0);
-           TX_DATA   : out STD_LOGIC_VECTOR (g_DATA_WIDTH-1 downto 0);
-           -- to UI_ADAPTER
-           VGA_RDY   : in STD_LOGIC;
-           UPD_DATA  : out STD_LOGIC;
-           COL       : out STD_LOGIC_VECTOR (2 downto 0);
-           ROW       : out STD_LOGIC_VECTOR (5 downto 0);
-           CHAR_BUFF : out char_buff_t;
-           -- to bus_arbiter
-           RW       : out STD_LOGIC;
-           COL_OUT  : out STD_LOGIC_VECTOR (2 downto 0);
-           ROW_OUT  : out STD_LOGIC_VECTOR (5 downto 0);
-           REQ      : out STD_LOGIC;
-           ACK      : in STD_LOGIC;
-           DIN      : in STD_LOGIC_VECTOR (11 downto 0);
-           DOUT     : out STD_LOGIC_VECTOR (11 downto 0)
-        );
+      g_DATA_WIDTH  : positive := c_SPI_WIDTH
+  );
+  Port( CLK       : in STD_LOGIC;
+        RST       : in STD_LOGIC;
+        -- from/to SPI_SLAVE
+        BUSY      : in STD_LOGIC;
+        DATA_RDY  : in STD_LOGIC;
+        RX_DATA   : in STD_LOGIC_VECTOR (g_DATA_WIDTH-1 downto 0);
+        TX_DATA   : out STD_LOGIC_VECTOR (g_DATA_WIDTH-1 downto 0);
+        -- from/to UI_ADAPTER
+        VGA_RDY   : in STD_LOGIC;
+        UPD_DATA  : out STD_LOGIC;
+        COL       : out STD_LOGIC_VECTOR (2 downto 0);
+        ROW       : out STD_LOGIC_VECTOR (5 downto 0);
+        CHAR_BUFF : out char_buff_t;
+        -- from/to bus_arbiter
+        RW       : out STD_LOGIC;
+        COL_OUT  : out STD_LOGIC_VECTOR (2 downto 0);
+        ROW_OUT  : out STD_LOGIC_VECTOR (5 downto 0);
+        REQ      : out STD_LOGIC;
+        ACK      : in STD_LOGIC;
+        DIN      : in STD_LOGIC_VECTOR (11 downto 0);
+        DOUT     : out STD_LOGIC_VECTOR (11 downto 0);
+        -- from/to CLIENT_CORE
+        REQ_TO_SERV : in STD_LOGIC;
+        REQ_ROW     : in STD_LOGIC_VECTOR (5 downto 0);
+        RSP_RDY     : out STD_LOGIC;
+        RSP_AMOUNT  : out STD_LOGIC_VECTOR (3 downto 0);
+        EDIT_ENA    : out STD_LOGIC
+  );
 end component;
 
 --------------------------------------------------------------------------------
@@ -196,6 +177,52 @@ component spi_slave is
 end component;
 
 --------------------------------------------------------------------------------
+
+component client_core is
+  Generic (
+         g_DATA_WIDTH  : positive := c_SPI_WIDTH
+  );
+  Port( CLK       : in STD_LOGIC;
+        RST       : in STD_LOGIC;
+        -- from/to UI_ADAPTER
+        VGA_RDY   : in STD_LOGIC;
+        UPD_ARR   : out STD_LOGIC;
+        UPD_DATA  : out STD_LOGIC;
+        COL       : out STD_LOGIC_VECTOR (2 downto 0);
+        ROW       : out STD_LOGIC_VECTOR (5 downto 0);
+        CHAR_BUFF : out char_buff_t;
+        -- from/to bus_arbiter (PS2 part)
+        RW_1       : out STD_LOGIC;
+        COL_OUT_1  : out STD_LOGIC_VECTOR (2 downto 0);
+        ROW_OUT_1  : out STD_LOGIC_VECTOR (5 downto 0);
+        REQ_1      : out STD_LOGIC;
+        ACK_1      : in  STD_LOGIC;
+        DOUT_1     : out STD_LOGIC_VECTOR (11 downto 0);
+        -- from/to bus_arbiter (SPI part)
+        RW_2       : out STD_LOGIC;
+        COL_OUT_2  : out STD_LOGIC_VECTOR (2 downto 0);
+        ROW_OUT_2  : out STD_LOGIC_VECTOR (5 downto 0);
+        REQ_2      : out STD_LOGIC;
+        ACK_2      : in  STD_LOGIC;
+        DIN        : in  STD_LOGIC_VECTOR (11 downto 0);
+        DOUT_2     : out STD_LOGIC_VECTOR (11 downto 0);
+        -- from/to client controller (SPI)
+        EDIT_ENA    : in  STD_LOGIC;
+        RSP_RDY     : in  STD_LOGIC;
+        RSP_AMOUNT  : in  STD_LOGIC_VECTOR (3 downto 0);
+        REQ_TO_SERV : out STD_LOGIC;
+        REQ_ROW     : out STD_LOGIC_VECTOR (5 downto 0);
+        -- from PS2 top
+        KEYS     : in t_keys;
+        -- buttons (S, Z, E)
+        BTN_S    : in STD_LOGIC;
+        BTN_Z    : in STD_LOGIC;
+        BTN_E    : in STD_LOGIC
+      );
+end component;
+
+--------------------------------------------------------------------------------
+
 
   -- PS2 TOP
   signal   ps2_code             : std_logic_vector(7 downto 0);
@@ -233,20 +260,6 @@ end component;
   signal   col_reg    : std_logic_vector(2 downto 0);
   signal   row_reg    : std_logic_vector(5 downto 0);
 
-  -- UI ADAPTER
-  signal   upd_arr_ui           : std_logic;
-  signal   upd_data_ui          : std_logic;
-  signal   col_in_ui            : std_logic_vector(2 downto 0);
-  signal   row_in_ui            : std_logic_vector(5 downto 0);
-  signal   col_out              : std_logic_vector(2 downto 0);
-  signal   row_out              : std_logic_vector(5 downto 0);
-  signal   node_in_ui           : std_logic_vector(c_NODE_WIDTH-1 downto 0);
-  signal   req_ui               : std_logic;
-  signal   ack_ui               : std_logic;
-  signal   rw_ui                : std_logic;
-  signal   upd_data_out         : std_logic;
-  signal   data_out_ui          : char_buff_t;
-
   -- signals from SPI controller
   -- from/to bus_arbiter
   signal   rw_spi               : std_logic;
@@ -267,48 +280,47 @@ end component;
   signal   row_ui_spi           : std_logic_vector(5 downto 0);
   signal   char_buff_spi        : char_buff_t;
 
+  -- signals from client core
+  -- from/to bus_arbiter
+  signal   rw_core_1            : std_logic;
+  signal   col_core_1           : std_logic_vector(2 downto 0);
+  signal   row_core_1           : std_logic_vector(5 downto 0);
+  signal   req_core_1           : std_logic;
+  signal   ack_core_1           : std_logic;
+  signal   dout_core_1          : STD_LOGIC_VECTOR (11 downto 0);
+
+  signal   rw_core_2            : std_logic;
+  signal   col_core_2           : std_logic_vector(2 downto 0);
+  signal   row_core_2           : std_logic_vector(5 downto 0);
+  signal   req_core_2           : std_logic;
+  signal   ack_core_2           : std_logic;
+  signal   dout_core_2          : STD_LOGIC_VECTOR (11 downto 0);
+  --from/to client controller
+  signal   req_to_serv          : std_logic;
+  signal   req_row              : std_logic_vector (5 downto 0);
+  signal   rsp_rdy              : std_logic;
+  signal   rsp_amount           : std_logic_vector (3 downto 0);
+  -- to UI output in run mode
+  signal   upd_arr_core         : std_logic;
+  signal   upd_data_core        : std_logic;
+  signal   col_core             : std_logic_vector(2 downto 0);
+  signal   row_core             : std_logic_vector(5 downto 0);
+  signal   char_buff_core       : char_buff_t;
+
 begin
 
 --------------------------------------------------------------------------------
 
--- ps2_top_i : ps2_top
--- port map(
---   CLK      => CLK,
---   RST      => RST,
---   PS2_CLK  => PS2_CLK,
---   PS2_DATA => PS2_DATA,
---   PS2_CODE => ps2_code,
---   NUMBER   => number,
---   KEYS     => keys
--- );
-
---------------------------------------------------------------------------------
-
--- ps2_if_ctrl_i : ps2_if_ctrl
--- generic map(
---   g_FOOD_CNT    => c_FOOD_CNT,
---   g_CLIENTS_CNT => c_CLIENTS_CNT,
---   g_NODE_WIDTH  => c_NODE_WIDTH
--- )
--- port map(
---   CLK          => CLK,
---   RST          => RST ,
---   KEYS         => keys,
---   NUMBER       => number,
---   PS2_CODE     => ps2_code,
---   EDIT_ENA     => edit_ena,
---   BUFF_RDY     => buff_rdy,
---   UPD_ARR      => upd_arr_ctrl,
---   UPD_DATA     => upd_data_ctrl,
---   NODE_SEL     => node_sel_ctrl,
---   SEL_CELL_COL => col_ctrl,
---   SEL_CELL_ROW => row_ctrl,
---   CHAR_BUFF    => char_buff,
---   REQ          => req_ctrl,
---   ACK          => ack_ctrl,
---   RW           => rw_ctrl,
---   DOUT         => dout_ctrl
--- );
+ps2_top_i : ps2_top
+port map(
+  CLK      => CLK,
+  RST      => RST,
+  PS2_CLK  => PS2_CLK,
+  PS2_DATA => PS2_DATA,
+  PS2_CODE => ps2_code,
+  NUMBER   => number,
+  KEYS     => keys
+);
 
 --------------------------------------------------------------------------------
 
@@ -342,6 +354,22 @@ block_NODE(0) <= "0";
 block_DIN(0)  <= dout_spi;
 ack_spi       <= ACK(0);
 
+REQ(1)        <= req_core_1;
+block_RW(1)   <= rw_core_1;
+block_COL(1)  <= col_core_1;
+block_ROW(1)  <= row_core_1;
+block_NODE(1) <= "0";
+block_DIN(1)  <= dout_core_1;
+ack_core_1    <= ACK(1);
+
+REQ(2)        <= req_core_2;
+block_RW(2)   <= rw_core_2;
+block_COL(2)  <= col_core_2;
+block_ROW(2)  <= row_core_2;
+block_NODE(2) <= "0";
+block_DIN(2)  <= dout_core_2;
+ack_core_2    <= ACK(2);
+
 --------------------------------------------------------------------------------
 
 client_regs_if_i : server_regs_if
@@ -363,59 +391,34 @@ port map(
 
 --------------------------------------------------------------------------------
 
--- ui_adapter_i : ui_adapter
--- generic map(
---   g_FOOD_CNT    => c_FOOD_CNT,
---   g_CLIENTS_CNT => c_CLIENTS_CNT,
---   g_NODE_WIDTH  => c_NODE_WIDTH
--- )
--- port map(
---   CLK          => CLK,
---   RST          => RST,
---   EDIT_ENA     => edit_ena,
---   VGA_RDY      => VGA_RDY,
---   UPD_ARR_IN   => upd_arr_ui,
---   UPD_DATA_IN  => upd_data_ui,
---   ACK          => ack_ui,
---   COL_IN       => col_in_ui,
---   ROW_IN       => row_in_ui,
---   CHAR_BUFF    => char_buff,
---   NODE_SEL     => node_in_ui,
---   DIN          => dout,
---   REQ          => req_ui,
---   RW           => rw_ui,
---   UPD_ARR_OUT  => UPD_ARR,
---   UPD_DATA_OUT => upd_data_out,
---   COL_OUT      => col_out,
---   ROW_OUT      => row_out,
---   DATA_OUT     => data_out_ui
--- );
-
---------------------------------------------------------------------------------
-
 client_ctrl_i : client_ctrl
 generic map(
   g_DATA_WIDTH  => c_SPI_WIDTH
 )
 port map(
-  CLK        => CLK,
-  RST        => RST,
-  BUSY       => spi_busy,
-  DATA_RDY   => data_rdy,
-  RX_DATA    => rx_data,
-  TX_DATA    => tx_data,
-  VGA_RDY    => VGA_RDY,
-  UPD_DATA   => upd_data_spi,
-  COL        => col_ui_spi,
-  ROW        => row_ui_spi,
-  CHAR_BUFF  => char_buff_spi,
-  RW         => rw_spi,
-  COL_OUT    => col_spi,
-  ROW_OUT    => row_spi,
-  REQ        => req_spi,
-  ACK        => ack_spi,
-  DIN        => dout,
-  DOUT       => dout_spi
+  CLK         => CLK,
+  RST         => RST,
+  BUSY        => spi_busy,
+  DATA_RDY    => data_rdy,
+  RX_DATA     => rx_data,
+  TX_DATA     => tx_data,
+  VGA_RDY     => VGA_RDY,
+  UPD_DATA    => upd_data_spi,
+  COL         => col_ui_spi,
+  ROW         => row_ui_spi,
+  CHAR_BUFF   => char_buff_spi,
+  RW          => rw_spi,
+  COL_OUT     => col_spi,
+  ROW_OUT     => row_spi,
+  REQ         => req_spi,
+  ACK         => ack_spi,
+  DIN         => dout,
+  DOUT        => dout_spi,
+  REQ_TO_SERV => req_to_serv,
+  REQ_ROW     => req_row,
+  RSP_RDY     => rsp_rdy,
+  RSP_AMOUNT  => rsp_amount,
+  EDIT_ENA    => edit_ena
 );
 
 --------------------------------------------------------------------------------
@@ -438,32 +441,70 @@ port map(
 );
 
 --------------------------------------------------------------------------------
--- TODO: replace with ctrl_core and spi_if modules
--- MUX col, row, node and update signals to UI adapter from PS2 and SPI
--- process(edit_ena, col_ctrl, row_ctrl, node_sel_ctrl, upd_arr_ctrl,
---         upd_data_ctrl, row_spi, node_spi, upd_data_spi)
--- begin
---   if(edit_ena = '1') then
---     col_in_ui   <= col_ctrl;
---     row_in_ui   <= row_ctrl;
---     node_in_ui  <= node_sel_ctrl;
---     upd_arr_ui  <= upd_arr_ctrl;
---     upd_data_ui <= upd_data_ctrl;
---   else
---     col_in_ui   <= "001";
---     row_in_ui   <= row_spi;
---     node_in_ui  <= "00"; -- show server table in run mode
---     upd_arr_ui  <= '0';
---     upd_data_ui <= upd_data_spi;
---   end if;
--- end process;
+
+client_core_i : client_core
+generic map(
+  g_DATA_WIDTH  => c_SPI_WIDTH
+)
+port map(
+  CLK         => CLK,
+  RST         => RST,
+  -- from/to UI_ADAPTER
+  VGA_RDY     => VGA_RDY,
+  UPD_ARR     => upd_arr_core,
+  UPD_DATA    => upd_data_core,
+  COL         => col_core,
+  ROW         => row_core,
+  CHAR_BUFF   => char_buff_core,
+  -- from/to bus_arbiter (PS2 part)
+  RW_1        => rw_core_1,
+  COL_OUT_1   => col_core_1,
+  ROW_OUT_1   => row_core_1,
+  REQ_1       => req_core_1,
+  ACK_1       => ack_core_1,
+  DOUT_1      => dout_core_1,
+  -- from/to bus_arbiter (SPI part)
+  RW_2        => rw_core_2,
+  COL_OUT_2   => col_core_2,
+  ROW_OUT_2   => row_core_2,
+  REQ_2       => req_core_2,
+  ACK_2       => ack_core_2,
+  DIN         => dout,
+  DOUT_2      => dout_core_2,
+  -- from/to client controller (SPI)
+  EDIT_ENA    => edit_ena,
+  RSP_RDY     => rsp_rdy,
+  RSP_AMOUNT  => rsp_amount,
+  REQ_TO_SERV => req_to_serv,
+  REQ_ROW     => req_row,
+  -- from PS2 top
+  KEYS        => keys,
+  -- buttons (S, Z, E)
+  BTN_S       => BTN_S,
+  BTN_Z       => BTN_Z,
+  BTN_E       => BTN_E
+);
+--------------------------------------------------------------------------------
+-- switch UI interface outputs between client_ctrl and client_core
+
+process(edit_ena, upd_data_spi, col_ui_spi, row_ui_spi, char_buff_spi,
+        upd_arr_core, upd_data_core, col_core, row_core, char_buff_core) begin
+  if(edit_ena = '1') then -- config
+    UPD_ARR   <= '0';
+    UPD_DATA  <= upd_data_spi;
+    COL       <= col_ui_spi;
+    ROW       <= row_ui_spi;
+    DATA_OUT  <= char_buff_spi;
+  else -- run
+    UPD_ARR   <= upd_arr_core;
+    UPD_DATA  <= upd_data_core;
+    COL       <= col_core;
+    ROW       <= row_core;
+    DATA_OUT  <= char_buff_core;
+  end if;
+end process; 
 
 --------------------------------------------------------------------------------
 -- Output assignments
-UPD_ARR  <= '0';
-UPD_DATA <= upd_data_spi;
-COL      <= col_ui_spi;
-ROW      <= row_ui_spi;
-DATA_OUT <= char_buff_spi;
 
 end Behavioral;
