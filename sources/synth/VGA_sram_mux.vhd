@@ -78,7 +78,8 @@ architecture rtl of VGA_sram_mux is
 
   signal cnt_raddr_s    : unsigned(17 downto 0) := (others => '0');
   signal cnt_raddr_c    : unsigned(17 downto 0) := (others => '0');
-  signal RW_addr_c      : std_logic_vector(17 downto 0) := (others => '0');
+  signal rw_addr_s      : std_logic_vector(17 downto 0) := (others => '0');
+  signal rw_addr_c      : std_logic_vector(17 downto 0) := (others => '0');
 
   signal cnt_waddr_s    : unsigned(17 downto 0) := (others => '0');
   signal cnt_waddr_c    : unsigned(17 downto 0) := (others => '0');
@@ -86,16 +87,12 @@ architecture rtl of VGA_sram_mux is
   signal cnt_ROM_col_s  : unsigned(11 downto 0) := (others => '0');
   signal cnt_ROM_col_c  : unsigned(11 downto 0) := (others => '0');
 
-  signal ROM_addr       : unsigned(9 downto 0) := (others => '0');
-  signal ROM_data_o     : std_logic_vector(7 downto 0) := (others => '0');
-
   signal cnt_ROM_row_s  : unsigned(11 downto 0) := (others => '0');
   signal cnt_ROM_row_c  : unsigned(11 downto 0) := (others => '0');
   
   signal u_column       : unsigned(c_cnt_h_w-1 downto 0) := (others => '0');
   signal u_row          : unsigned(c_cnt_v_w-1 downto 0) := (others => '0');
 
-  signal dataInA        : std_logic_vector(7 downto 0)  := (others => '0');
   signal dataOutA       : std_logic_vector(7 downto 0)  := (others => '0');
 
   signal clk_half_en    : std_logic := '0';
@@ -138,10 +135,12 @@ begin
           (others => 'Z');
 
   rw_addr_c <=  std_logic_vector(cnt_waddr_s) when (state = init) else
-                RWADDR_C when state = WRITE else
+                -- RWADDR_C when state = WRITE else
                 std_logic_vector(cnt_raddr_c);
 
-  OE_N    <= shreg_empty_n;-- sram_re_n; -- oe_n_int;
+  RW_ADDR <= RWADDR_C when state = WRITE else rw_addr_s; -- give timing control to cmd_fifo 
+
+  OE_N    <= oe_n_int;-- shreg_empty_n;-- sram_re_n; 
   CE_N    <= CLK;
   WE_N    <= we_n_int; --! write enable signal 
   UB_N    <= ub_n_int;
@@ -162,9 +161,9 @@ begin
       cnt_ROM_col_s   <= (others => '0');
       cnt_ROM_row_s   <= (others => '0');
       cnt_waddr_s     <= (others => '0');
-      RW_ADDR         <= (others => '0');
+      rw_addr_s       <= (others => '0');
     else
-      RW_ADDR         <= rw_addr_c;
+      rw_addr_s       <= rw_addr_c;
       cnt_shift_s     <= cnt_shift_c;
       VGA_buffer_s    <= VGA_buffer_c;
       state           <= next_state;
