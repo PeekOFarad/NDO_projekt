@@ -63,6 +63,7 @@ architecture Behavioral of client_ctrl is
 -------------------------------------------------------------------------------
 
   constant ALL_ONES_VECTOR : std_logic_vector(g_DATA_WIDTH-1 downto 0) := (others => '1');
+  constant ALL_ZEROS_VECTOR : std_logic_vector(g_DATA_WIDTH-1 downto 0) := (others => '0');
 
   type fsm_t IS(cfg, wait4ack, run, wait4rsp);
 
@@ -205,7 +206,9 @@ begin
               col_c      <= frm_col;
               row_c      <= frm_row;
 
-              if((frm_col = col_s) and (frm_row = row_s)) then
+              if((frm_col = col_s) and (frm_row = row_s) and
+                not(TO_INTEGER(ch_cnt_s) = 0 and (unsigned(frm_data) = to_unsigned(0, frm_data'length))))
+              then
                 ch_cnt_c <= ch_cnt_s + 1;
                 char_buff_c(TO_INTEGER(ch_cnt_s)) <= frm_data(7 downto 0);
               else
