@@ -124,8 +124,8 @@ architecture bench of VGA_cmd_fifo_tb is
     );
   
   signal FIFO_REN : std_logic;
-  signal WADDR_C : std_logic_vector(17 downto 0);
-  signal DATA_O : std_logic_vector(15 downto 0);
+  signal RWADDR_C : std_logic_vector(17 downto 0);
+  signal DATA_IO : std_logic_vector(15 downto 0);
   signal WE_N_D2 : std_logic;
   signal LB_N_W : std_logic;
   signal UB_N_W : std_logic;
@@ -154,8 +154,8 @@ begin
     DATA_SYS  => DATA_SYS,
     VGA_RDY   => VGA_RDY,
     FIFO_REN  => not V_PORCH_N,
-    WADDR_C   => WADDR_C,
-    DATA_O    => DATA_O,
+    RWADDR_C   => RWADDR_C,
+    DATA_IO    => DATA_IO,
     WE_N_D2   => WE_N_D2,
     LB_N_W    => LB_N_W,
     UB_N_W    => UB_N_W
@@ -173,5 +173,8 @@ begin
   ROW_SYS   <= (others => '0');
 
   V_PORCH_N <= '1', '0' after clk_period*100;
+
+  DATA_IO <=  x"5555" when WE_N_D2 = '1' and (LB_N_W = '0' and UB_N_W = '0') else
+              (others => 'W');
 
 end;

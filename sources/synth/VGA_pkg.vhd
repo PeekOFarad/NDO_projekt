@@ -57,9 +57,19 @@ package VGA_pkg is
   type t_char_shreg is array (0 to c_CHAR_FIFO_SIZE-1) of t_char;
 
   -- type t_char_shreg is array (0 to C_CHAR_FIFO_SIZE-1) of t_char;
-
-
   
+  type t_cursor_pos is record
+    column : t_char_col;
+    row    : t_char_row;
+  end record;
+
+  type t_cursor_pos_array is array (natural range <>) of t_cursor_pos;
+
+  type t_byte_array is array (natural range <>) of std_logic_vector(15 downto 0);
+
+  function hex_to_weak (arg : std_logic_vector) return std_logic_vector;
+  
+
 
 end VGA_pkg;
 
@@ -74,6 +84,24 @@ package body VGA_pkg is
     return ret;
   end function;
 
+  function hex_to_weak (arg : std_logic_vector) return std_logic_vector is
+    variable ret : std_logic_vector(arg'range) := (others => 'X');
+  begin
+    for i in arg'range loop
+      case ret(i) is
+        when '1' =>
+          ret(i) := 'H';
+        when '0' =>
+          ret(i) := 'L';
+        when 'U' =>
+          ret(i) := 'W';
+        when others =>
+          ret(i) := arg(i);
+      end case;
+    end loop;
+      return ret;
+  end function;
 
+  
  
 end VGA_pkg;
