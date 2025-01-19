@@ -137,12 +137,14 @@ begin
 
   --------------------------------------------------------------------------------
 
-	process (CLK)
-	begin
-		if rising_edge(CLK) then
-			PIXEL_CLK <= NOT PIXEL_CLK;
-		end if;
-	end process;
+	-- process (CLK)
+	-- begin
+	-- 	if rising_edge(CLK) then
+	-- 		PIXEL_CLK <= NOT PIXEL_CLK;
+	-- 	end if;
+	-- end process;
+
+  PIXEL_CLK <= CLK;
 
   process (PIXEL_CLK)
   begin

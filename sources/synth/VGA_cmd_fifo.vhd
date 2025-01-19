@@ -78,7 +78,7 @@ architecture rtl of VGA_cmd_fifo is
   signal raddr_c              : unsigned(17 downto 0) := (others => '0');
 
   signal cursor_pos           : t_cursor_pos := (others => 0); 
-  -- signal cursor_pos_shreg     : t_cursor_pos_array(0 to 1) := (others => (others => 0)); -- TODO: just one register needed, change to cursor_pos_s
+  signal cursor_pos_shreg     : t_cursor_pos_array(0 to 1) := (others => (others => 0)); -- TODO: just one register needed, change to cursor_pos_s
   signal cursor_pos_s         : t_cursor_pos := (others => 0); -- TODO: just one register needed, change to cursor_pos_s
 
   signal sprite_mem           : t_byte_array(0 to 11) := (others => (others => '0')); --! array of 12 bytes used to store sprite when reading SRAM for cursor inversion
@@ -161,6 +161,7 @@ begin
         col_sys_int       <= 0;
         row_sys_int       <= 0;
         cursor_pos_s      <= (0, 0);
+        cursor_pos_shreg  <= ((0, 0),(0, 0));
         sprite_mem        <= (others => (others => '0'));
         --------------------------------------------------------------------------------
         -- SYSTEM INTERFACE
@@ -225,6 +226,7 @@ begin
 
         if UPD_ARR = '1' then -- when cursor position is updated, shift cursor position in shreg + 1 and save new position to 0
           cursor_pos_s <= cursor_pos;
+          -- cursor_pos_shreg <= cursor_pos & cursor_pos_shreg(cursor_pos_shreg);
         end if;
 
         if UPD_ARR = '1' or update_latch_re = '1' then
