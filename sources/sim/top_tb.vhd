@@ -18,39 +18,49 @@ end top_tb;
 
 architecture bench of top_tb is
 
-  component backend_top is
+  component top is
     Generic (
-           g_SLAVE_CNT : positive
+        g_SLAVE_CNT : positive := c_CLIENTS_CNT
     );
-    Port ( CLK      : in STD_LOGIC;
-           RST      : in STD_LOGIC;
-           PS2_CLK  : in STD_LOGIC;
-           PS2_DATA : in STD_LOGIC;
-           MISO     : in STD_LOGIC;
-           VGA_RDY  : in STD_LOGIC;
-           UPD_ARR  : out STD_LOGIC;
-           UPD_DATA : out STD_LOGIC;
-           SCLK     : out STD_LOGIC;
-           MOSI     : out STD_LOGIC;
-           SS_N     : out STD_LOGIC_VECTOR (g_SLAVE_CNT-1 downto 0);
-           COL      : out STD_LOGIC_VECTOR (2 downto 0);
-           ROW      : out STD_LOGIC_VECTOR (5 downto 0);
-           DATA_OUT : out char_buff_t);
-  end component;
-
-  component back2ui_debug is
-    Port ( CLK : in STD_LOGIC;
-           RST : in STD_LOGIC;
-           UPD_ARR : in STD_LOGIC;
-           UPD_DATA : in STD_LOGIC;
-           LED0 : out STD_LOGIC;
-           LED1 : out STD_LOGIC);
+    Port (
+        CLK      : in STD_LOGIC;
+        RST      : in STD_LOGIC;
+        -- PS2 interface
+        PS2_CLK  : in STD_LOGIC;
+        PS2_DATA : in STD_LOGIC;
+        -- SPI interface
+        MISO     : in STD_LOGIC;
+        SCLK     : out STD_LOGIC;
+        MOSI     : out STD_LOGIC;
+        SS_N     : out STD_LOGIC_VECTOR (g_SLAVE_CNT-1 downto 0);
+        --------------------------------------------------------------------------------
+        --------------------------------------------------------------------------------
+         -- VGA
+         H_SYNC    : out std_logic;
+         V_SYNC    : out std_logic;
+         RGB       : out std_logic_vector(2 downto 0);
+         --------------------------------------------------------------------------------
+         --------------------------------------------------------------------------------
+         --SRAM
+         RW_ADDR   : out std_logic_vector (17 downto 0);
+         DATA      : inout  std_logic_vector (15 downto 0);
+         CE_N      : out std_logic; --! chip enable, always low
+         OE_N      : out std_logic;
+         WE_N      : out std_logic; --! always high for reading
+         LB_N      : out std_logic; --! Byte selection, always low
+         UB_N      : out std_logic;  --! Byte selection, always low
+         --------------------------------------------------------------------------------
+         --------------------------------------------------------------------------------
+         -- DEBUG INTERFACE
+         LED0      : out std_logic;
+         LED1      : out std_logic
+    );
   end component;
 
 --------------------------------------------------------------------------------
 
-  constant clk_per              : time := 20 ns; 
-  constant ps2_clk_per          : time := 34 us;
+  constant clk_per              : time := 33.3 ns; -- 30MHz
+  constant ps2_clk_per          : time := 33.3 us; -- 30kHz
   signal   simulation_finished  : BOOLEAN := FALSE;
   
   signal   clk              : std_logic := '0';
@@ -59,15 +69,20 @@ architecture bench of top_tb is
   -- TOP
   signal   ps2_clk          : std_logic := '1';
   signal   ps2_data         : std_logic := '1';
-  signal   col              : std_logic_vector(2 downto 0);
-  signal   row              : std_logic_vector(5 downto 0);
-  signal   data_out         : char_buff_t;
-  signal   upd_arr          : std_logic;
-  signal   upd_data         : std_logic;
   signal   miso             : std_logic := '0';
   signal   mosi             : std_logic;
   signal   sclk             : std_logic;
   signal   ss_n             : std_logic_vector(c_CLIENTS_CNT-1 downto 0);
+  signal   h_sync           : std_logic;
+  signal   v_sync           : std_logic;
+  signal   rgb              : std_logic_vector(2 downto 0);
+  signal   rw_addr          : std_logic_vector (17 downto 0);
+  signal   sram_data        : std_logic_vector (15 downto 0);
+  signal   ce_n             : std_logic;
+  signal   oe_n             : std_logic;
+  signal   we_n             : std_logic;
+  signal   lb_n             : std_logic;
+  signal   ub_n             : std_logic;
 
   signal   LED0             : std_logic;
   signal   LED1             : std_logic;
@@ -124,35 +139,31 @@ begin
 
 --------------------------------------------------------------------------------
 
-  backend_top_i : backend_top
+top_i : top
   generic map(
     g_SLAVE_CNT => c_CLIENTS_CNT
   )
   port map(
-    CLK      => clk,
-    RST      => rst,
-    PS2_CLK  => ps2_clk,
-    PS2_DATA => ps2_data,
-    MISO     => miso,
-    VGA_RDY  => '1',
-    UPD_ARR  => upd_arr,
-    UPD_DATA => upd_data,
-    SCLK     => sclk,
-    MOSI     => mosi,
-    SS_N     => ss_n,
-    COL      => col,
-    ROW      => row,
-    DATA_OUT => data_out
-  );
-
-  back2ui_debug_i : back2ui_debug
-  port map(
-    CLK      => CLK,
-    RST      => RST,
-    UPD_ARR  => upd_arr,
-    UPD_DATA => upd_data,
-    LED0     => LED0,
-    LED1     => LED1
+    CLK       => clk,
+    RST       => rst,
+    PS2_CLK   => ps2_clk,
+    PS2_DATA  => ps2_data,
+    MISO      => miso,
+    SCLK      => sclk,
+    MOSI      => mosi,
+    SS_N      => ss_n,
+    H_SYNC    => h_sync,
+    V_SYNC    => v_sync,
+    RGB       => rgb,
+    RW_ADDR   => rw_addr,
+    DATA      => sram_data,
+    CE_N      => ce_n,
+    OE_N      => oe_n,
+    WE_N      => we_n,
+    LB_N      => lb_n,
+    UB_N      => ub_n,
+    LED0      => LED0,
+    LED1      => LED1
   );
 
 --------------------------------------------------------------------------------
@@ -163,10 +174,7 @@ begin
     wait until rising_edge(clk);
     wait for clk_per * 10;
     
-    data <= c_down;
-    r_send_ps2_special(c_down, par, ps2_clk, ps2_data);
-    
-    wait for 200us;
+    wait for 2ms;
 
     -- press enter
     data <= c_enter;
@@ -176,110 +184,358 @@ begin
     
     -- print "cesnecka"
     data <= std_logic_vector(TO_UNSIGNED(c_c, 8));
+    wait for clk_per;
     r_send_ps2_frame(std_logic_vector(TO_UNSIGNED(c_c, 8)), par, ps2_clk, ps2_data);
     wait for 200us;
     data <= std_logic_vector(TO_UNSIGNED(c_e, 8));
+    wait for clk_per;
     r_send_ps2_frame(std_logic_vector(TO_UNSIGNED(c_e, 8)), par, ps2_clk, ps2_data);
     wait for 200us;
     data <= std_logic_vector(TO_UNSIGNED(c_s, 8));
+    wait for clk_per;
     r_send_ps2_frame(std_logic_vector(TO_UNSIGNED(c_s, 8)), par, ps2_clk, ps2_data);
     wait for 200us;
     data <= std_logic_vector(TO_UNSIGNED(c_n, 8));
+    wait for clk_per;
     r_send_ps2_frame(std_logic_vector(TO_UNSIGNED(c_n, 8)), par, ps2_clk, ps2_data);
     wait for 200us;
     data <= std_logic_vector(TO_UNSIGNED(c_e, 8));
+    wait for clk_per;
     r_send_ps2_frame(std_logic_vector(TO_UNSIGNED(c_e, 8)), par, ps2_clk, ps2_data);
     wait for 200us;
     data <= std_logic_vector(TO_UNSIGNED(c_c, 8));
+    wait for clk_per;
     r_send_ps2_frame(std_logic_vector(TO_UNSIGNED(c_c, 8)), par, ps2_clk, ps2_data);
     wait for 200us;
     data <= std_logic_vector(TO_UNSIGNED(c_k, 8));
+    wait for clk_per;
     r_send_ps2_frame(std_logic_vector(TO_UNSIGNED(c_k, 8)), par, ps2_clk, ps2_data);
     wait for 200us;
     data <= std_logic_vector(TO_UNSIGNED(c_a, 8));
+    wait for clk_per;
     r_send_ps2_frame(std_logic_vector(TO_UNSIGNED(c_a, 8)), par, ps2_clk, ps2_data);
     wait for 200us;
 
+    -- press down arrow
+    data <= c_down;
+    wait for clk_per;
+    r_send_ps2_special(c_down, par, ps2_clk, ps2_data);
+    wait for clk_per;
+
+    -- press enter
+    data <= c_enter;
+    r_send_ps2_frame(c_enter, par, ps2_clk, ps2_data);
+    wait for clk_per;
+
+    -- print "kulajda"
+    data <= std_logic_vector(TO_UNSIGNED(c_k, 8));
+    wait for clk_per;
+    r_send_ps2_frame(std_logic_vector(TO_UNSIGNED(c_k, 8)), par, ps2_clk, ps2_data);
+    wait for 200us;
+    data <= std_logic_vector(TO_UNSIGNED(c_u, 8));
+    wait for clk_per;
+    r_send_ps2_frame(std_logic_vector(TO_UNSIGNED(c_u, 8)), par, ps2_clk, ps2_data);
+    wait for 200us;
+    data <= std_logic_vector(TO_UNSIGNED(c_l, 8));
+    wait for clk_per;
+    r_send_ps2_frame(std_logic_vector(TO_UNSIGNED(c_l, 8)), par, ps2_clk, ps2_data);
+    wait for 200us;
+    data <= std_logic_vector(TO_UNSIGNED(c_a, 8));
+    wait for clk_per;
+    r_send_ps2_frame(std_logic_vector(TO_UNSIGNED(c_a, 8)), par, ps2_clk, ps2_data);
+    wait for 200us;
+    data <= std_logic_vector(TO_UNSIGNED(c_j, 8));
+    wait for clk_per;
+    r_send_ps2_frame(std_logic_vector(TO_UNSIGNED(c_j, 8)), par, ps2_clk, ps2_data);
+    wait for 200us;
+    data <= std_logic_vector(TO_UNSIGNED(c_d, 8));
+    wait for clk_per;
+    r_send_ps2_frame(std_logic_vector(TO_UNSIGNED(c_d, 8)), par, ps2_clk, ps2_data);
+    wait for 200us;
+    data <= std_logic_vector(TO_UNSIGNED(c_a, 8));
+    wait for clk_per;
+    r_send_ps2_frame(std_logic_vector(TO_UNSIGNED(c_a, 8)), par, ps2_clk, ps2_data);
+    wait for 200us;
+
+    -- press up arrow
+    data <= c_up;
+    wait for clk_per;
+    r_send_ps2_special(c_up, par, ps2_clk, ps2_data);
+    wait for clk_per;
+
     -- press right arrow
     data <= c_right;
+    wait for clk_per;
     r_send_ps2_special(c_right, par, ps2_clk, ps2_data);
     wait for 200us;
     
     -- press enter
     data <= c_enter;
+    wait for clk_per;
     r_send_ps2_frame(c_enter, par, ps2_clk, ps2_data);
     
-    -- enter "14"
+    -- enter amount "14"
     data <= c_1;
+    wait for clk_per;
     r_send_ps2_frame(c_1, par, ps2_clk, ps2_data);
     data <= c_4;
+    wait for clk_per;
     r_send_ps2_frame(c_4, par, ps2_clk, ps2_data);
     
-    -- press backspace
-    data <= c_bckspc;
-    r_send_ps2_frame(c_bckspc, par, ps2_clk, ps2_data);
+    -- press esc
+    data <= c_esc;
+    wait for clk_per;
+    r_send_ps2_frame(c_esc, par, ps2_clk, ps2_data);
+
+    -- press down arrow
+    data <= c_down;
+    wait for clk_per;
+    r_send_ps2_special(c_down, par, ps2_clk, ps2_data);
+
+    -- press enter
+    data <= c_enter;
+    wait for clk_per;
+    r_send_ps2_frame(c_enter, par, ps2_clk, ps2_data);
     
-    -- enter 5
+    -- enter amount "5"
     data <= c_5;
+    wait for clk_per;
     r_send_ps2_frame(c_5, par, ps2_clk, ps2_data);
     
     -- press esc
     data <= c_esc;
+    wait for clk_per;
     r_send_ps2_frame(c_esc, par, ps2_clk, ps2_data);
     
-    -- press right arrow 2x
+    -- press up arrow
+    data <= c_up;
+    wait for clk_per;
+    r_send_ps2_special(c_up, par, ps2_clk, ps2_data);
+
+    -- press right arrow
     data <= c_right;
+    wait for clk_per;
     r_send_ps2_special(c_right, par, ps2_clk, ps2_data);
+
+    -- press enter
+    data <= c_enter;
+    wait for clk_per;
+    r_send_ps2_frame(c_enter, par, ps2_clk, ps2_data);
+
+    -- enter student price "15"
+    data <= c_1;
+    wait for clk_per;
+    r_send_ps2_frame(c_1, par, ps2_clk, ps2_data);
+    data <= c_5;
+    wait for clk_per;
+    r_send_ps2_frame(c_5, par, ps2_clk, ps2_data);
+
+    -- press enter
+    data <= c_enter;
+    wait for clk_per;
+    r_send_ps2_frame(c_enter, par, ps2_clk, ps2_data);
+
+    -- press right arrow (under NEXT button)
+    data <= c_right;
+    wait for clk_per;
+    r_send_ps2_special(c_right, par, ps2_clk, ps2_data);
+
+    -- press enter
+    data <= c_enter;
+    wait for clk_per;
+    r_send_ps2_frame(c_enter, par, ps2_clk, ps2_data);
+
+    -- enter employee price "10"
+    data <= c_1;
+    wait for clk_per;
+    r_send_ps2_frame(c_1, par, ps2_clk, ps2_data);
+    data <= c_0;
+    wait for clk_per;
+    r_send_ps2_frame(c_0, par, ps2_clk, ps2_data);
+
+    -- press enter
+    data <= c_enter;
+    wait for clk_per;
+    r_send_ps2_frame(c_enter, par, ps2_clk, ps2_data);
+
+    -- press right arrow
+    data <= c_right;
+    wait for clk_per;
+    r_send_ps2_special(c_right, par, ps2_clk, ps2_data);
+
+    -- press enter
+    data <= c_enter;
+    wait for clk_per;
+    r_send_ps2_frame(c_enter, par, ps2_clk, ps2_data);
+
+    -- enter external price "20"
+    data <= c_2;
+    wait for clk_per;
+    r_send_ps2_frame(c_2, par, ps2_clk, ps2_data);
+    data <= c_0;
+    wait for clk_per;
+    r_send_ps2_frame(c_0, par, ps2_clk, ps2_data);
+
+    -- press enter
+    data <= c_enter;
+    wait for clk_per;
+    r_send_ps2_frame(c_enter, par, ps2_clk, ps2_data);
+
+    -- press down arrow
+    data <= c_down;
+    wait for clk_per;
+    r_send_ps2_special(c_down, par, ps2_clk, ps2_data);
+
+    -- press enter
+    data <= c_enter;
+    wait for clk_per;
+    r_send_ps2_frame(c_enter, par, ps2_clk, ps2_data);
+
+    -- enter external price "22"
+    data <= c_2;
+    wait for clk_per;
+    r_send_ps2_frame(c_2, par, ps2_clk, ps2_data);
+    data <= c_2;
+    wait for clk_per;
+    r_send_ps2_frame(c_2, par, ps2_clk, ps2_data);
+
+    -- press enter
+    data <= c_enter;
+    wait for clk_per;
+    r_send_ps2_frame(c_enter, par, ps2_clk, ps2_data);
+
+    -- press left arrow
+    data <= c_left;
+    wait for clk_per;
+    r_send_ps2_special(c_left, par, ps2_clk, ps2_data);
+
+    -- press enter
+    data <= c_enter;
+    wait for clk_per;
+    r_send_ps2_frame(c_enter, par, ps2_clk, ps2_data);
+
+    -- enter employee price "11"
+    data <= c_1;
+    wait for clk_per;
+    r_send_ps2_frame(c_1, par, ps2_clk, ps2_data);
+    data <= c_1;
+    wait for clk_per;
+    r_send_ps2_frame(c_1, par, ps2_clk, ps2_data);
+
+    -- press enter
+    data <= c_enter;
+    wait for clk_per;
+    r_send_ps2_frame(c_enter, par, ps2_clk, ps2_data);
+
+    -- press left arrow
+    data <= c_left;
+    wait for clk_per;
+    r_send_ps2_special(c_left, par, ps2_clk, ps2_data);
+
+    -- press enter
+    data <= c_enter;
+    wait for clk_per;
+    r_send_ps2_frame(c_enter, par, ps2_clk, ps2_data);
+
+    -- enter student price "16"
+    data <= c_1;
+    wait for clk_per;
+    r_send_ps2_frame(c_1, par, ps2_clk, ps2_data);
+    data <= c_6;
+    wait for clk_per;
+    r_send_ps2_frame(c_6, par, ps2_clk, ps2_data);
+
+    -- press enter
+    data <= c_enter;
+    wait for clk_per;
+    r_send_ps2_frame(c_enter, par, ps2_clk, ps2_data);
+
+    -- press right arrow
+    data <= c_right;
+    wait for clk_per;
     r_send_ps2_special(c_right, par, ps2_clk, ps2_data);
     
     -- go to the next node button row (32)
     for i in 1 to 32 loop
       data <= c_down;
+      wait for clk_per;
       r_send_ps2_special(c_down, par, ps2_clk, ps2_data);
     end loop;
-    
+
+    -- press enter - NEXT btn
+    data <= c_enter;
+    wait for clk_per;
+    r_send_ps2_frame(c_enter, par, ps2_clk, ps2_data);
+
+    -- go to the 0 row
+    for i in 1 to 32 loop
+      data <= c_up;
+      wait for clk_per;
+      r_send_ps2_special(c_up, par, ps2_clk, ps2_data);
+    end loop;
+
+    -- press left arrow 2x (AMOUNT col)
+    data <= c_left;
+    wait for clk_per;
+    r_send_ps2_special(c_left, par, ps2_clk, ps2_data);
+    wait for clk_per;
+    r_send_ps2_special(c_left, par, ps2_clk, ps2_data);
+
     -- press enter
     data <= c_enter;
+    wait for clk_per;
+    r_send_ps2_frame(c_enter, par, ps2_clk, ps2_data);
+
+    -- enter amount "4"
+    data <= c_4;
+    wait for clk_per;
+    r_send_ps2_frame(c_4, par, ps2_clk, ps2_data);
+
+    -- press enter
+    data <= c_enter;
+    wait for clk_per;
+    r_send_ps2_frame(c_enter, par, ps2_clk, ps2_data);
+
+    -- press down
+    data <= c_down;
+    wait for clk_per;
+    r_send_ps2_special(c_down, par, ps2_clk, ps2_data);
+
+    -- press enter
+    data <= c_enter;
+    wait for clk_per;
+    r_send_ps2_frame(c_enter, par, ps2_clk, ps2_data);
+
+    -- enter amount "5"
+    data <= c_5;
+    wait for clk_per;
+    r_send_ps2_frame(c_5, par, ps2_clk, ps2_data);
+
+    -- press enter
+    data <= c_enter;
+    wait for clk_per;
     r_send_ps2_frame(c_enter, par, ps2_clk, ps2_data);
     
-    -- press enter
-     data <= c_enter;
-     r_send_ps2_frame(c_enter, par, ps2_clk, ps2_data);
-    
-    -- press enter
-     data <= c_enter;
-     r_send_ps2_frame(c_enter, par, ps2_clk, ps2_data);
-
-    -- press up
-    data <= c_up;
-    r_send_ps2_special(c_up, par, ps2_clk, ps2_data);
-
-    -- press up
-    data <= c_up;
-    r_send_ps2_special(c_up, par, ps2_clk, ps2_data);
-
-    -- press right
+    -- press right arrow 3x (START col)
     data <= c_right;
+    wait for clk_per;
+    r_send_ps2_special(c_right, par, ps2_clk, ps2_data);
+    wait for clk_per;
+    r_send_ps2_special(c_right, par, ps2_clk, ps2_data);
+    wait for clk_per;
     r_send_ps2_special(c_right, par, ps2_clk, ps2_data);
     
---    for i in 1 to 16 loop
---      data <= c_left;
---      r_send_ps2_special(c_left, par, ps2_clk, ps2_data);
---      r_send_ps2_special(c_left, par, ps2_clk, ps2_data);
---      r_send_ps2_special(c_left, par, ps2_clk, ps2_data);
---      r_send_ps2_special(c_left, par, ps2_clk, ps2_data);
---      r_send_ps2_special(c_left, par, ps2_clk, ps2_data);
---      data <= c_up;
---      r_send_ps2_special(c_up, par, ps2_clk, ps2_data);
---      data <= c_right;
---      r_send_ps2_special(c_right, par, ps2_clk, ps2_data);
---      r_send_ps2_special(c_right, par, ps2_clk, ps2_data);
---      r_send_ps2_special(c_right, par, ps2_clk, ps2_data);
---      r_send_ps2_special(c_right, par, ps2_clk, ps2_data);
---      r_send_ps2_special(c_right, par, ps2_clk, ps2_data);
---      data <= c_up;
---      r_send_ps2_special(c_up, par, ps2_clk, ps2_data);
---    end loop;
+    -- go to start button row (32)
+    for i in 1 to 32 loop
+      data <= c_down;
+      wait for clk_per;
+      r_send_ps2_special(c_down, par, ps2_clk, ps2_data);
+    end loop;
+
+    -- press enter (START the day)
+    data <= c_enter;
+    wait for clk_per;
+    r_send_ps2_frame(c_enter, par, ps2_clk, ps2_data);
     
     wait for clk_per * 1000;
 
