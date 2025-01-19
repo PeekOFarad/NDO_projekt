@@ -41,23 +41,6 @@ component bus_arbiter is
         );
 end component;
 
---------------------------------------------------------------------------------
-
-component server_regs_if is
-    Generic (
-           g_FOOD_CNT     : positive;
-           g_CLIENTS_CNT  : positive;
-           g_NODE_WIDTH   : positive
-    );
-    Port ( CLK      : in STD_LOGIC;
-           RST      : in STD_LOGIC;
-           RW       : in STD_LOGIC;
-           COL      : in STD_LOGIC_VECTOR (2 downto 0);
-           ROW      : in STD_LOGIC_VECTOR (5 downto 0);
-           NODE     : in STD_LOGIC_VECTOR (g_NODE_WIDTH-1 downto 0);
-           DIN      : in STD_LOGIC_VECTOR (11 downto 0); -- max width constrained by amount
-           DOUT     : out STD_LOGIC_VECTOR (11 downto 0));
-  end component;
 
 --------------------------------------------------------------------------------
 
@@ -117,25 +100,6 @@ begin
         node         => node,
         DIN          => din
       );
-
---------------------------------------------------------------------------------
-
-    server_regs_if_i : server_regs_if
-    generic map(
-    g_FOOD_CNT    => c_FOOD_CNT,
-    g_CLIENTS_CNT => c_CLIENTS_CNT,
-    g_NODE_WIDTH  => 2
-    )
-    port map(
-    CLK    => clk,
-    RST    => rst,
-    RW     => rw,
-    COL    => col,
-    ROW    => row,
-    NODE   => node,
-    DIN    => din,
-    DOUT   => dout
-    );
 
 --------------------------------------------------------------------------------
 
