@@ -370,7 +370,7 @@ begin
         -- state change
         next_state <= wait_update_arrow;
         if FIFO_REN = '1' then
-          en_read_sram <= '1'; 
+          en_read_sram <= '1'; -- TODO: is this needed? 
           next_state <= sram_read;
         end if;
         
