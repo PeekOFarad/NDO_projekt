@@ -185,7 +185,7 @@ end process;
 
 -------------------------------------------------------------------------------
 
-process(fsm_s, EDIT_ENA, BUSY, UPD_DATA, char_idx_s, COL, ROW, NODE, data_s,
+process(fsm_s, EDIT_ENA, BUSY, UPD_DATA, char_idx_s, COL, ROW, NODE, data_s, col_s, row_s, spi_busy_s,
         txn_ena_s, tx_frame_s, tx_data_c, tx_row_c, tx_col_c, tx_par_c, single_s,
         tmr_trig, sel_node_s, spi_rx_par, spi_rx_calc_par_c, spi_rx_data, tx_col_c,
         spi_rx_row, DIN, ACK, decremented_din_c, decremented_din_s, NODE_UPD_ACTIVE) begin
@@ -344,6 +344,7 @@ process(fsm_s, EDIT_ENA, BUSY, UPD_DATA, char_idx_s, COL, ROW, NODE, data_s,
       if(ACK = '1') then
         fsm_c       <= wait4event;
         REQ         <= '0';
+        RW          <= '1';
         upd_data_c  <= '1';
 
         -- increment selected client

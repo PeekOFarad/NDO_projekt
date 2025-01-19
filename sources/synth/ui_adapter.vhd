@@ -247,7 +247,7 @@ begin
   end process;
 
   -- User interface
-  process(upd_arr_req_s, upd_data_req_s, VGA_RDY, UPD_ARR_IN, UPD_DATA_IN, data_done_c) begin
+  process(upd_arr_req_s, upd_data_req_s, VGA_RDY, UPD_ARR_IN, UPD_DATA_IN, EDIT_ENA, data_done_c) begin
     upd_arr_c       <= '0';
     upd_data_c      <= '0';
     upd_arr_req_c   <= upd_arr_req_s;
