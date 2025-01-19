@@ -231,21 +231,23 @@ begin
         elsif(KEYS.bckspc = '1') then -- backspace
           if(sel_cell_col_s /= 0) then
             numb_buff_c <= (others => '0');
-            RW    <= '0';
-            fsm_c <= wait4ack;
-          end if;
-
-          if(char_sel_s /= 0) then -- character buffer
+            char_buff_c <= (others => (others => '0'));
+            upd_data_c  <= '1';
+            fsm_c       <= wait4ack;
+          elsif(char_sel_s /= 0) then -- character buffer
             char_buff_c(TO_INTEGER((char_sel_s - 1))) <= (others => '0');
             char_sel_c <= char_sel_s - 1;
             upd_data_c <= '1';
           end if;
         elsif((KEYS.number = '1') and (sel_cell_col_s /= 0)) then -- number
           numb_buff_c <= new_number_c(11 downto 0);
-          RW    <= '0';
-          fsm_c <= wait4ack;  
+          fsm_c       <= wait4ack;
         end if;
-        if(((KEYS.char = '1') or (KEYS.number = '1')) and (char_sel_s /= 31)) then -- char
+        if((KEYS.char = '1') and (char_sel_s /= 31) and (sel_cell_col_s = 0)) then -- char in the "name" column
+          char_buff_c(TO_INTEGER(char_sel_s)) <= sprits_ROM(TO_INTEGER(UNSIGNED(PS2_CODE))); -- decode directly PS2 code to sprit number
+          char_sel_c <= char_sel_s + 1;
+          upd_data_c <= '1';
+        elsif((KEYS.number = '1') and (char_sel_s /= 31)) then -- number in the any column
           char_buff_c(TO_INTEGER(char_sel_s)) <= sprits_ROM(TO_INTEGER(UNSIGNED(PS2_CODE))); -- decode directly PS2 code to sprit number
           char_sel_c <= char_sel_s + 1;
           upd_data_c <= '1';
@@ -253,8 +255,10 @@ begin
       when wait4ack =>
         REQ <= '1';
         RW  <= '0';
+
         if(ACK = '1') then
           REQ     <= '0';
+          RW      <= '1';
           fsm_c   <= edit;
         end if;
     end case;
