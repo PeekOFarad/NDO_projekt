@@ -64,8 +64,8 @@ architecture bench of system_top_tb is
 
 --------------------------------------------------------------------------------
 
-  constant clk_per              : time := 20 ns; 
-  constant ps2_clk_per          : time := 34 us;
+  constant clk_per              : time := 20 ns;
+  constant ps2_clk_per          : time := 33.3 us;
   signal   simulation_finished  : BOOLEAN := FALSE;
   
   signal   clk              : std_logic := '0';
@@ -212,9 +212,6 @@ begin
     
     wait until rising_edge(clk);
     wait for clk_per * 10;
-    
---    data <= c_down;
---    r_send_ps2_special(c_down, par, sps2_clk, sps2_data);
     
     wait for 200us;
 

@@ -102,30 +102,16 @@ architecture Behavioral of backend_top is
   end component;
   
 --------------------------------------------------------------------------------
-  
-  -- component server_regs_if is
-  --   Generic (
-  --           g_FOOD_CNT     : positive;
-  --           g_CLIENTS_CNT  : positive;
-  --           g_NODE_WIDTH   : positive
-  --   );
-  --   Port ( CLK      : in STD_LOGIC;
-  --           RST      : in STD_LOGIC;
-  --           RW       : in STD_LOGIC;
-  --           COL      : in STD_LOGIC_VECTOR (2 downto 0);
-  --           ROW      : in STD_LOGIC_VECTOR (5 downto 0);
-  --           NODE     : in STD_LOGIC_VECTOR (g_NODE_WIDTH-1 downto 0);
-  --           DIN      : in STD_LOGIC_VECTOR (11 downto 0);
-  --           DOUT     : out STD_LOGIC_VECTOR (11 downto 0));
-  -- end component;
 
   component rams_sp_wf is
+    Generic (
+        g_ADDR_WIDTH : positive := 10
+    );
     port(
           clk : in std_logic;
-          --rst : in std_logic;
           we : in std_logic;
           en : in std_logic;
-          addr : in std_logic_vector(9 downto 0);
+          addr : in std_logic_vector(g_ADDR_WIDTH-1 downto 0);
           di : in std_logic_vector(15 downto 0);
           do : out std_logic_vector(15 downto 0)
         );
@@ -406,27 +392,9 @@ ack_spi       <= ACK(2);
 
 --------------------------------------------------------------------------------
 
--- server_regs_if_i : server_regs_if
--- generic map(
---   g_FOOD_CNT    => c_FOOD_CNT,
---   g_CLIENTS_CNT => c_CLIENTS_CNT,
---   g_NODE_WIDTH  => c_NODE_WIDTH
--- )
--- port map(
---   CLK    => CLK,
---   RST    => RST,
---   RW     => rw,
---   COL    => col_reg,
---   ROW    => row_reg,
---   NODE   => node,
---   DIN    => din,
---   DOUT   => dout
--- );
-
 rams_sp_wf_i : rams_sp_wf
 port map(
   clk   => CLK,
-  --rst   => RST,
   we    => we_c,
   en    => en,
   addr  => std_logic_vector(addr_c),

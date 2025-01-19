@@ -14,7 +14,7 @@ use work.common_pkg.all;
 
 entity client_ctrl is
     Generic (
-           g_DATA_WIDTH  : positive := c_SPI_WIDTH
+          g_DATA_WIDTH  : positive := c_SPI_WIDTH
     );
     Port( CLK       : in STD_LOGIC;
           RST       : in STD_LOGIC;
@@ -160,8 +160,8 @@ begin
     end if;
   end process;
 
-  process(fsm_s, frm_col, frm_row, frm_data, col_s, row_s, char_buff_s, ch_cnt_s,
-          DATA_RDY, data_done_c, bcd_out, ACK, rw_s, last_col_s, last_row_s,
+  process(fsm_s, frm_col, frm_row, frm_data, col_s, row_s, char_buff_s, ch_cnt_s, RX_DATA,
+          DATA_RDY, data_done_c, bcd_out, ACK, rw_s, last_col_s, last_row_s, tx_data_s,
           edit_ena_s, tx_col_c, tx_row_c, tx_fr_data_c, tx_par_c, REQ_TO_SERV, REQ_ROW) begin
     fsm_c           <= fsm_s;
     col_c           <= col_s;

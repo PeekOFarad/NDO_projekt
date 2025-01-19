@@ -231,6 +231,7 @@ begin
         elsif(KEYS.bckspc = '1') then -- backspace
           if(sel_cell_col_s /= 0) then
             numb_buff_c <= (others => '0');
+            char_sel_c  <= (others => '0');
             char_buff_c <= (others => (others => '0'));
             upd_data_c  <= '1';
             fsm_c       <= wait4ack;
