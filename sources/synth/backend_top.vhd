@@ -93,6 +93,7 @@ architecture Behavioral of backend_top is
             ACK        : out block_bit_t;
             -- to register interface
             RW         : out STD_LOGIC;
+            EN         : out STD_LOGIC;
             COL        : out STD_LOGIC_VECTOR (2 downto 0);
             ROW        : out STD_LOGIC_VECTOR (5 downto 0);
             NODE       : out STD_LOGIC_VECTOR (g_NODE_WIDTH-1 downto 0);
@@ -102,20 +103,32 @@ architecture Behavioral of backend_top is
   
 --------------------------------------------------------------------------------
   
-  component server_regs_if is
-    Generic (
-            g_FOOD_CNT     : positive;
-            g_CLIENTS_CNT  : positive;
-            g_NODE_WIDTH   : positive
-    );
-    Port ( CLK      : in STD_LOGIC;
-            RST      : in STD_LOGIC;
-            RW       : in STD_LOGIC;
-            COL      : in STD_LOGIC_VECTOR (2 downto 0);
-            ROW      : in STD_LOGIC_VECTOR (5 downto 0);
-            NODE     : in STD_LOGIC_VECTOR (g_NODE_WIDTH-1 downto 0);
-            DIN      : in STD_LOGIC_VECTOR (11 downto 0);
-            DOUT     : out STD_LOGIC_VECTOR (11 downto 0));
+  -- component server_regs_if is
+  --   Generic (
+  --           g_FOOD_CNT     : positive;
+  --           g_CLIENTS_CNT  : positive;
+  --           g_NODE_WIDTH   : positive
+  --   );
+  --   Port ( CLK      : in STD_LOGIC;
+  --           RST      : in STD_LOGIC;
+  --           RW       : in STD_LOGIC;
+  --           COL      : in STD_LOGIC_VECTOR (2 downto 0);
+  --           ROW      : in STD_LOGIC_VECTOR (5 downto 0);
+  --           NODE     : in STD_LOGIC_VECTOR (g_NODE_WIDTH-1 downto 0);
+  --           DIN      : in STD_LOGIC_VECTOR (11 downto 0);
+  --           DOUT     : out STD_LOGIC_VECTOR (11 downto 0));
+  -- end component;
+
+  component rams_sp_wf is
+    port(
+          clk : in std_logic;
+          --rst : in std_logic;
+          we : in std_logic;
+          en : in std_logic;
+          addr : in std_logic_vector(9 downto 0);
+          di : in std_logic_vector(15 downto 0);
+          do : out std_logic_vector(15 downto 0)
+        );
   end component;
   
 --------------------------------------------------------------------------------
@@ -283,7 +296,25 @@ component spi_master is
 
   signal   upd_data_spi         : std_logic;
 
+  signal col_c  : unsigned(2 downto 0);
+  signal row_c  : unsigned(4 downto 0);
+  signal addr_c : unsigned(9 downto 0);
+  
+  signal do_c : std_logic_vector(15 downto 0);
+  signal di_c : std_logic_vector(15 downto 0);
+  signal we_c : std_logic;
+  signal en   : std_logic;
+
 begin
+
+  col_c   <= (unsigned(col_reg) - 1) when ((unsigned(col_reg) >= 1) and (unsigned(col_reg) <= 4)) else (others => '0');
+  row_c   <= unsigned(row_reg(4 downto 0)) when (row_reg(5) = '0') else (others => '0');
+  addr_c  <= shift_left(resize(unsigned(node), addr_c'length), 8) or shift_left(resize(row_c, addr_c'length), 3) or resize(col_c, addr_c'length);
+  
+  di_c <= "0000" & din;
+  we_c <= not rw;
+
+  dout <= do_c(11 downto 0);
 
 --------------------------------------------------------------------------------
 
@@ -344,6 +375,7 @@ port map(
   block_DIN    => block_DIN,
   ACK          => ACK,
   RW           => rw,
+  EN           => en,
   COL          => col_reg,
   ROW          => row_reg,
   node         => node,
@@ -374,21 +406,32 @@ ack_spi       <= ACK(2);
 
 --------------------------------------------------------------------------------
 
-server_regs_if_i : server_regs_if
-generic map(
-  g_FOOD_CNT    => c_FOOD_CNT,
-  g_CLIENTS_CNT => c_CLIENTS_CNT,
-  g_NODE_WIDTH  => c_NODE_WIDTH
-)
+-- server_regs_if_i : server_regs_if
+-- generic map(
+--   g_FOOD_CNT    => c_FOOD_CNT,
+--   g_CLIENTS_CNT => c_CLIENTS_CNT,
+--   g_NODE_WIDTH  => c_NODE_WIDTH
+-- )
+-- port map(
+--   CLK    => CLK,
+--   RST    => RST,
+--   RW     => rw,
+--   COL    => col_reg,
+--   ROW    => row_reg,
+--   NODE   => node,
+--   DIN    => din,
+--   DOUT   => dout
+-- );
+
+rams_sp_wf_i : rams_sp_wf
 port map(
-  CLK    => CLK,
-  RST    => RST,
-  RW     => rw,
-  COL    => col_reg,
-  ROW    => row_reg,
-  NODE   => node,
-  DIN    => din,
-  DOUT   => dout
+  clk   => CLK,
+  --rst   => RST,
+  we    => we_c,
+  en    => en,
+  addr  => std_logic_vector(addr_c),
+  di    => di_c,
+  do    => do_c
 );
 
 --------------------------------------------------------------------------------
