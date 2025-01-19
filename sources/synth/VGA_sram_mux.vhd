@@ -244,7 +244,7 @@ begin
   -- end process;
 
 
-  p_fsm: process (state, cnt_ROM_col_s, cnt_ROM_row_s, clk_half_en, u_row, u_column, WE_N_W, UB_N_W, LB_N_W, shreg_empty_n)
+  p_fsm: process (state, cnt_ROM_col_s, cnt_ROM_row_s, clk_half_en, u_row, u_column, WE_N_W, UB_N_W, LB_N_W, shreg_empty_n, OE_N_W)
   begin
     oe_n_int  <= '1';
     we_n_int  <= '1';

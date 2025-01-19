@@ -144,6 +144,7 @@ begin
 
   update_latch_re   <= '1' when (update_latch_s = '0' and update_latch_c = '1') else '0'; 
 
+
   process (CLK)
   begin
     if rising_edge(CLK) then
@@ -189,7 +190,7 @@ begin
 
         cnt_ROW_s         <= cnt_ROW_c;
         cnt_char_shreg_s  <= cnt_char_shreg_c;
-        if cnt_ROW_s = 11 then -- and cnt_char_shreg_s /= cell_size -- shift when done with a row
+        if cnt_ROW_s = 11 then -- shift when done with a row
           char_shreg_s      <= char_shreg_s(char_shreg_s'low+1 to char_shreg_s'high) & c_char_rst_val;
         end if;
         ---------------------------------------------------------------------------------
@@ -289,7 +290,7 @@ begin
       cnt_ROW_c <= cnt_ROW_s + 1;
       if cnt_ROW_s >= 11 then
         cnt_ROW_c <= (others => '0');
-        if cnt_char_shreg_s >= cell_size then
+        if cnt_char_shreg_s = to_unsigned(cell_size, cnt_char_shreg_s'length) then
           cnt_ROW_c <= cnt_ROW_s;
         end if;
       end if;
@@ -300,9 +301,6 @@ begin
       cnt_ROW_c <= cnt_ROW_s + 1;
       if cnt_ROW_s >= 11 then
         cnt_ROW_c <= (others => '0');
-        -- if cnt_char_shreg_s >= cell_size then
-        --   cnt_ROW_c <= cnt_ROW_s;
-        -- end if;
       end if;
     end if;
 
@@ -315,7 +313,7 @@ begin
       cnt_char_shreg_c <= cnt_char_shreg_s;
       if cnt_ROW_s = 11 then 
         cnt_char_shreg_c <= cnt_char_shreg_s + 1;
-        if cnt_char_shreg_s >= cell_size then
+        if cnt_char_shreg_s = to_unsigned(cell_size, cnt_char_shreg_s'length) then
           cnt_char_shreg_c <= (others => '0');
         end if;
       end if;
@@ -330,7 +328,7 @@ begin
     if state = sram_write and cnt_ROW_s = 11 then
       cnt_char_shreg_c <= cnt_char_shreg_s + 2;
       -- if last sprite of the cell, reset
-      if cnt_char_shreg_s >= cell_size then
+      if cnt_char_shreg_s = to_unsigned(cell_size, cnt_char_shreg_s'length) then
         cnt_char_shreg_c <= (others => '0');
       end if;
     end if;
@@ -397,7 +395,7 @@ begin
         if cnt_ROW_s = 11 then
           we_n_c <= '1';
           next_state <= sram_read;
-          if cnt_char_shreg_s >= cell_size-1 then -- TODO: handle cells with odd number of characters -> if cell_size = odd then UB 
+          if cnt_char_shreg_s = to_unsigned(cell_size, cnt_char_shreg_s'length)-1 then -- TODO: handle cells with odd number of characters -> if cell_size = odd then UB 
             update_latch_c <= '1';
             next_state <= sram_read;
             if update_latch_s = '1' then
