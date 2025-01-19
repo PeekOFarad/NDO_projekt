@@ -78,7 +78,7 @@ architecture rtl of VGA_cmd_fifo is
   signal raddr_c              : unsigned(17 downto 0) := (others => '0');
 
   signal cursor_pos           : t_cursor_pos := (others => 0); 
-  -- signal cursor_pos_shreg     : t_cursor_pos_array(0 to 1) := (others => (others => 0)); -- TODO: just one register needed, change to cursor_pos_s
+  signal cursor_pos_shreg     : t_cursor_pos_array(0 to 1) := (others => (others => 0)); -- TODO: just one register needed, change to cursor_pos_s
   signal cursor_pos_s         : t_cursor_pos := (others => 0); -- TODO: just one register needed, change to cursor_pos_s
 
   signal sprite_mem           : t_byte_array(0 to 11) := (others => (others => '0')); --! array of 12 bytes used to store sprite when reading SRAM for cursor inversion
@@ -144,6 +144,7 @@ begin
 
   update_latch_re   <= '1' when (update_latch_s = '0' and update_latch_c = '1') else '0'; 
 
+
   process (CLK)
   begin
     if rising_edge(CLK) then
@@ -160,6 +161,7 @@ begin
         col_sys_int       <= 0;
         row_sys_int       <= 0;
         cursor_pos_s      <= (0, 0);
+        cursor_pos_shreg  <= ((0, 0),(0, 0));
         sprite_mem        <= (others => (others => '0'));
         --------------------------------------------------------------------------------
         -- SYSTEM INTERFACE
@@ -189,7 +191,7 @@ begin
 
         cnt_ROW_s         <= cnt_ROW_c;
         cnt_char_shreg_s  <= cnt_char_shreg_c;
-        if cnt_ROW_s = 11 then -- and cnt_char_shreg_s /= cell_size -- shift when done with a row
+        if cnt_ROW_s = 11 then -- shift when done with a row
           char_shreg_s      <= char_shreg_s(char_shreg_s'low+1 to char_shreg_s'high) & c_char_rst_val;
         end if;
         ---------------------------------------------------------------------------------
@@ -224,6 +226,7 @@ begin
 
         if UPD_ARR = '1' then -- when cursor position is updated, shift cursor position in shreg + 1 and save new position to 0
           cursor_pos_s <= cursor_pos;
+          -- cursor_pos_shreg <= cursor_pos & cursor_pos_shreg(cursor_pos_shreg);
         end if;
 
         if UPD_ARR = '1' or update_latch_re = '1' then
@@ -289,7 +292,7 @@ begin
       cnt_ROW_c <= cnt_ROW_s + 1;
       if cnt_ROW_s >= 11 then
         cnt_ROW_c <= (others => '0');
-        if cnt_char_shreg_s >= cell_size then
+        if cnt_char_shreg_s = to_unsigned(cell_size, cnt_char_shreg_s'length) then
           cnt_ROW_c <= cnt_ROW_s;
         end if;
       end if;
@@ -300,9 +303,6 @@ begin
       cnt_ROW_c <= cnt_ROW_s + 1;
       if cnt_ROW_s >= 11 then
         cnt_ROW_c <= (others => '0');
-        -- if cnt_char_shreg_s >= cell_size then
-        --   cnt_ROW_c <= cnt_ROW_s;
-        -- end if;
       end if;
     end if;
 
@@ -315,7 +315,7 @@ begin
       cnt_char_shreg_c <= cnt_char_shreg_s;
       if cnt_ROW_s = 11 then 
         cnt_char_shreg_c <= cnt_char_shreg_s + 1;
-        if cnt_char_shreg_s >= cell_size then
+        if cnt_char_shreg_s = to_unsigned(cell_size, cnt_char_shreg_s'length) then
           cnt_char_shreg_c <= (others => '0');
         end if;
       end if;
@@ -330,7 +330,7 @@ begin
     if state = sram_write and cnt_ROW_s = 11 then
       cnt_char_shreg_c <= cnt_char_shreg_s + 2;
       -- if last sprite of the cell, reset
-      if cnt_char_shreg_s >= cell_size then
+      if cnt_char_shreg_s = to_unsigned(cell_size, cnt_char_shreg_s'length) then
         cnt_char_shreg_c <= (others => '0');
       end if;
     end if;
@@ -372,7 +372,7 @@ begin
         -- state change
         next_state <= wait_update_arrow;
         if FIFO_REN = '1' then
-          en_read_sram <= '1'; 
+          en_read_sram <= '1'; -- TODO: is this needed? 
           next_state <= sram_read;
         end if;
         
@@ -397,7 +397,7 @@ begin
         if cnt_ROW_s = 11 then
           we_n_c <= '1';
           next_state <= sram_read;
-          if cnt_char_shreg_s >= cell_size-1 then -- TODO: handle cells with odd number of characters -> if cell_size = odd then UB 
+          if cnt_char_shreg_s = to_unsigned(cell_size, cnt_char_shreg_s'length)-1 then -- TODO: handle cells with odd number of characters -> if cell_size = odd then UB 
             update_latch_c <= '1';
             next_state <= sram_read;
             if update_latch_s = '1' then

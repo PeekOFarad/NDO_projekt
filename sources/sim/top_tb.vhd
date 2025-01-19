@@ -59,7 +59,7 @@ architecture bench of top_tb is
 
 --------------------------------------------------------------------------------
 
-  constant clk_per              : time := 33.3 ns; -- 30MHz
+  constant clk_per              : time := 20 ns; -- 30MHz
   constant ps2_clk_per          : time := 33.3 us; -- 30kHz
   signal   simulation_finished  : BOOLEAN := FALSE;
   
