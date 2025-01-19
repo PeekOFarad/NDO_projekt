@@ -51,175 +51,141 @@ architecture Behavioral of client_backend_top is
   
 ----------------------------------------------------------------------------------
   
-  component ps2_if_ctrl is
-    Generic (
-           g_FOOD_CNT     : positive;
-           g_CLIENTS_CNT  : positive;
-           g_NODE_WIDTH   : positive
-    );
-    Port ( 
-           CLK          : in STD_LOGIC;
-           RST          : in STD_LOGIC;
-           KEYS         : in t_keys;
-           NUMBER       : in STD_LOGIC_VECTOR(3 downto 0);
-           PS2_CODE     : in STD_LOGIC_VECTOR (7 downto 0);
-           EDIT_ENA     : out STD_LOGIC;
-           BUFF_RDY     : out STD_LOGIC;
-           UPD_ARR      : out STD_LOGIC;
-           UPD_DATA     : out STD_LOGIC;
-           NODE_SEL     : out STD_LOGIC_VECTOR(g_NODE_WIDTH-1 downto 0);
-           SEL_CELL_COL : out STD_LOGIC_VECTOR (2 downto 0);
-           SEL_CELL_ROW : out STD_LOGIC_VECTOR (5 downto 0);
-           CHAR_BUFF    : out char_buff_t;
-           -- reg interface
-           REQ          : out STD_LOGIC;
-           ACK          : in  STD_LOGIC;
-           RW           : out STD_LOGIC;
-           DOUT         : out STD_LOGIC_VECTOR (11 downto 0)
-          );
-  end component;
-  
-----------------------------------------------------------------------------------
-  
   component bus_arbiter_client is
     Generic (
-        g_NUM_BLOCKS : positive;
-        g_NODE_WIDTH : positive
+        g_NUM_BLOCKS : positive
     );
     Port(  CLK        : in STD_LOGIC;
-            RST        : in STD_LOGIC;
-            REQ        : in block_bit_t;
-            block_RW   : in block_bit_t;
-            block_COL  : in block_col_t;
-            block_ROW  : in block_row_t;
-            block_NODE : in block_node_t;
-            block_DIN  : in block_data_t;
-            ACK        : out block_bit_t;
-            -- to register interface
-            RW         : out STD_LOGIC;
-            COL        : out STD_LOGIC_VECTOR (2 downto 0);
-            ROW        : out STD_LOGIC_VECTOR (5 downto 0);
-            NODE       : out STD_LOGIC_VECTOR (g_NODE_WIDTH-1 downto 0);
-            DIN        : out STD_LOGIC_VECTOR (11 downto 0)
+           RST        : in STD_LOGIC;
+           REQ        : in block_bit_t;
+           block_RW   : in block_bit_t;
+           block_COL  : in block_col_t;
+           block_ROW  : in block_row_t;
+           block_DIN  : in block_data_t;
+           ACK        : out block_bit_t;
+           -- to register interface
+           RW         : out STD_LOGIC;
+           EN         : out STD_LOGIC;
+           COL        : out STD_LOGIC_VECTOR (2 downto 0);
+           ROW        : out STD_LOGIC_VECTOR (5 downto 0);
+           DIN        : out STD_LOGIC_VECTOR (11 downto 0)
+        );
+end component;
+  
+--------------------------------------------------------------------------------
+  
+  component rams_sp_wf is
+    Generic (
+        g_ADDR_WIDTH : positive := 10
+  );
+    port(
+          clk : in std_logic;
+          we : in std_logic;
+          en : in std_logic;
+          addr : in std_logic_vector(g_ADDR_WIDTH-1 downto 0);
+          di : in std_logic_vector(15 downto 0);
+          do : out std_logic_vector(15 downto 0)
         );
   end component;
   
 --------------------------------------------------------------------------------
-  
-  component server_regs_if is
-    Generic (
-            g_FOOD_CNT     : positive;
-            g_CLIENTS_CNT  : positive;
-            g_NODE_WIDTH   : positive
+
+  component client_ctrl is
+      Generic (
+        g_DATA_WIDTH  : positive := c_SPI_WIDTH
     );
-    Port (  CLK      : in STD_LOGIC;
-            RST      : in STD_LOGIC;
-            RW       : in STD_LOGIC;
-            COL      : in STD_LOGIC_VECTOR (2 downto 0);
-            ROW      : in STD_LOGIC_VECTOR (5 downto 0);
-            NODE     : in STD_LOGIC_VECTOR (g_NODE_WIDTH-1 downto 0);
-            DIN      : in STD_LOGIC_VECTOR (11 downto 0);
-            DOUT     : out STD_LOGIC_VECTOR (11 downto 0));
+    Port( CLK       : in STD_LOGIC;
+          RST       : in STD_LOGIC;
+          -- from/to SPI_SLAVE
+          BUSY      : in STD_LOGIC;
+          DATA_RDY  : in STD_LOGIC;
+          RX_DATA   : in STD_LOGIC_VECTOR (g_DATA_WIDTH-1 downto 0);
+          TX_DATA   : out STD_LOGIC_VECTOR (g_DATA_WIDTH-1 downto 0);
+          -- from/to UI_ADAPTER
+          VGA_RDY   : in STD_LOGIC;
+          UPD_DATA  : out STD_LOGIC;
+          COL       : out STD_LOGIC_VECTOR (2 downto 0);
+          ROW       : out STD_LOGIC_VECTOR (5 downto 0);
+          CHAR_BUFF : out char_buff_t;
+          -- from/to bus_arbiter
+          RW       : out STD_LOGIC;
+          COL_OUT  : out STD_LOGIC_VECTOR (2 downto 0);
+          ROW_OUT  : out STD_LOGIC_VECTOR (5 downto 0);
+          REQ      : out STD_LOGIC;
+          ACK      : in STD_LOGIC;
+          DIN      : in STD_LOGIC_VECTOR (11 downto 0);
+          DOUT     : out STD_LOGIC_VECTOR (11 downto 0);
+          -- from/to CLIENT_CORE
+          REQ_TO_SERV : in STD_LOGIC;
+          REQ_ROW     : in STD_LOGIC_VECTOR (5 downto 0);
+          RSP_RDY     : out STD_LOGIC;
+          RSP_AMOUNT  : out STD_LOGIC_VECTOR (3 downto 0);
+          EDIT_ENA    : out STD_LOGIC
+    );
   end component;
-  
+
 --------------------------------------------------------------------------------
 
-component client_ctrl is
+  component spi_slave is
     Generic (
-      g_DATA_WIDTH  : positive := c_SPI_WIDTH
-  );
-  Port( CLK       : in STD_LOGIC;
-        RST       : in STD_LOGIC;
-        -- from/to SPI_SLAVE
-        BUSY      : in STD_LOGIC;
-        DATA_RDY  : in STD_LOGIC;
-        RX_DATA   : in STD_LOGIC_VECTOR (g_DATA_WIDTH-1 downto 0);
-        TX_DATA   : out STD_LOGIC_VECTOR (g_DATA_WIDTH-1 downto 0);
-        -- from/to UI_ADAPTER
-        VGA_RDY   : in STD_LOGIC;
-        UPD_DATA  : out STD_LOGIC;
-        COL       : out STD_LOGIC_VECTOR (2 downto 0);
-        ROW       : out STD_LOGIC_VECTOR (5 downto 0);
-        CHAR_BUFF : out char_buff_t;
-        -- from/to bus_arbiter
-        RW       : out STD_LOGIC;
-        COL_OUT  : out STD_LOGIC_VECTOR (2 downto 0);
-        ROW_OUT  : out STD_LOGIC_VECTOR (5 downto 0);
-        REQ      : out STD_LOGIC;
-        ACK      : in STD_LOGIC;
-        DIN      : in STD_LOGIC_VECTOR (11 downto 0);
-        DOUT     : out STD_LOGIC_VECTOR (11 downto 0);
-        -- from/to CLIENT_CORE
-        REQ_TO_SERV : in STD_LOGIC;
-        REQ_ROW     : in STD_LOGIC_VECTOR (5 downto 0);
-        RSP_RDY     : out STD_LOGIC;
-        RSP_AMOUNT  : out STD_LOGIC_VECTOR (3 downto 0);
-        EDIT_ENA    : out STD_LOGIC
-  );
-end component;
+          g_DATA_WIDTH  : positive
+    );
+    Port ( CLK      : in STD_LOGIC;
+          RST      : in STD_LOGIC;
+          MOSI     : in STD_LOGIC;
+          SCSB     : in STD_LOGIC;
+          SCLK     : in STD_LOGIC;
+          TX_DATA  : in STD_LOGIC_VECTOR (g_DATA_WIDTH-1 downto 0);
+          MISO     : out STD_LOGIC;
+          BUSY     : out STD_LOGIC;
+          DATA_RDY : out STD_LOGIC;
+          RX_DATA  : out STD_LOGIC_VECTOR (g_DATA_WIDTH-1 downto 0));
+  end component;
 
 --------------------------------------------------------------------------------
 
-component spi_slave is
-  Generic (
-         g_DATA_WIDTH  : positive
-  );
-  Port ( CLK      : in STD_LOGIC;
-         RST      : in STD_LOGIC;
-         MOSI     : in STD_LOGIC;
-         SCSB     : in STD_LOGIC;
-         SCLK     : in STD_LOGIC;
-         TX_DATA  : in STD_LOGIC_VECTOR (g_DATA_WIDTH-1 downto 0);
-         MISO     : out STD_LOGIC;
-         BUSY     : out STD_LOGIC;
-         DATA_RDY : out STD_LOGIC;
-         RX_DATA  : out STD_LOGIC_VECTOR (g_DATA_WIDTH-1 downto 0));
-end component;
-
---------------------------------------------------------------------------------
-
-component client_core is
-  Generic (
-         g_DATA_WIDTH  : positive := c_SPI_WIDTH
-  );
-  Port( CLK       : in STD_LOGIC;
-        RST       : in STD_LOGIC;
-        -- from/to UI_ADAPTER
-        VGA_RDY   : in STD_LOGIC;
-        UPD_ARR   : out STD_LOGIC;
-        UPD_DATA  : out STD_LOGIC;
-        COL       : out STD_LOGIC_VECTOR (2 downto 0);
-        ROW       : out STD_LOGIC_VECTOR (5 downto 0);
-        CHAR_BUFF : out char_buff_t;
-        -- from/to bus_arbiter (PS2 part)
-        RW_1       : out STD_LOGIC;
-        COL_OUT_1  : out STD_LOGIC_VECTOR (2 downto 0);
-        ROW_OUT_1  : out STD_LOGIC_VECTOR (5 downto 0);
-        REQ_1      : out STD_LOGIC;
-        ACK_1      : in  STD_LOGIC;
-        DOUT_1     : out STD_LOGIC_VECTOR (11 downto 0);
-        -- from/to bus_arbiter (SPI part)
-        RW_2       : out STD_LOGIC;
-        COL_OUT_2  : out STD_LOGIC_VECTOR (2 downto 0);
-        ROW_OUT_2  : out STD_LOGIC_VECTOR (5 downto 0);
-        REQ_2      : out STD_LOGIC;
-        ACK_2      : in  STD_LOGIC;
-        DIN        : in  STD_LOGIC_VECTOR (11 downto 0);
-        DOUT_2     : out STD_LOGIC_VECTOR (11 downto 0);
-        -- from/to client controller (SPI)
-        EDIT_ENA    : in  STD_LOGIC;
-        RSP_RDY     : in  STD_LOGIC;
-        RSP_AMOUNT  : in  STD_LOGIC_VECTOR (3 downto 0);
-        REQ_TO_SERV : out STD_LOGIC;
-        REQ_ROW     : out STD_LOGIC_VECTOR (5 downto 0);
-        -- from PS2 top
-        KEYS     : in t_keys;
-        -- buttons (S, Z, E)
-        BTN_S    : in STD_LOGIC;
-        BTN_Z    : in STD_LOGIC;
-        BTN_E    : in STD_LOGIC
-      );
-end component;
+  component client_core is
+    Generic (
+          g_DATA_WIDTH  : positive := c_SPI_WIDTH
+    );
+    Port( CLK       : in STD_LOGIC;
+          RST       : in STD_LOGIC;
+          -- from/to UI_ADAPTER
+          VGA_RDY   : in STD_LOGIC;
+          UPD_ARR   : out STD_LOGIC;
+          UPD_DATA  : out STD_LOGIC;
+          COL       : out STD_LOGIC_VECTOR (2 downto 0);
+          ROW       : out STD_LOGIC_VECTOR (5 downto 0);
+          CHAR_BUFF : out char_buff_t;
+          -- from/to bus_arbiter (PS2 part)
+          RW_1       : out STD_LOGIC;
+          COL_OUT_1  : out STD_LOGIC_VECTOR (2 downto 0);
+          ROW_OUT_1  : out STD_LOGIC_VECTOR (5 downto 0);
+          REQ_1      : out STD_LOGIC;
+          ACK_1      : in  STD_LOGIC;
+          DOUT_1     : out STD_LOGIC_VECTOR (11 downto 0);
+          -- from/to bus_arbiter (SPI part)
+          RW_2       : out STD_LOGIC;
+          COL_OUT_2  : out STD_LOGIC_VECTOR (2 downto 0);
+          ROW_OUT_2  : out STD_LOGIC_VECTOR (5 downto 0);
+          REQ_2      : out STD_LOGIC;
+          ACK_2      : in  STD_LOGIC;
+          DIN        : in  STD_LOGIC_VECTOR (11 downto 0);
+          DOUT_2     : out STD_LOGIC_VECTOR (11 downto 0);
+          -- from/to client controller (SPI)
+          EDIT_ENA    : in  STD_LOGIC;
+          RSP_RDY     : in  STD_LOGIC;
+          RSP_AMOUNT  : in  STD_LOGIC_VECTOR (3 downto 0);
+          REQ_TO_SERV : out STD_LOGIC;
+          REQ_ROW     : out STD_LOGIC_VECTOR (5 downto 0);
+          -- from PS2 top
+          KEYS     : in t_keys;
+          -- buttons (S, Z, E)
+          BTN_S    : in STD_LOGIC;
+          BTN_Z    : in STD_LOGIC;
+          BTN_E    : in STD_LOGIC
+        );
+  end component;
 
 --------------------------------------------------------------------------------
 
@@ -229,26 +195,13 @@ end component;
   signal   keys                 : t_keys;
   signal   number               : STD_LOGIC_VECTOR(3 downto 0);
 
-  -- PS2 IF CONTROLLER
   signal   edit_ena             : std_logic;
-  signal   buff_rdy             : std_logic;
-  signal   upd_arr_ctrl         : std_logic;
-  signal   upd_data_ctrl        : std_logic;
-  signal   node_sel_ctrl        : std_logic_vector(c_NODE_WIDTH-1 downto 0);
-  signal   col_ctrl             : std_logic_vector(2 downto 0);
-  signal   row_ctrl             : std_logic_vector(5 downto 0);
-  signal   char_buff            : char_buff_t;
-  signal   req_ctrl             : std_logic;
-  signal   ack_ctrl             : std_logic;
-  signal   rw_ctrl              : std_logic;
-  signal   dout_ctrl            : STD_LOGIC_VECTOR (11 downto 0);
 
   -- BUS ARBITER
   signal   REQ        :  block_bit_t;
   signal   block_RW   :  block_bit_t;
   signal   block_COL  :  block_col_t;
   signal   block_ROW  :  block_row_t;
-  signal   block_NODE :  block_node_t;
   signal   block_DIN  :  block_data_t;
   signal   ACK        :  block_bit_t;
 
@@ -256,7 +209,6 @@ end component;
   signal   rw         : std_logic;
   signal   din        : std_logic_vector(11 downto 0);
   signal   dout       : std_logic_vector(11 downto 0);
-  signal   node       : std_logic_vector(c_NODE_WIDTH-1 downto 0);
   signal   col_reg    : std_logic_vector(2 downto 0);
   signal   row_reg    : std_logic_vector(5 downto 0);
 
@@ -307,7 +259,26 @@ end component;
   signal   row_core             : std_logic_vector(5 downto 0);
   signal   char_buff_core       : char_buff_t;
 
+  -- to block RAM
+  signal col_c  : unsigned(2 downto 0);
+  signal row_c  : unsigned(4 downto 0);
+  signal addr_c : unsigned(7 downto 0);
+  
+  signal do_c : std_logic_vector(15 downto 0);
+  signal di_c : std_logic_vector(15 downto 0);
+  signal we_c : std_logic;
+  signal en   : std_logic;
+
 begin
+
+  col_c   <= (unsigned(col_reg) - 1) when ((unsigned(col_reg) >= 1) and (unsigned(col_reg) <= 4)) else (others => '0');
+  row_c   <= unsigned(row_reg(4 downto 0)) when (row_reg(5) = '0') else (others => '0');
+  addr_c  <= shift_left(resize(row_c, addr_c'length), 3) or resize(col_c, addr_c'length);
+  
+  di_c <= "0000" & din;
+  we_c <= not rw;
+
+  dout <= do_c(11 downto 0);
 
 --------------------------------------------------------------------------------
 
@@ -326,31 +297,28 @@ port map(
 
 bus_arbiter_cl_i : bus_arbiter_client
 generic map(
-  g_NUM_BLOCKS  => c_NUM_BLOCKS,
-  g_NODE_WIDTH  => c_NODE_WIDTH
+  g_NUM_BLOCKS  => c_NUM_BLOCKS
 )
 port map(
-  CLK          => CLK,
-  RST          => RST,
-  REQ          => REQ,
-  block_RW     => block_RW,
-  block_COL    => block_COL,
-  block_ROW    => block_ROW,
-  block_NODE   => block_NODE,
-  block_DIN    => block_DIN,
-  ACK          => ACK,
-  RW           => rw,
-  COL          => col_reg,
-  ROW          => row_reg,
-  node         => node,
-  DIN          => din
+  CLK           => CLK,
+  RST           => RST,
+  REQ           => REQ,
+  block_RW      => block_RW,
+  block_COL     => block_COL,
+  block_ROW     => block_ROW,
+  block_DIN     => block_DIN,
+  ACK           => ACK,
+  RW            => rw,
+  EN            => en,
+  COL           => col_reg,
+  ROW           => row_reg,
+  DIN           => din
 );
 
 REQ(0)        <= req_spi;
 block_RW(0)   <= rw_spi;
 block_COL(0)  <= col_spi;
 block_ROW(0)  <= row_spi;
-block_NODE(0) <= "0";
 block_DIN(0)  <= dout_spi;
 ack_spi       <= ACK(0);
 
@@ -358,7 +326,6 @@ REQ(1)        <= req_core_1;
 block_RW(1)   <= rw_core_1;
 block_COL(1)  <= col_core_1;
 block_ROW(1)  <= row_core_1;
-block_NODE(1) <= "0";
 block_DIN(1)  <= dout_core_1;
 ack_core_1    <= ACK(1);
 
@@ -366,27 +333,22 @@ REQ(2)        <= req_core_2;
 block_RW(2)   <= rw_core_2;
 block_COL(2)  <= col_core_2;
 block_ROW(2)  <= row_core_2;
-block_NODE(2) <= "0";
 block_DIN(2)  <= dout_core_2;
 ack_core_2    <= ACK(2);
 
 --------------------------------------------------------------------------------
 
-client_regs_if_i : server_regs_if
+rams_sp_wf_i : rams_sp_wf
 generic map(
-  g_FOOD_CNT    => c_FOOD_CNT,
-  g_CLIENTS_CNT => c_CLIENTS_CNT,
-  g_NODE_WIDTH  => c_NODE_WIDTH
+  g_ADDR_WIDTH  => 8
 )
 port map(
-  CLK    => CLK,
-  RST    => RST,
-  RW     => rw,
-  COL    => col_reg,
-  ROW    => row_reg,
-  NODE   => node,
-  DIN    => din,
-  DOUT   => dout
+  clk   => CLK,
+  we    => we_c,
+  en    => en,
+  addr  => std_logic_vector(addr_c),
+  di    => di_c,
+  do    => do_c
 );
 
 --------------------------------------------------------------------------------

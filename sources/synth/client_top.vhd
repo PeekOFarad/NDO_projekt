@@ -98,13 +98,23 @@ end component;
   signal  upd_data         : std_logic;
   signal  VGA_RDY          : std_logic;
 
+  signal  PIXEL_CLK		     : std_logic := '0';
+
 begin
+
+  -- PIXEL CLOCK GEN
+  process (CLK)
+  begin
+    if rising_edge(CLK) then
+      PIXEL_CLK <= NOT PIXEL_CLK;
+    end if;
+  end process;
 
 --------------------------------------------------------------------------------
 
 client_backend_top_i : client_backend_top
 port map(
-	CLK      => clk,
+	CLK      => PIXEL_CLK,
 	RST      => rst,
 	PS2_CLK  => PS2_CLK,
 	PS2_DATA => PS2_DATA,
@@ -113,8 +123,8 @@ port map(
 	MOSI     => MOSI,
 	MISO     => MISO,
 	BTN_S    => BTN_S,
-    BTN_Z    => BTN_Z,
-    BTN_E    => BTN_E,
+  BTN_Z    => BTN_Z,
+  BTN_E    => BTN_E,
 	VGA_RDY  => VGA_RDY,
 	UPD_ARR  => upd_arr,
 	UPD_DATA => upd_data,
@@ -128,7 +138,7 @@ port map(
 
 VGA_top_inst : entity work.VGA_top
   port map (
-    CLK 			=> CLK,
+    CLK 			=> PIXEL_CLK,
     COL_SYS 	=> COL,
     ROW_SYS 	=> ROW,
     UPD_ARR 	=> upd_arr,
@@ -151,7 +161,7 @@ VGA_top_inst : entity work.VGA_top
 
 back2ui_debug_i : back2ui_debug
   port map(
-    CLK      => CLK,
+    CLK      => PIXEL_CLK,
     RST      => RST,
     UPD_ARR  => upd_arr,
     UPD_DATA => upd_data,

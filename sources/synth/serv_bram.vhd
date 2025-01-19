@@ -7,12 +7,14 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 entity rams_sp_wf is
+  Generic (
+        g_ADDR_WIDTH : positive := 10
+  );
   port(
         clk : in std_logic;
-        --rst : in std_logic;
         we : in std_logic;
         en : in std_logic;
-        addr : in std_logic_vector(9 downto 0);
+        addr : in std_logic_vector(g_ADDR_WIDTH-1 downto 0);
         di : in std_logic_vector(15 downto 0);
         do : out std_logic_vector(15 downto 0)
       );
@@ -21,16 +23,13 @@ end rams_sp_wf;
 architecture syn of rams_sp_wf is
   attribute ram_style : string;
   
-  type ram_type is array (1023 downto 0) of std_logic_vector(15 downto 0);
+  type ram_type is array ((2**g_ADDR_WIDTH - 1) downto 0) of std_logic_vector(15 downto 0);
   signal RAM : ram_type := (others => (others => '0'));
 
   attribute ram_style of RAM : signal is "block";
 begin
-  process(clk)--, rst)
+  process(clk)
   begin
-    -- if rst = '1' then
-    --   RAM <= (others => (others => '0'));
-    -- els
     if clk'event and clk = '1' then
       if en = '1' then
         if we = '1' then

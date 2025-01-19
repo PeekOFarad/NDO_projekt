@@ -159,7 +159,8 @@ begin
     end if;
   end process;
 
-  process(fsm_s, row_s, EDIT_ENA, KEYS, price_type_s, amount_buff_s, price_buff_s, summ_s, DIN, ACK_1) begin
+  process(fsm_s, row_s, EDIT_ENA, KEYS, price_type_s, amount_buff_c,
+          amount_buff_s, price_buff_c, price_buff_s, summ_s, DIN, ACK_1) begin
     fsm_c         <= fsm_s;
     row_c         <= row_s;
     amount_buff_c <= amount_buff_s;
@@ -218,7 +219,6 @@ begin
           else
             amount_buff_c <= unsigned(DIN) - 1;
             new_data_c    <= '1';
-            -- COL_OUT_1     <= price_type_s;
             fsm_c         <= read_price;
           end if;
         end if;
@@ -230,13 +230,9 @@ begin
         REQ_1     <= '1';
         
         if(ACK_1 = '1') then
-          price_buff_c <= DIN(7 downto 0);
-          summ_c       <= summ_s + unsigned(DIN(7 downto 0));
-
-          -- RW_1      <= '0';
-          -- COL_OUT_1 <= "001";
-          -- DOUT_1    <= std_logic_vector(amount_buff_s);
-          fsm_c   <= edit_amount;
+          price_buff_c  <= DIN(7 downto 0);
+          summ_c        <= summ_s + unsigned(DIN(7 downto 0));
+          fsm_c         <= edit_amount;
         end if;
 -------------------------------------------------------------------------------
       when edit_amount =>
@@ -278,7 +274,7 @@ begin
     end if;
   end process;
 
-  process(spi_fsm_s, spi_row_s, rsp_amount_s, out_of_product_flag_c,
+  process(spi_fsm_s, row_s, spi_row_s, rsp_amount_s, out_of_product_flag_c,
           RSP_RDY, RSP_AMOUNT, ACK_2) begin
     spi_fsm_c     <= spi_fsm_s;
     spi_row_c     <= spi_row_s;
