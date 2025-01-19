@@ -9,44 +9,44 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
---use IEEE.MATH_REAL.all;
 use work.server_pkg.all;
 use work.common_pkg.all;
 
 entity spi_ctrl is
     Generic (
-      g_SLAVE_CNT   : positive;
-      g_DATA_WIDTH  : positive;
-      g_NODE_WIDTH  : positive
+          g_SLAVE_CNT     : positive;
+          g_DATA_WIDTH    : positive;
+          g_NODE_WIDTH    : positive
     );
-    Port ( CLK          : in STD_LOGIC;
-           RST          : in STD_LOGIC;
-           EDIT_ENA     : in STD_LOGIC;
-           -- from PS2
-           UPD_DATA     : in STD_LOGIC;
-           COL          : in STD_LOGIC_VECTOR (2 downto 0);
-           ROW          : in STD_LOGIC_VECTOR (5 downto 0);
-           NODE         : in STD_LOGIC_VECTOR (g_NODE_WIDTH-1 downto 0);
-           NUMBER       : in STD_LOGIC_VECTOR (11 downto 0);
-           DATA         : in char_buff_t;
-           -- to bus_arbiter
-           RW           : out STD_LOGIC;
-           COL_OUT      : out STD_LOGIC_VECTOR (2 downto 0);
-           ROW_OUT      : out STD_LOGIC_VECTOR (5 downto 0);
-           NODE_OUT     : out STD_LOGIC_VECTOR (g_NODE_WIDTH-1 downto 0);
-           REQ          : out STD_LOGIC;
-           ACK          : in STD_LOGIC;
-           DIN          : in STD_LOGIC_VECTOR (11 downto 0);
-           DOUT         : out STD_LOGIC_VECTOR (11 downto 0);
-           -- to spi_master
-           BUSY         : in STD_LOGIC;
-           RX_DATA      : in STD_LOGIC_VECTOR (g_DATA_WIDTH-1 downto 0);
-           SSEL         : out STD_LOGIC_VECTOR (g_SLAVE_CNT-1 downto 0);
-           SINGLE       : out STD_LOGIC;
-           TXN_ENA      : out STD_LOGIC;
-           TX_DATA      : out STD_LOGIC_VECTOR (g_DATA_WIDTH-1 downto 0);
-           -- to UI adapter
-           UPD_DATA_OUT : out STD_LOGIC
+    Port (CLK             : in STD_LOGIC;
+          RST             : in STD_LOGIC;
+          EDIT_ENA        : in STD_LOGIC;
+          -- from PS2
+          UPD_DATA        : in STD_LOGIC;
+          COL             : in STD_LOGIC_VECTOR (2 downto 0);
+          ROW             : in STD_LOGIC_VECTOR (5 downto 0);
+          NODE            : in STD_LOGIC_VECTOR (g_NODE_WIDTH-1 downto 0);
+          NUMBER          : in STD_LOGIC_VECTOR (11 downto 0);
+          DATA            : in char_buff_t;
+          -- to bus_arbiter
+          RW              : out STD_LOGIC;
+          COL_OUT         : out STD_LOGIC_VECTOR (2 downto 0);
+          ROW_OUT         : out STD_LOGIC_VECTOR (5 downto 0);
+          NODE_OUT        : out STD_LOGIC_VECTOR (g_NODE_WIDTH-1 downto 0);
+          REQ             : out STD_LOGIC;
+          ACK             : in STD_LOGIC;
+          DIN             : in STD_LOGIC_VECTOR (11 downto 0);
+          DOUT            : out STD_LOGIC_VECTOR (11 downto 0);
+          -- to spi_master
+          BUSY            : in STD_LOGIC;
+          RX_DATA         : in STD_LOGIC_VECTOR (g_DATA_WIDTH-1 downto 0);
+          SSEL            : out STD_LOGIC_VECTOR (g_SLAVE_CNT-1 downto 0);
+          SINGLE          : out STD_LOGIC;
+          TXN_ENA         : out STD_LOGIC;
+          TX_DATA         : out STD_LOGIC_VECTOR (g_DATA_WIDTH-1 downto 0);
+          -- from/to UI adapter
+          NODE_UPD_ACTIVE : in STD_LOGIC;
+          UPD_DATA_OUT    : out STD_LOGIC
       );
 end spi_ctrl;
 
@@ -188,7 +188,7 @@ end process;
 process(fsm_s, EDIT_ENA, BUSY, UPD_DATA, char_idx_s, COL, ROW, NODE, data_s,
         txn_ena_s, tx_frame_s, tx_data_c, tx_row_c, tx_col_c, tx_par_c, single_s,
         tmr_trig, sel_node_s, spi_rx_par, spi_rx_calc_par_c, spi_rx_data, tx_col_c,
-        spi_rx_row, DIN, ACK, decremented_din_c, decremented_din_s) begin
+        spi_rx_row, DIN, ACK, decremented_din_c, decremented_din_s, NODE_UPD_ACTIVE) begin
   fsm_c      <= fsm_s;
   char_idx_c <= char_idx_s;
   ssel_c     <= (others => '1');
@@ -219,7 +219,9 @@ process(fsm_s, EDIT_ENA, BUSY, UPD_DATA, char_idx_s, COL, ROW, NODE, data_s,
     when wait4data =>
       if(EDIT_ENA = '0') then
         fsm_c <= wait4event;
-      elsif(UPD_DATA = '1' and not(COL = "001" and (TO_INTEGER(unsigned(NODE)) = 0))) then
+      elsif(UPD_DATA = '1' and NODE_UPD_ACTIVE = '0' and
+            not(COL = "001" and (TO_INTEGER(unsigned(NODE)) = 0)))
+      then
         if(COL /= col_s or ROW /= row_s) then
           char_idx_c <= (others => '0');
         end if;

@@ -16,29 +16,31 @@ use IEEE.math_real.all;
 
 entity ui_adapter is
     Generic (
-           g_FOOD_CNT     : positive := c_FOOD_CNT;
-           g_CLIENTS_CNT  : positive := c_CLIENTS_CNT;
-           g_NODE_WIDTH   : positive := c_NODE_WIDTH
+          g_FOOD_CNT      : positive := c_FOOD_CNT;
+          g_CLIENTS_CNT   : positive := c_CLIENTS_CNT;
+          g_NODE_WIDTH    : positive := c_NODE_WIDTH
     );
-    Port ( CLK          : in STD_LOGIC;
-           RST          : in STD_LOGIC;
-           EDIT_ENA     : in STD_LOGIC;
-           VGA_RDY      : in STD_LOGIC;
-           UPD_ARR_IN   : in STD_LOGIC;
-           UPD_DATA_IN  : in STD_LOGIC;
-           ACK          : in STD_LOGIC;
-           COL_IN       : in STD_LOGIC_VECTOR (2 downto 0);
-           ROW_IN       : in STD_LOGIC_VECTOR (5 downto 0);
-           CHAR_BUFF    : in char_buff_t;
-           NODE_SEL     : in STD_LOGIC_VECTOR(g_NODE_WIDTH-1 downto 0);
-           DIN          : in STD_LOGIC_VECTOR (11 downto 0);
-           REQ          : out STD_LOGIC;
-           RW           : out STD_LOGIC;
-           UPD_ARR_OUT  : out STD_LOGIC;
-           UPD_DATA_OUT : out STD_LOGIC;
-           COL_OUT      : out STD_LOGIC_VECTOR (2 downto 0);
-           ROW_OUT      : out STD_LOGIC_VECTOR (5 downto 0);
-           DATA_OUT     : out char_buff_t);
+    Port (CLK             : in STD_LOGIC;
+          RST             : in STD_LOGIC;
+          EDIT_ENA        : in STD_LOGIC;
+          VGA_RDY         : in STD_LOGIC;
+          UPD_ARR_IN      : in STD_LOGIC;
+          UPD_DATA_IN     : in STD_LOGIC;
+          ACK             : in STD_LOGIC;
+          COL_IN          : in STD_LOGIC_VECTOR (2 downto 0);
+          ROW_IN          : in STD_LOGIC_VECTOR (5 downto 0);
+          CHAR_BUFF       : in char_buff_t;
+          NODE_SEL        : in STD_LOGIC_VECTOR(g_NODE_WIDTH-1 downto 0);
+          DIN             : in STD_LOGIC_VECTOR (11 downto 0);
+          REQ             : out STD_LOGIC;
+          RW              : out STD_LOGIC;
+          UPD_ARR_OUT     : out STD_LOGIC;
+          UPD_DATA_OUT    : out STD_LOGIC;
+          COL_OUT         : out STD_LOGIC_VECTOR (2 downto 0);
+          ROW_OUT         : out STD_LOGIC_VECTOR (5 downto 0);
+          DATA_OUT        : out char_buff_t;
+          NODE_UPD_ACTIVE : out std_logic
+          );
 end ui_adapter;
 
 architecture Behavioral of ui_adapter is
@@ -81,6 +83,9 @@ architecture Behavioral of ui_adapter is
 
   signal upd_data_req_c : std_logic;
   signal upd_data_req_s : std_logic := '0';
+
+  signal node_upd_active_c : std_logic;
+  signal node_upd_active_s : std_logic := '0';
   
 -------------------------------------------------------------------------------
 -- binary to BCD
@@ -92,36 +97,39 @@ begin
 
   process(CLK, RST) begin
     if(RST = '1') then
-      fsm_s           <= cfg;
-      node_sel_s      <= (others => '0');
-      cnt_s           <= (others => '0');
-      row_in_s        <= (others => '0');
-      upd_arr_s       <= '0';
-      upd_data_s      <= '0';
-      upd_arr_req_s   <= '0';
-      upd_data_req_s  <= '0';
+      fsm_s             <= cfg;
+      node_sel_s        <= (others => '0');
+      cnt_s             <= (others => '0');
+      row_in_s          <= (others => '0');
+      upd_arr_s         <= '0';
+      upd_data_s        <= '0';
+      upd_arr_req_s     <= '0';
+      upd_data_req_s    <= '0';
+      node_upd_active_s <= '0';
     elsif(rising_edge(CLK)) then
-      fsm_s           <= fsm_c;
-      node_sel_s      <= NODE_SEL;
-      cnt_s           <= cnt_c;
-      upd_arr_s       <= upd_arr_c;
-      upd_data_s      <= upd_data_c;
-      upd_arr_req_s   <= upd_arr_req_c;
-      upd_data_req_s  <= upd_data_req_c;
+      fsm_s             <= fsm_c;
+      node_sel_s        <= NODE_SEL;
+      cnt_s             <= cnt_c;
+      upd_arr_s         <= upd_arr_c;
+      upd_data_s        <= upd_data_c;
+      upd_arr_req_s     <= upd_arr_req_c;
+      upd_data_req_s    <= upd_data_req_c;
+      node_upd_active_s <= node_upd_active_c;
       if(smp_row_ena = '1') then
         row_in_s   <= ROW_IN;
       end if;
     end if;
   end process;
 
-  process(fsm_s, cnt_s, EDIT_ENA, COL_IN, VGA_RDY,
+  process(fsm_s, cnt_s, EDIT_ENA, COL_IN, VGA_RDY, node_upd_active_s,
           ROW_IN, NODE_SEL, node_sel_s, ACK, row_in_s, data_done_c, UPD_DATA_IN) begin
-    fsm_c         <= fsm_s;
-    cnt_c         <= cnt_s;
-    smp_row_ena   <= '0';
-    REQ           <= '0';
-    RW            <= '1';
-    new_data_c    <= '0';
+    fsm_c             <= fsm_s;
+    cnt_c             <= cnt_s;
+    smp_row_ena       <= '0';
+    REQ               <= '0';
+    RW                <= '1';
+    new_data_c        <= '0';
+    node_upd_active_c <= node_upd_active_s;
 
     case(fsm_s) is
       when cfg =>
@@ -129,10 +137,11 @@ begin
         ROW_OUT      <= ROW_IN;
 
         if(node_sel_s /= NODE_SEL) then
-          fsm_c <= node_upd;
-          COL_OUT <= "001"; -- select amount column
-          ROW_OUT <= std_logic_vector(cnt_s);
-          REQ     <= '1';
+          fsm_c             <= node_upd;
+          node_upd_active_c <= '1';
+          COL_OUT           <= "001"; -- select amount column
+          ROW_OUT           <= std_logic_vector(cnt_s);
+          REQ               <= '1';
         end if;
         if(EDIT_ENA = '0') then
           fsm_c <= run;
@@ -144,8 +153,9 @@ begin
         REQ     <= '1';
 
         if(cnt_s = 32) then
-          REQ   <= '0';
-          cnt_c <= (others => '0');
+          node_upd_active_c <= '0';
+          REQ               <= '0';
+          cnt_c             <= (others => '0');
 
           if(EDIT_ENA = '0') then
             fsm_c <= run;
@@ -269,5 +279,6 @@ begin
 
   UPD_ARR_OUT   <= upd_arr_s;
   UPD_DATA_OUT  <= upd_data_s;
+  NODE_UPD_ACTIVE <= node_upd_active_s;
 
 end Behavioral;

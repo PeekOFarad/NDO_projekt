@@ -81,7 +81,7 @@ architecture bench of system_top_tb is
   signal   data_out_serv    : char_buff_t;
 
   signal   miso             : std_logic;
-  signal   vga_rdy          : std_logic := '1';
+  signal   vga_rdy_sim      : std_logic;
   signal   mosi             : std_logic;
   signal   sclk             : std_logic;
   signal   ss_n             : std_logic_vector(c_CLIENTS_CNT-1 downto 0);
@@ -147,6 +147,14 @@ begin
     end if;
   end process;
 
+  process begin
+    vga_rdy_sim <= '0'; wait for 100*clk_per;
+    vga_rdy_sim <= '1'; wait for 100*clk_per;
+    if simulation_finished then
+      wait;
+    end if;
+  end process;
+
 --------------------------------------------------------------------------------
 
   backend_top_i : backend_top
@@ -159,7 +167,7 @@ begin
     PS2_CLK  => sps2_clk,
     PS2_DATA => sps2_data,
     MISO     => miso,
-    VGA_RDY  => vga_rdy,
+    VGA_RDY  => vga_rdy_sim,
     UPD_ARR  => upd_arr_serv,
     UPD_DATA => upd_data_serv,
     SCLK     => sclk,
@@ -185,7 +193,7 @@ begin
     BTN_S    => BTN_S,
     BTN_Z    => BTN_Z,
     BTN_E    => BTN_E,
-    VGA_RDY  => vga_rdy,
+    VGA_RDY  => vga_rdy_sim,
     UPD_ARR  => upd_arr_client,
     UPD_DATA => upd_data_client,
     COL      => col_client,
