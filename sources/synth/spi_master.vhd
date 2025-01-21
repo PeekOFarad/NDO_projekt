@@ -55,6 +55,11 @@ architecture Behavioral of spi_master is
   signal single_c : std_logic;
   signal single_s : std_logic := '0';
 
+  signal clk_div  : std_logic;
+
+  signal clk_cnt_c : unsigned(3 downto 0);
+  signal clk_cnt_s : unsigned(3 downto 0) := (others => '0');
+
 begin
 
   process(CLK, RST) begin
@@ -68,20 +73,22 @@ begin
       busy_s     <= '0';
       s_sel_s    <= (others => '1');
       single_s   <= '0';
+      clk_cnt_s  <= (others => '0');
     elsif(rising_edge(CLK)) then
-      fsm_s      <= fsm_c;
-      sclk_cnt_s <= sclk_cnt_c;
-      rx_buff_s  <= rx_buff_c;
-      tx_buff_s  <= tx_buff_c;
-      sclk_s     <= sclk_c;
-      mosi_s     <= mosi_c;
-      busy_s     <= busy_c;
-      s_sel_s    <= s_sel_c;
-      single_s   <= single_c;
+      fsm_s       <= fsm_c;
+      sclk_cnt_s  <= sclk_cnt_c;
+      rx_buff_s   <= rx_buff_c;
+      tx_buff_s   <= tx_buff_c;
+      sclk_s      <= sclk_c;
+      mosi_s      <= mosi_c;
+      busy_s      <= busy_c;
+      s_sel_s     <= s_sel_c;
+      single_s    <= single_c;
+      clk_cnt_s   <= clk_cnt_c;
     end if;
   end process;
 
-  process(TXN_ENA, MISO, SSEL, TX_DATA, SINGLE, fsm_s, sclk_cnt_s,
+  process(TXN_ENA, MISO, SSEL, TX_DATA, SINGLE, fsm_s, sclk_cnt_s, clk_div,
           rx_buff_s, tx_buff_s, sclk_s, mosi_s, busy_s, s_sel_s, single_s) begin
     fsm_c      <= fsm_s;
     sclk_cnt_c <= sclk_cnt_s;
@@ -109,27 +116,32 @@ begin
           fsm_c      <= run;
         end if;
       when run =>
-        sclk_cnt_c <= sclk_cnt_s + 1;
-        sclk_c <= not sclk_s;
+        if(clk_div = '1') then
+          sclk_cnt_c <= sclk_cnt_s + 1;
+          sclk_c <= not sclk_s;
 
-        if(sclk_cnt_s(0) = '0') then -- TX
-          mosi_c <= tx_buff_s(0);
-          tx_buff_c <= '0' & tx_buff_s(g_DATA_WIDTH-1 downto 1);
-        else -- RX
-          if(single_s = '1') then
-            rx_buff_c <= MISO & rx_buff_s(g_DATA_WIDTH-1 downto 1);
+          if(sclk_cnt_s(0) = '0') then -- TX
+            mosi_c <= tx_buff_s(0);
+            tx_buff_c <= '0' & tx_buff_s(g_DATA_WIDTH-1 downto 1);
+          else -- RX
+            if(single_s = '1') then
+              rx_buff_c <= MISO & rx_buff_s(g_DATA_WIDTH-1 downto 1);
+            end if;
           end if;
-        end if;
 
-        if(sclk_cnt_s = ((2 * g_DATA_WIDTH))) then
-          busy_c   <= '0';
-          sclk_c   <= '0';
-          s_sel_c  <= (others => '1');
-          mosi_c   <= 'Z';
-          fsm_c    <= idle;
+          if(sclk_cnt_s = ((2 * g_DATA_WIDTH))) then
+            busy_c   <= '0';
+            sclk_c   <= '0';
+            s_sel_c  <= (others => '1');
+            mosi_c   <= 'Z';
+            fsm_c    <= idle;
+          end if;
         end if;
     end case;
   end process;
+
+  clk_cnt_c <= clk_cnt_s + 1;
+  clk_div   <= '1' when (clk_cnt_s = "1111") else '0';
 
   SS_N    <= s_sel_s;
   SCLK    <= sclk_s;
