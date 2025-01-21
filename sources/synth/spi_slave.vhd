@@ -53,7 +53,7 @@ architecture Behavioral of spi_slave is
   signal data_rdy_c  : std_logic;
   signal data_rdy_s  : std_logic := '0';
   signal parity_c    : std_logic;
-  signal parity_calc : std_logic_vector(g_DATA_WIDTH-1 downto 0);
+  signal parity_calc : std_logic_vector(g_DATA_WIDTH-2 downto 0);
   signal data_cnt_c  : unsigned(5 downto 0);
   signal data_cnt_s  : unsigned(5 downto 0) := (others => '0');
 
@@ -83,26 +83,6 @@ begin
     end if;
   end process;
 
-  -- process(RST, SCLK) begin
-  --   if(RST = '1') then
-  --     miso_s <= '0';
-  --   elsif(rising_edge(SCLK)) then
-  --     miso_s <= miso_c;
-      
-  --   end if;
-  -- end process;
-  -- process(SCLK, shift_ena) begin
-  --   if(rising_edge(SCLK)) then
-  --     if(shift_ena = '0') then
-  --       o_miso                 <= i_data_parallel(N-1);
-  --       r_tx_data              <= i_data_parallel(N-2 downto 0);
-  --     else
-  --       o_miso                 <= r_tx_data(N-2);
-  --       r_tx_data              <= r_tx_data(N-3 downto 0)&'0';
-  --     end if;
-  --   end if;
-  -- end process;
-
   process(fsm_s, scsb_re, scsb_fe, sclk_re, sclk_fe, TX_DATA, tx_buff_s,
           rx_buff_s, busy_s, data_rdy_s, data_cnt_s, miso_s, MOSI, parity_c) begin
     fsm_c      <= fsm_s;
@@ -129,12 +109,9 @@ begin
       when run =>
         if(scsb_re = '1') then
           fsm_c  <= idle;
-          if((data_cnt_s = g_DATA_WIDTH) and (rx_buff_s(0) = parity_c)) then -- length and parity check
+          if((data_cnt_s = g_DATA_WIDTH) and (rx_buff_s(g_DATA_WIDTH-1) = parity_c)) then -- length and parity check
             data_rdy_c <= '1';
           end if;
-        -- elsif(sclk_re = '1') then
-        --   miso_c <= tx_buff_s(0);
-        --   tx_buff_c <= '0' & tx_buff_s(tx_buff_s'left downto 1);
         elsif(sclk_fe = '1') then
           miso_c <= tx_buff_s(0);
           tx_buff_c <= '0' & tx_buff_s(tx_buff_s'left downto 1);
@@ -155,11 +132,11 @@ begin
 
   -- parity calulation
   parity_calc(0) <= '1'; --set first result to odd
-  parity_logic: FOR i IN 0 to g_DATA_WIDTH-2 GENERATE
+  parity_logic: FOR i IN 0 to g_DATA_WIDTH-3 GENERATE
     parity_calc(i+1) <= parity_calc(i) XOR rx_buff_s(i+1);  --XOR each result with the next input bit
   END GENERATE;
 
-  parity_c <= parity_calc(g_DATA_WIDTH-1);
+  parity_c <= parity_calc(g_DATA_WIDTH-2);
 
   MISO     <= miso_s;
   BUSY     <= busy_s;
