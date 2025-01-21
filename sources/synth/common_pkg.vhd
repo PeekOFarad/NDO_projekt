@@ -17,6 +17,7 @@ package common_pkg is
   type char_buff_t is array(0 to 31) of char_t;
   
   type digit_arr_t is array(0 to 3) of char_t;
+  type summ_digit_arr_t is array(0 to 6) of char_t;
 
 end common_pkg;
 
