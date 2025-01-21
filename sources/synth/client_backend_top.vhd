@@ -34,7 +34,12 @@ entity client_backend_top is
           UPD_DATA : out STD_LOGIC;
           COL      : out STD_LOGIC_VECTOR (2 downto 0);
           ROW      : out STD_LOGIC_VECTOR (5 downto 0);
-          DATA_OUT : out char_buff_t);
+          DATA_OUT : out char_buff_t;
+          -- DEBUG IF
+          DATA_RDY_DBG : out STD_LOGIC;
+          SCSB_FE  : out STD_LOGIC;
+          SCSB_RE  : out STD_LOGIC
+        );
 end client_backend_top;
 
 architecture Behavioral of client_backend_top is
@@ -131,16 +136,20 @@ end component;
     Generic (
           g_DATA_WIDTH  : positive
     );
-    Port ( CLK      : in STD_LOGIC;
-          RST      : in STD_LOGIC;
-          MOSI     : in STD_LOGIC;
-          SCSB     : in STD_LOGIC;
-          SCLK     : in STD_LOGIC;
-          TX_DATA  : in STD_LOGIC_VECTOR (g_DATA_WIDTH-1 downto 0);
-          MISO     : out STD_LOGIC;
-          BUSY     : out STD_LOGIC;
-          DATA_RDY : out STD_LOGIC;
-          RX_DATA  : out STD_LOGIC_VECTOR (g_DATA_WIDTH-1 downto 0));
+    Port( CLK         : in STD_LOGIC;
+          RST         : in STD_LOGIC;
+          MOSI        : in STD_LOGIC;
+          SCSB        : in STD_LOGIC;
+          SCLK        : in STD_LOGIC;
+          TX_DATA     : in STD_LOGIC_VECTOR (g_DATA_WIDTH-1 downto 0);
+          MISO        : out STD_LOGIC;
+          BUSY        : out STD_LOGIC;
+          DATA_RDY    : out STD_LOGIC;
+          RX_DATA     : out STD_LOGIC_VECTOR (g_DATA_WIDTH-1 downto 0);
+          -- DEBUG IF
+          SCSB_FE_DBG : out STD_LOGIC;
+          SCSB_RE_DBG : out STD_LOGIC
+        );
   end component;
 
 --------------------------------------------------------------------------------
@@ -389,6 +398,8 @@ port map(
   EDIT_ENA    => edit_ena
 );
 
+DATA_RDY_DBG <= data_rdy;
+
 --------------------------------------------------------------------------------
 
 spi_slave_i : spi_slave
@@ -396,16 +407,18 @@ generic map(
   g_DATA_WIDTH  => c_SPI_WIDTH
 )
 port map(
-  CLK        => CLK,
-  RST        => RST,
-  MOSI       => MOSI,
-  SCSB       => SCSB,
-  SCLK       => SCLK,
-  TX_DATA    => tx_data,
-  MISO       => MISO,
-  BUSY       => spi_busy,
-  DATA_RDY   => data_rdy,
-  RX_DATA    => rx_data
+  CLK         => CLK,
+  RST         => RST,
+  MOSI        => MOSI,
+  SCSB        => SCSB,
+  SCLK        => SCLK,
+  TX_DATA     => tx_data,
+  MISO        => MISO,
+  BUSY        => spi_busy,
+  DATA_RDY    => data_rdy,
+  RX_DATA     => rx_data,
+  SCSB_FE_DBG => SCSB_FE,
+  SCSB_RE_DBG => SCSB_RE
 );
 
 --------------------------------------------------------------------------------

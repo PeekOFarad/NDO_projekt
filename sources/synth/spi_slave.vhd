@@ -23,7 +23,11 @@ entity spi_slave is
            MISO     : out STD_LOGIC;
            BUSY     : out STD_LOGIC;
            DATA_RDY : out STD_LOGIC;
-           RX_DATA  : out STD_LOGIC_VECTOR (g_DATA_WIDTH-1 downto 0));
+           RX_DATA  : out STD_LOGIC_VECTOR (g_DATA_WIDTH-1 downto 0);
+           -- DEBUG IF
+           SCSB_FE_DBG  : out STD_LOGIC;
+           SCSB_RE_DBG  : out STD_LOGIC
+         );
 end spi_slave;
 
 architecture Behavioral of spi_slave is
@@ -32,7 +36,7 @@ architecture Behavioral of spi_slave is
   signal fsm_c : fsm_t;
   signal fsm_s : fsm_t := idle;
 
-  signal scsb_s : std_logic := '0';
+  signal scsb_s : std_logic := '1';
   signal sclk_s : std_logic := '0';
 
   signal scsb_re : std_logic;
@@ -47,7 +51,7 @@ architecture Behavioral of spi_slave is
   signal tx_buff_s : std_logic_vector(g_DATA_WIDTH-2 downto 0) := (others => '0');
 
   signal miso_c : std_logic;
-  signal miso_s : std_logic;
+  signal miso_s : std_logic := '0';
   signal busy_c : std_logic;
   signal busy_s : std_logic := '0';
   signal data_rdy_c  : std_logic;
@@ -142,5 +146,8 @@ begin
   BUSY     <= busy_s;
   DATA_RDY <= data_rdy_s;
   RX_DATA  <= rx_buff_s;
+
+  SCSB_FE_DBG   <= scsb_fe;
+  SCSB_RE_DBG   <= scsb_re;
 
 end Behavioral;
