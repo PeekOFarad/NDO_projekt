@@ -646,6 +646,13 @@ begin
       wait for clk_per;
       r_send_ps2_frame(c_enter, par, cps2_clk, cps2_data);
     end loop;
+
+    wait for clk_per * 100;
+
+    -- SERVER: press enter (END of the day)
+    data <= c_enter;
+    wait for clk_per;
+    r_send_ps2_frame(c_enter, par, sps2_clk, sps2_data);
     
     wait for clk_per * 1000;
 
