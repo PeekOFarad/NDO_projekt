@@ -40,6 +40,7 @@ entity client_ctrl is
           -- from/to CLIENT_CORE
           REQ_TO_SERV : in STD_LOGIC;
           REQ_ROW     : in STD_LOGIC_VECTOR (5 downto 0);
+          SUMM        : in STD_LOGIC_VECTOR (19 downto 0);
           RSP_RDY     : out STD_LOGIC;
           RSP_AMOUNT  : out STD_LOGIC_VECTOR (3 downto 0);
           EDIT_ENA    : out STD_LOGIC
@@ -58,14 +59,15 @@ architecture Behavioral of client_ctrl is
       data_done : out std_logic;
       bcd_out   : out digit_arr_t
     );
-  end component ;
+  end component;
 
 -------------------------------------------------------------------------------
 
   constant ALL_ONES_VECTOR : std_logic_vector(g_DATA_WIDTH-1 downto 0) := (others => '1');
+  constant ALL_ONES_VECTOR_22 : std_logic_vector(g_DATA_WIDTH-2 downto 0) := (others => '1');
   constant ALL_ZEROS_VECTOR : std_logic_vector(g_DATA_WIDTH-1 downto 0) := (others => '0');
 
-  type fsm_t IS(cfg, wait4ack, run, wait4rsp);
+  type fsm_t IS(cfg, wait4ack, run, wait4rsp, end_of_the_day_st, wait4spi, read_amount, edit_amount);
 
   signal fsm_c : fsm_t;
   signal fsm_s : fsm_t := cfg;
@@ -111,9 +113,6 @@ architecture Behavioral of client_ctrl is
   signal bcd_out     : digit_arr_t;
 
   -- bus arbiter related signals
-  signal rw_c : STD_LOGIC;
-  signal rw_s : STD_LOGIC := '1';
-
   -- edit ena
   signal edit_ena_c : STD_LOGIC;
   signal edit_ena_s : STD_LOGIC := '1';
@@ -124,9 +123,14 @@ architecture Behavioral of client_ctrl is
   signal tx_row_c     : std_logic_vector(5 downto 0);
   signal tx_par_c     : std_logic;
 
-  -- client core connection
-  -- signal req_row_c : std_logic_vector(3 downto 0);
-  -- signal req_row_s : std_logic_vector(3 downto 0) := (others => '0');
+  -- signals for end of the day
+  signal prod_num_c    : unsigned(5 downto 0);
+  signal prod_num_s    : unsigned(5 downto 0) := (others => '0');
+
+  signal amount_c      : std_logic_vector(11 downto 0);
+  signal amount_s      : std_logic_vector(11 downto 0) := (others => '0');
+
+  signal data_out_c : std_logic_vector (11 downto 0);
 
 begin
 
@@ -140,10 +144,11 @@ begin
       last_row_s      <= (others => '0');
       char_buff_s     <= (others => (others => '0'));
       ch_cnt_s        <= (others => '0');
-      rw_s            <= '1';
       upd_data_req_s  <= '0';
       edit_ena_s      <= '1';
       tx_data_s       <= (others => '0');
+      prod_num_s      <= (others => '0');
+      amount_s        <= (others => '0');
     elsif(rising_edge(CLK)) then
       fsm_s           <= fsm_c;
       upd_data_s      <= upd_data_c;
@@ -153,16 +158,17 @@ begin
       last_row_s      <= last_row_c;
       char_buff_s     <= char_buff_c;
       ch_cnt_s        <= ch_cnt_c;
-      rw_s            <= rw_c;
       upd_data_req_s  <= upd_data_req_c;
       edit_ena_s      <= edit_ena_c;
       tx_data_s       <= tx_data_c;
+      prod_num_s      <= prod_num_c;
+      amount_s        <= amount_c;
     end if;
   end process;
 
-  process(fsm_s, frm_col, frm_row, frm_data, col_s, row_s, char_buff_s, ch_cnt_s, RX_DATA,
-          DATA_RDY, data_done_c, bcd_out, ACK, rw_s, last_col_s, last_row_s, tx_data_s,
-          edit_ena_s, tx_col_c, tx_row_c, tx_fr_data_c, tx_par_c, REQ_TO_SERV, REQ_ROW) begin
+  process(fsm_s, frm_col, frm_row, frm_data, col_s, row_s, char_buff_s, ch_cnt_s, RX_DATA, SUMM, frm_rw,
+          DATA_RDY, data_done_c, bcd_out, ACK, last_col_s, last_row_s, tx_data_s, amount_s, DIN,
+          edit_ena_s, tx_col_c, tx_row_c, tx_fr_data_c, tx_par_c, REQ_TO_SERV, REQ_ROW, prod_num_s) begin
     fsm_c           <= fsm_s;
     col_c           <= col_s;
     last_col_c      <= last_col_s;
@@ -173,7 +179,6 @@ begin
     new_data_c      <= '0';
     RW              <= '1';
     REQ             <= '0';
-    rw_c            <= rw_s;
     edit_ena_c      <= edit_ena_s;
     tx_data_c       <= tx_data_s;
     tx_col_c        <= "000";
@@ -181,6 +186,11 @@ begin
     tx_fr_data_c    <= (others => '0');
     RSP_RDY         <= '0';
     RSP_AMOUNT      <= (others => '0');
+    prod_num_c      <= prod_num_s;
+    amount_c        <= amount_s;
+    data_out_c      <= frm_data;
+    COL_OUT         <= (others => '0');
+    ROW_OUT         <= (others => '0');
 
     case(fsm_s) is
 -------------------------------------------------------------------------------
@@ -190,7 +200,7 @@ begin
         edit_ena_c <= '1';
 
         if(DATA_RDY = '1') then
-          if(RX_DATA = ALL_ONES_VECTOR) then -- go to the run mode
+          if(RX_DATA(21 downto 0) = ALL_ONES_VECTOR_22) then -- go to the run mode
             fsm_c <= run;
           else -- stay at cfg mode
             -- save last position of cursor
@@ -229,16 +239,17 @@ begin
           
           -- save number to the register
           fsm_c   <= wait4ack;
-          RW      <= '0';
-          rw_c    <= '0';
-          REQ     <= '1';
         end if;
 -------------------------------------------------------------------------------
       when wait4ack =>
         REQ     <= '1';
-        RW      <= rw_s;
+        RW      <= '0';
+        COL_OUT <= col_s;
+        ROW_OUT <= row_s;
 
         if(ACK = '1') then
+          REQ   <= '0';
+          RW    <= '1';
           fsm_c <= cfg;
         end if;
 -------------------------------------------------------------------------------
@@ -250,16 +261,27 @@ begin
         tx_fr_data_c(11) <= '1'; -- 0 - client is in the config mode, 1 - client is in the run mode
         tx_fr_data_c(10) <= '0'; -- 0 - Reserved, 1 - sending "end of the day info"
         tx_fr_data_c(9)  <= '0'; -- 1 - client is out of product on selected row
+        -- 1b'rw, 9b'addr, 12b'data, 1b'parity
+        tx_data_c <= tx_par_c & tx_fr_data_c & tx_row_c & tx_col_c & '0';
 
-        if(REQ_TO_SERV = '1') then
+        if((DATA_RDY = '1') and (frm_rw = '0') and (frm_col = "111") and
+          (frm_row = "111111") and (frm_data = "001111111111"))            -- if "end of the day" CMD
+        then
+          fsm_c                   <= wait4spi;
+          -- 22b'data, 1'b0
+          tx_data_c               <= (others => '0');
+          tx_data_c(21)           <= '1'; -- in the run state
+          tx_data_c(20)           <= '1'; -- in the "end of the day state"
+          tx_data_c(19 downto 0)  <= SUMM;
+          prod_num_c              <= (others => '0');
+        elsif(REQ_TO_SERV = '1') then
           tx_fr_data_c(9)  <= '1';
           tx_col_c         <= "001";
           tx_row_c         <= REQ_ROW;
           fsm_c            <= wait4rsp;
+          -- 1b'rw, 9b'addr, 12b'data, 1b'parity
+          tx_data_c <= tx_par_c & tx_fr_data_c & tx_row_c & tx_col_c & '0';
         end if;
-
-        -- 1b'rw, 9b'addr, 12b'data, 1b'parity
-        tx_data_c <= tx_par_c & tx_fr_data_c & tx_row_c & tx_col_c & '0';
 -------------------------------------------------------------------------------
       when wait4rsp =>
         if((DATA_RDY = '1') and (frm_row = REQ_ROW)) then
@@ -267,6 +289,57 @@ begin
           RSP_AMOUNT  <= frm_data(3 downto 0);
           fsm_c       <= run;
         end if;
+-------------------------------------------------------------------------------
+      when wait4spi =>
+        if(DATA_RDY = '1') then
+          if(frm_data = "101111111111") then -- if the row amount requested
+            -- read amount of the requested product
+            fsm_c <= read_amount;
+            RW      <= '1';
+            COL_OUT <= "001";
+            ROW_OUT <= frm_row;
+            REQ     <= '1';
+          else
+            fsm_c <= cfg;
+          end if;
+          -- TODO: how to exit from end of the day?
+        end if;
+-------------------------------------------------------------------------------
+      when read_amount =>
+        RW      <= '1';
+        COL_OUT <= "001";
+        ROW_OUT <= frm_row;
+        REQ     <= '1';
+
+        if(ACK = '1') then
+          REQ      <= '0';
+          amount_c <= DIN;
+          fsm_c    <= edit_amount;
+        end if;
+-------------------------------------------------------------------------------
+      when edit_amount => -- clear the amount of the product
+        RW          <= '0';
+        COL_OUT     <= "001";
+        ROW_OUT     <= frm_row;
+        data_out_c  <= (others => '0');
+        REQ         <= '1';
+
+        if(ACK = '1') then
+          REQ   <= '0';
+          RW    <= '1';
+          fsm_c <= end_of_the_day_st;
+        end if;
+-------------------------------------------------------------------------------
+      when end_of_the_day_st =>
+        -- wait for ACK and go to the wait4spi state
+        tx_row_c                  <= frm_row;
+        tx_fr_data_c(11)          <= '1'; -- 0 - client is in the config mode, 1 - client is in the run mode
+        tx_fr_data_c(10)          <= '1'; -- 0 - Reserved, 1 - sending "end of the day info"
+        tx_col_c                  <= '0' & amount_s(11 downto 10);
+        tx_fr_data_c(9 downto 0)  <= amount_s(9 downto 0);
+        -- 1b'rw, 9b'addr, 12b'data, 1b'parity
+        tx_data_c <= tx_par_c & tx_fr_data_c & tx_row_c & tx_col_c & '0';
+        fsm_c     <= wait4spi;
     end case;
   end process;
 
@@ -323,9 +396,7 @@ begin
   COL         <= col_s;
   ROW         <= row_s;
   CHAR_BUFF   <= char_buff_s;
-  COL_OUT     <= col_s;
-  ROW_OUT     <= row_s;
-  DOUT        <= frm_data;
+  DOUT        <= data_out_c;
   TX_DATA     <= tx_data_s;
   EDIT_ENA    <= edit_ena_s;
 

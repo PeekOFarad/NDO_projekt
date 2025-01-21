@@ -118,6 +118,7 @@ end component;
           -- from/to CLIENT_CORE
           REQ_TO_SERV : in STD_LOGIC;
           REQ_ROW     : in STD_LOGIC_VECTOR (5 downto 0);
+          SUMM        : in STD_LOGIC_VECTOR (19 downto 0);
           RSP_RDY     : out STD_LOGIC;
           RSP_AMOUNT  : out STD_LOGIC_VECTOR (3 downto 0);
           EDIT_ENA    : out STD_LOGIC
@@ -178,6 +179,7 @@ end component;
           RSP_AMOUNT  : in  STD_LOGIC_VECTOR (3 downto 0);
           REQ_TO_SERV : out STD_LOGIC;
           REQ_ROW     : out STD_LOGIC_VECTOR (5 downto 0);
+          SUMM        : out STD_LOGIC_VECTOR (19 downto 0);
           -- from PS2 top
           KEYS     : in t_keys;
           -- buttons (S, Z, E)
@@ -268,6 +270,9 @@ end component;
   signal di_c : std_logic_vector(15 downto 0);
   signal we_c : std_logic;
   signal en   : std_logic;
+
+  -- summ
+  signal summ : std_logic_vector(19 downto 0);
 
 begin
 
@@ -378,6 +383,7 @@ port map(
   DOUT        => dout_spi,
   REQ_TO_SERV => req_to_serv,
   REQ_ROW     => req_row,
+  SUMM        => summ,
   RSP_RDY     => rsp_rdy,
   RSP_AMOUNT  => rsp_amount,
   EDIT_ENA    => edit_ena
@@ -439,6 +445,7 @@ port map(
   RSP_AMOUNT  => rsp_amount,
   REQ_TO_SERV => req_to_serv,
   REQ_ROW     => req_row,
+  SUMM        => summ,
   -- from PS2 top
   KEYS        => keys,
   -- buttons (S, Z, E)
