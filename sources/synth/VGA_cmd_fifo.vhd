@@ -81,7 +81,9 @@ architecture rtl of VGA_cmd_fifo is
   signal cursor_pos_shreg     : t_cursor_pos_array(0 to 1) := (others => (others => 0)); -- TODO: just one register needed, change to cursor_pos_s
   signal cursor_pos_s         : t_cursor_pos := (others => 0); -- TODO: just one register needed, change to cursor_pos_s
 
-  signal sprite_mem           : t_byte_array(0 to 11) := (others => (others => '0')); --! array of 12 bytes used to store sprite when reading SRAM for cursor inversion
+  type t_2byte_array is array (natural range <>) of std_logic_vector(15 downto 0);
+  signal sprite_mem_s         : t_2byte_array(0 to 11) := (others => (others => '0')); --! array of 12 bytes used to store sprite when reading SRAM for cursor inversion
+  signal sprite_mem_c         : t_2byte_array(0 to 11); --! array of 12 bytes used to store sprite when reading SRAM for cursor inversion
 
   signal en_read_sram         : std_logic := '0';
   signal update_latch_s       : std_logic := '0'; --! used to run update sram read and write again on the new cursor position
@@ -120,14 +122,15 @@ architecture rtl of VGA_cmd_fifo is
   
 begin
   
-  data_out_c <= not (bit_reverse(sprite_mem(to_integer(cnt_ROW_s)))) when state = sram_write  else (others => 'Z');
+  -- data_out_c <= not (bit_reverse(sprite_mem(to_integer(cnt_ROW_s)))) when state = sram_write  else (others => 'Z');
 
-  DATA_IO  <=     (others => 'Z')                                         when state = sram_read   else
-                  not (bit_reverse(sprite_mem(to_integer(cnt_ROW_s))))    when state = sram_write  else
-                  not (bit_reverse(ROM_data_o) & bit_reverse(ROM_data_o)) when cursor_pos = cursor_pos_s else
-                  (bit_reverse(ROM_data_o) & bit_reverse(ROM_data_o));
+  DATA_IO  <=     -- (others => 'Z')                                         when state = sram_read   else -- note: problém je ve čtení z ramky
+                  not (sprite_mem_s(sprite_mem_s'low))       when state = sram_write  else
+                  not (bit_reverse(ROM_data_o) & bit_reverse(ROM_data_o)) when (cursor_pos = cursor_pos_s and state = update_data) else
+                  (bit_reverse(ROM_data_o) & bit_reverse(ROM_data_o))     when (cursor_pos /= cursor_pos_s and state = update_data) else
+                  (others => 'Z');
 
-  data_in_c   <= DATA_IO when state = sram_read else x"beef";
+  data_in_c   <= DATA_IO;
 
   -- RWADDR_C should be char_addr_c, because there is an output reg in sram_mux (in simulation the correct address in char_addr_s)
   RWADDR_C <=  std_logic_vector(char_addr_c) when (state = sram_read or state = sram_write) else std_logic_vector(char_addr_s);
@@ -162,7 +165,7 @@ begin
         row_sys_int       <= 0;
         cursor_pos_s      <= (0, 0);
         cursor_pos_shreg  <= ((0, 0),(0, 0));
-        sprite_mem        <= (others => (others => '0'));
+        sprite_mem_s      <= (others => (others => '0')); --(others => x"5555");
         --------------------------------------------------------------------------------
         -- SYSTEM INTERFACE
         state             <= idle;
@@ -219,9 +222,7 @@ begin
         --------------------------------------------------------------------------------
         -- ARROW UDPATE
         --------------------------------------------------------------------------------
-        if state = sram_read then
-          sprite_mem(to_integer(cnt_ROW_s)) <= data_in_c;
-        end if;
+        sprite_mem_s <= sprite_mem_c;
         
 
         if UPD_ARR = '1' then -- when cursor position is updated, shift cursor position in shreg + 1 and save new position to 0
@@ -259,6 +260,12 @@ begin
     end if;
   end process;
 
+  sprite_mem_c <= sprite_mem_s(sprite_mem_s'low+1 to sprite_mem_s'high) & data_in_c when state = sram_read else
+                  sprite_mem_s(sprite_mem_s'low+1 to sprite_mem_s'high) & x"5555"   when state = sram_write else
+                  (others => (others => '0'));
+                  -- (others => (others => '0')) when not (state = sram_read or state = sram_write) else
+                  -- sprite_mem_s;
+
   -- cell_written <= true when (cnt_char_shreg_s >= cell_size and cnt_ROW_max_d1 = '1') else false;
   cell_written <= true when (cnt_char_shreg_s = 0 and cnt_ROW_max_d1 = '1') else false;
 
@@ -292,7 +299,7 @@ begin
       cnt_ROW_c <= cnt_ROW_s + 1;
       if cnt_ROW_s >= 11 then
         cnt_ROW_c <= (others => '0');
-        if cnt_char_shreg_s = to_unsigned(cell_size, cnt_char_shreg_s'length) then
+        if cnt_char_shreg_s >= to_unsigned(cell_size, cnt_char_shreg_s'length) then
           cnt_ROW_c <= cnt_ROW_s;
         end if;
       end if;
@@ -308,32 +315,38 @@ begin
 
   end process;
 
-  process (cnt_char_shreg_s, cell_size, cnt_ROW_s, state)
+  process (cnt_char_shreg_s, cell_size, cnt_ROW_s, state, update_latch_re)
   begin
     cnt_char_shreg_c <= (others => '0'); -- default
+
+    --------------------------------------------------------------------------------
+    -- UPDATE DATA
     if state = update_data then  -- counter enabled by state update_data
       cnt_char_shreg_c <= cnt_char_shreg_s;
       if cnt_ROW_s = 11 then 
         cnt_char_shreg_c <= cnt_char_shreg_s + 1;
-        if cnt_char_shreg_s = to_unsigned(cell_size, cnt_char_shreg_s'length) then
+        if cnt_char_shreg_s >= to_unsigned(cell_size, cnt_char_shreg_s'length) then
           cnt_char_shreg_c <= (others => '0');
         end if;
       end if;
     end if;
 
+    --------------------------------------------------------------------------------
+    -- INVERSION
+    
     -- hold count when reading from sram
     if state = sram_read or state = sram_write then
-      -- TODO: needs to increment every second cycle of cnt_ROW - once to sram_read from SRAM into sprite_mem and once to write it back inverted
       cnt_char_shreg_c <= cnt_char_shreg_s;
     end if;
     -- increment when finished writing inverted sprite
     if state = sram_write and cnt_ROW_s = 11 then
       cnt_char_shreg_c <= cnt_char_shreg_s + 2;
       -- if last sprite of the cell, reset
-      if cnt_char_shreg_s = to_unsigned(cell_size, cnt_char_shreg_s'length) then
+      if cnt_char_shreg_s >= to_unsigned(cell_size, cnt_char_shreg_s'length) or update_latch_re = '1' then
         cnt_char_shreg_c <= (others => '0');
       end if;
     end if;
+    --------------------------------------------------------------------------------
 
   end process;
 
@@ -372,7 +385,7 @@ begin
         -- state change
         next_state <= wait_update_arrow;
         if FIFO_REN = '1' then
-          en_read_sram <= '1'; -- TODO: is this needed? 
+          -- en_read_sram <= '1'; -- TODO: is this needed? 
           next_state <= sram_read;
         end if;
         
@@ -397,7 +410,7 @@ begin
         if cnt_ROW_s = 11 then
           we_n_c <= '1';
           next_state <= sram_read;
-          if cnt_char_shreg_s = to_unsigned(cell_size, cnt_char_shreg_s'length)-1 then -- TODO: handle cells with odd number of characters -> if cell_size = odd then UB 
+          if cnt_char_shreg_s >= to_unsigned(cell_size, cnt_char_shreg_s'length)-1 then -- TODO: handle cells with odd number of characters -> if cell_size = odd then UB 
             update_latch_c <= '1';
             next_state <= sram_read;
             if update_latch_s = '1' then
