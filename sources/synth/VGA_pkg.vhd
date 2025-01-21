@@ -65,12 +65,8 @@ package VGA_pkg is
 
   type t_cursor_pos_array is array (natural range <>) of t_cursor_pos;
 
-  type t_byte_array is array (natural range <>) of std_logic_vector(15 downto 0);
-
   function hex_to_weak (arg : std_logic_vector) return std_logic_vector;
   
-
-
 end VGA_pkg;
 
 package body VGA_pkg is
