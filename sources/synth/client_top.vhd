@@ -48,7 +48,10 @@ entity client_top is
       --------------------------------------------------------------------------------
       -- DEBUG INTERFACE
       LED0      : out std_logic;
-      LED1      : out std_logic
+      LED1      : out std_logic;
+      LED_RE    : out std_logic;
+      LED_FE    : out std_logic;
+      LED_RDY   : out std_logic
   );
 end client_top;
 
@@ -75,7 +78,12 @@ architecture rtl of client_top is
           UPD_DATA : out STD_LOGIC;
           COL      : out STD_LOGIC_VECTOR (2 downto 0);
           ROW      : out STD_LOGIC_VECTOR (5 downto 0);
-          DATA_OUT : out char_buff_t);
+          DATA_OUT : out char_buff_t;
+          -- DEBUG IF
+          DATA_RDY_DBG : out STD_LOGIC;
+          SCSB_FE  : out STD_LOGIC;
+          SCSB_RE  : out STD_LOGIC
+        );
 	end component;
 
 -------------------------------------------------------------------------------
@@ -97,6 +105,11 @@ end component;
   signal  upd_arr          : std_logic;
   signal  upd_data         : std_logic;
   signal  VGA_RDY          : std_logic;
+
+  -- DEBUG
+  signal  data_rdy         : std_logic;
+  signal  scsb_fe          : std_logic;
+  signal  scsb_re          : std_logic;
 
   signal  PIXEL_CLK		     : std_logic := '0';
 
@@ -130,7 +143,10 @@ port map(
 	UPD_DATA => upd_data,
 	COL      => col,
 	ROW      => row,
-	DATA_OUT => data_out
+	DATA_OUT => data_out,
+	DATA_RDY_DBG => data_rdy,
+	SCSB_FE      => scsb_fe,
+	SCSB_RE      => scsb_re
 );
 
 --------------------------------------------------------------------------------
@@ -167,6 +183,33 @@ back2ui_debug_i : back2ui_debug
     UPD_DATA => upd_data,
     LED0     => LED0,
     LED1     => LED1
+  );
+
+  back2ui_debug_2_i : back2ui_debug
+  port map(
+    CLK      => PIXEL_CLK,
+    RST      => RST,
+    UPD_ARR  => scsb_fe,
+    UPD_DATA => '0',
+    LED0     => LED_FE
+  );
+
+  back2ui_debug_3_i : back2ui_debug
+  port map(
+    CLK      => PIXEL_CLK,
+    RST      => RST,
+    UPD_ARR  => '0',
+    UPD_DATA => scsb_re,
+    LED1     => LED_RE
+  );
+
+  back2ui_debug_4_i : back2ui_debug
+  port map(
+    CLK      => PIXEL_CLK,
+    RST      => RST,
+    UPD_ARR  => data_rdy,
+    UPD_DATA => '0',
+    LED0     => LED_RDY
   );
 
 end rtl;

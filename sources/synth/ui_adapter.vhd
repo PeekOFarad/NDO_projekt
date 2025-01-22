@@ -138,6 +138,7 @@ begin
 
         if(node_sel_s /= NODE_SEL) then
           fsm_c             <= node_upd;
+          cnt_c             <= (others => '0');
           node_upd_active_c <= '1';
           COL_OUT           <= "001"; -- select amount column
           ROW_OUT           <= std_logic_vector(cnt_s);

@@ -23,7 +23,11 @@ entity spi_slave is
            MISO     : out STD_LOGIC;
            BUSY     : out STD_LOGIC;
            DATA_RDY : out STD_LOGIC;
-           RX_DATA  : out STD_LOGIC_VECTOR (g_DATA_WIDTH-1 downto 0));
+           RX_DATA  : out STD_LOGIC_VECTOR (g_DATA_WIDTH-1 downto 0);
+           -- DEBUG IF
+           SCSB_FE_DBG  : out STD_LOGIC;
+           SCSB_RE_DBG  : out STD_LOGIC
+         );
 end spi_slave;
 
 architecture Behavioral of spi_slave is
@@ -32,7 +36,7 @@ architecture Behavioral of spi_slave is
   signal fsm_c : fsm_t;
   signal fsm_s : fsm_t := idle;
 
-  signal scsb_s : std_logic := '0';
+  signal scsb_s : std_logic := '1';
   signal sclk_s : std_logic := '0';
 
   signal scsb_re : std_logic;
@@ -43,11 +47,11 @@ architecture Behavioral of spi_slave is
   signal rx_buff_c : std_logic_vector(g_DATA_WIDTH-1 downto 0);
   signal rx_buff_s : std_logic_vector(g_DATA_WIDTH-1 downto 0) := (others => '0');
 
-  signal tx_buff_c : std_logic_vector(g_DATA_WIDTH-2 downto 0);
-  signal tx_buff_s : std_logic_vector(g_DATA_WIDTH-2 downto 0) := (others => '0');
+  signal tx_buff_c : std_logic_vector(g_DATA_WIDTH-1 downto 0);
+  signal tx_buff_s : std_logic_vector(g_DATA_WIDTH-1 downto 0) := (others => '0');
 
   signal miso_c : std_logic;
-  signal miso_s : std_logic;
+  signal miso_s : std_logic := '0';
   signal busy_c : std_logic;
   signal busy_s : std_logic := '0';
   signal data_rdy_c  : std_logic;
@@ -102,9 +106,8 @@ begin
 
         if(scsb_fe = '1') then
           fsm_c     <= run;
-          miso_c    <= TX_DATA(0);
           busy_c    <= '1';
-          tx_buff_c <= TX_DATA(g_DATA_WIDTH-1 downto 1);
+          tx_buff_c <= TX_DATA;
         end if;
       when run =>
         if(scsb_re = '1') then
@@ -112,10 +115,10 @@ begin
           if((data_cnt_s = g_DATA_WIDTH) and (rx_buff_s(g_DATA_WIDTH-1) = parity_c)) then -- length and parity check
             data_rdy_c <= '1';
           end if;
-        elsif(sclk_fe = '1') then
+        elsif(sclk_re = '1') then
           miso_c <= tx_buff_s(0);
           tx_buff_c <= '0' & tx_buff_s(tx_buff_s'left downto 1);
-
+        elsif(sclk_fe = '1') then
           rx_buff_c <= MOSI & rx_buff_s(g_DATA_WIDTH-1 downto 1);
           data_cnt_c <= data_cnt_s + 1;
         end if;
@@ -142,5 +145,8 @@ begin
   BUSY     <= busy_s;
   DATA_RDY <= data_rdy_s;
   RX_DATA  <= rx_buff_s;
+
+  SCSB_FE_DBG   <= scsb_fe;
+  SCSB_RE_DBG   <= scsb_re;
 
 end Behavioral;

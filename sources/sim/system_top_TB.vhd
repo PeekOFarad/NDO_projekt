@@ -38,28 +38,44 @@ architecture bench of system_top_tb is
           DATA_OUT : out char_buff_t);
   end component;
 
-  component client_backend_top is
-    Port (CLK      : in STD_LOGIC;
-          RST      : in STD_LOGIC;
-          -- PS2
-          PS2_CLK  : in STD_LOGIC;
-          PS2_DATA : in STD_LOGIC;
-          -- SPI
-          SCSB     : in STD_LOGIC;
-          SCLK     : in STD_LOGIC;
-          MOSI     : in STD_LOGIC;
-          MISO     : out STD_LOGIC;
-          -- Buttons
-		      BTN_S    : in STD_LOGIC;
-          BTN_Z    : in STD_LOGIC;
-          BTN_E    : in STD_LOGIC;
-          -- UI TOP
-          VGA_RDY  : in STD_LOGIC;
-          UPD_ARR  : out STD_LOGIC;
-          UPD_DATA : out STD_LOGIC;
-          COL      : out STD_LOGIC_VECTOR (2 downto 0);
-          ROW      : out STD_LOGIC_VECTOR (5 downto 0);
-          DATA_OUT : out char_buff_t);
+  component client_top is
+    Port (
+        CLK      : in STD_LOGIC;
+        RST      : in STD_LOGIC;
+        -- PS2 interface
+        PS2_CLK  : in STD_LOGIC;
+        PS2_DATA : in STD_LOGIC;
+        -- SPI interface
+        SCSB     : in STD_LOGIC;
+        SCLK     : in STD_LOGIC;
+        MOSI     : in STD_LOGIC;
+        MISO     : out STD_LOGIC;
+        -- Buttons
+        BTN_S    : in STD_LOGIC;
+        BTN_Z    : in STD_LOGIC;
+        BTN_E    : in STD_LOGIC;
+        --------------------------------------------------------------------------------
+        --------------------------------------------------------------------------------
+        -- VGA
+        H_SYNC    : out std_logic;
+        V_SYNC    : out std_logic;
+        RGB       : out std_logic_vector(2 downto 0);
+        --------------------------------------------------------------------------------
+        --------------------------------------------------------------------------------
+        --SRAM
+        RW_ADDR   : out std_logic_vector (17 downto 0);
+        DATA      : inout  std_logic_vector (15 downto 0);
+        CE_N      : out std_logic; --! chip enable, always low
+        OE_N      : out std_logic;
+        WE_N      : out std_logic; --! always high for reading
+        LB_N      : out std_logic; --! Byte selection, always low
+        UB_N      : out std_logic;  --! Byte selection, always low
+        --------------------------------------------------------------------------------
+        --------------------------------------------------------------------------------
+        -- DEBUG INTERFACE
+        LED0      : out std_logic;
+        LED1      : out std_logic
+    );
   end component;
 
 --------------------------------------------------------------------------------
@@ -97,6 +113,20 @@ architecture bench of system_top_tb is
   signal   BTN_S            : std_logic;
   signal   BTN_Z            : std_logic;
   signal   BTN_E            : std_logic;
+
+  signal   h_sync           : std_logic;
+  signal   v_sync           : std_logic;
+  signal   rgb              : std_logic_vector(2 downto 0);
+  signal   rw_addr          : std_logic_vector (17 downto 0);
+  signal   sram_data        : std_logic_vector (15 downto 0);
+  signal   ce_n             : std_logic;
+  signal   oe_n             : std_logic;
+  signal   we_n             : std_logic;
+  signal   lb_n             : std_logic;
+  signal   ub_n             : std_logic;
+
+  signal   LED0             : std_logic;
+  signal   LED1             : std_logic;
   
   -- simulation related signals
   signal   par                  : std_logic := '0';
@@ -180,7 +210,7 @@ begin
 
 --------------------------------------------------------------------------------
 
-  client_backend_top_i : client_backend_top
+  client_top_i : client_top
   port map(
     CLK      => clk,
     RST      => rst,
@@ -193,12 +223,18 @@ begin
     BTN_S    => BTN_S,
     BTN_Z    => BTN_Z,
     BTN_E    => BTN_E,
-    VGA_RDY  => vga_rdy_sim,
-    UPD_ARR  => upd_arr_client,
-    UPD_DATA => upd_data_client,
-    COL      => col_client,
-    ROW      => row_client,
-    DATA_OUT => data_out_client
+    H_SYNC    => h_sync,
+    V_SYNC    => v_sync,
+    RGB       => rgb,
+    RW_ADDR   => rw_addr,
+    DATA      => sram_data,
+    CE_N      => ce_n,
+    OE_N      => oe_n,
+    WE_N      => we_n,
+    LB_N      => lb_n,
+    UB_N      => ub_n,
+    LED0      => LED0,
+    LED1      => LED1
   );
 
 --------------------------------------------------------------------------------

@@ -69,6 +69,8 @@ architecture Behavioral of spi_ctrl is
 
 -------------------------------------------------------------------------------
 
+constant ALL_ONES_VECTOR : std_logic_vector(11 downto 0) := (others => '1');
+
   type fsm_t IS(idle, wait4data, tx_spi, wait4event, polling, read_from_regs, send_products, end_of_the_day_st, display_summ, wait4spi);
   -- IDLE:            idle state.
   --                  Next state: WAIT4DATA (cfg), WAIT4EVENT (run)
@@ -114,8 +116,8 @@ architecture Behavioral of spi_ctrl is
   signal row_s      : std_logic_vector(5 downto 0) := (others => '0');
 
   -- timer for WAIT4EVENT
-  signal timer_c    : unsigned(8 downto 0);
-  signal timer_s    : unsigned(8 downto 0) := (others => '0');
+  signal timer_c    : unsigned(11 downto 0);
+  signal timer_s    : unsigned(11 downto 0) := (others => '0');
   signal tmr_trig   : std_logic;
   signal sel_node_c : unsigned(g_NODE_WIDTH-1 downto 0); 
   signal sel_node_s : unsigned(g_NODE_WIDTH-1 downto 0) := (others => '0'); -- first client is selected by default
@@ -555,7 +557,7 @@ begin
     timer_c  <= timer_s;
     tmr_trig <= '0';
 
-    if(TO_INTEGER(timer_s) = 500) then
+    if(std_logic_vector(timer_s) = ALL_ONES_VECTOR) then
       timer_c  <= (others => '0');
       tmr_trig <= '1';
     else
