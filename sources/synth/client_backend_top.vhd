@@ -34,7 +34,12 @@ entity client_backend_top is
           UPD_DATA : out STD_LOGIC;
           COL      : out STD_LOGIC_VECTOR (2 downto 0);
           ROW      : out STD_LOGIC_VECTOR (5 downto 0);
-          DATA_OUT : out char_buff_t);
+          DATA_OUT : out char_buff_t;
+          -- DEBUG IF
+          DATA_RDY_DBG : out STD_LOGIC;
+          SCSB_FE  : out STD_LOGIC;
+          SCSB_RE  : out STD_LOGIC
+        );
 end client_backend_top;
 
 architecture Behavioral of client_backend_top is
@@ -118,6 +123,7 @@ end component;
           -- from/to CLIENT_CORE
           REQ_TO_SERV : in STD_LOGIC;
           REQ_ROW     : in STD_LOGIC_VECTOR (5 downto 0);
+          SUMM        : in STD_LOGIC_VECTOR (19 downto 0);
           RSP_RDY     : out STD_LOGIC;
           RSP_AMOUNT  : out STD_LOGIC_VECTOR (3 downto 0);
           EDIT_ENA    : out STD_LOGIC
@@ -130,16 +136,20 @@ end component;
     Generic (
           g_DATA_WIDTH  : positive
     );
-    Port ( CLK      : in STD_LOGIC;
-          RST      : in STD_LOGIC;
-          MOSI     : in STD_LOGIC;
-          SCSB     : in STD_LOGIC;
-          SCLK     : in STD_LOGIC;
-          TX_DATA  : in STD_LOGIC_VECTOR (g_DATA_WIDTH-1 downto 0);
-          MISO     : out STD_LOGIC;
-          BUSY     : out STD_LOGIC;
-          DATA_RDY : out STD_LOGIC;
-          RX_DATA  : out STD_LOGIC_VECTOR (g_DATA_WIDTH-1 downto 0));
+    Port( CLK         : in STD_LOGIC;
+          RST         : in STD_LOGIC;
+          MOSI        : in STD_LOGIC;
+          SCSB        : in STD_LOGIC;
+          SCLK        : in STD_LOGIC;
+          TX_DATA     : in STD_LOGIC_VECTOR (g_DATA_WIDTH-1 downto 0);
+          MISO        : out STD_LOGIC;
+          BUSY        : out STD_LOGIC;
+          DATA_RDY    : out STD_LOGIC;
+          RX_DATA     : out STD_LOGIC_VECTOR (g_DATA_WIDTH-1 downto 0);
+          -- DEBUG IF
+          SCSB_FE_DBG : out STD_LOGIC;
+          SCSB_RE_DBG : out STD_LOGIC
+        );
   end component;
 
 --------------------------------------------------------------------------------
@@ -178,6 +188,7 @@ end component;
           RSP_AMOUNT  : in  STD_LOGIC_VECTOR (3 downto 0);
           REQ_TO_SERV : out STD_LOGIC;
           REQ_ROW     : out STD_LOGIC_VECTOR (5 downto 0);
+          SUMM        : out STD_LOGIC_VECTOR (19 downto 0);
           -- from PS2 top
           KEYS     : in t_keys;
           -- buttons (S, Z, E)
@@ -268,6 +279,9 @@ end component;
   signal di_c : std_logic_vector(15 downto 0);
   signal we_c : std_logic;
   signal en   : std_logic;
+
+  -- summ
+  signal summ : std_logic_vector(19 downto 0);
 
 begin
 
@@ -378,10 +392,13 @@ port map(
   DOUT        => dout_spi,
   REQ_TO_SERV => req_to_serv,
   REQ_ROW     => req_row,
+  SUMM        => summ,
   RSP_RDY     => rsp_rdy,
   RSP_AMOUNT  => rsp_amount,
   EDIT_ENA    => edit_ena
 );
+
+DATA_RDY_DBG <= data_rdy;
 
 --------------------------------------------------------------------------------
 
@@ -390,16 +407,18 @@ generic map(
   g_DATA_WIDTH  => c_SPI_WIDTH
 )
 port map(
-  CLK        => CLK,
-  RST        => RST,
-  MOSI       => MOSI,
-  SCSB       => SCSB,
-  SCLK       => SCLK,
-  TX_DATA    => tx_data,
-  MISO       => MISO,
-  BUSY       => spi_busy,
-  DATA_RDY   => data_rdy,
-  RX_DATA    => rx_data
+  CLK         => CLK,
+  RST         => RST,
+  MOSI        => MOSI,
+  SCSB        => SCSB,
+  SCLK        => SCLK,
+  TX_DATA     => tx_data,
+  MISO        => MISO,
+  BUSY        => spi_busy,
+  DATA_RDY    => data_rdy,
+  RX_DATA     => rx_data,
+  SCSB_FE_DBG => SCSB_FE,
+  SCSB_RE_DBG => SCSB_RE
 );
 
 --------------------------------------------------------------------------------
@@ -439,6 +458,7 @@ port map(
   RSP_AMOUNT  => rsp_amount,
   REQ_TO_SERV => req_to_serv,
   REQ_ROW     => req_row,
+  SUMM        => summ,
   -- from PS2 top
   KEYS        => keys,
   -- buttons (S, Z, E)

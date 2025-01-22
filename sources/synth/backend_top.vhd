@@ -152,41 +152,44 @@ architecture Behavioral of backend_top is
 
 component spi_ctrl is
     Generic (
-          g_SLAVE_CNT     : positive;
-          g_DATA_WIDTH    : positive;
-          g_NODE_WIDTH    : positive
-    );
-    Port (CLK             : in STD_LOGIC;
-          RST             : in STD_LOGIC;
-          EDIT_ENA        : in STD_LOGIC;
-          -- from PS2
-          UPD_DATA        : in STD_LOGIC;
-          COL             : in STD_LOGIC_VECTOR (2 downto 0);
-          ROW             : in STD_LOGIC_VECTOR (5 downto 0);
-          NODE            : in STD_LOGIC_VECTOR (g_NODE_WIDTH-1 downto 0);
-          NUMBER          : in STD_LOGIC_VECTOR (11 downto 0);
-          DATA            : in char_buff_t;
-          -- to bus_arbiter
-          RW              : out STD_LOGIC;
-          COL_OUT         : out STD_LOGIC_VECTOR (2 downto 0);
-          ROW_OUT         : out STD_LOGIC_VECTOR (5 downto 0);
-          NODE_OUT        : out STD_LOGIC_VECTOR (g_NODE_WIDTH-1 downto 0);
-          REQ             : out STD_LOGIC;
-          ACK             : in STD_LOGIC;
-          DIN             : in STD_LOGIC_VECTOR (11 downto 0);
-          DOUT            : out STD_LOGIC_VECTOR (11 downto 0);
-          -- to spi_master
-          BUSY            : in STD_LOGIC;
-          RX_DATA         : in STD_LOGIC_VECTOR (g_DATA_WIDTH-1 downto 0);
-          SSEL            : out STD_LOGIC_VECTOR (g_SLAVE_CNT-1 downto 0);
-          SINGLE          : out STD_LOGIC;
-          TXN_ENA         : out STD_LOGIC;
-          TX_DATA         : out STD_LOGIC_VECTOR (g_DATA_WIDTH-1 downto 0);
-          -- from/to UI adapter
-          NODE_UPD_ACTIVE : in STD_LOGIC;
-          UPD_DATA_OUT    : out STD_LOGIC
-        );
-  end component;
+      g_SLAVE_CNT     : positive;
+      g_DATA_WIDTH    : positive;
+      g_NODE_WIDTH    : positive
+  );
+  Port (CLK             : in STD_LOGIC;
+      RST             : in STD_LOGIC;
+      EDIT_ENA        : in STD_LOGIC;
+      VGA_RDY         : in STD_LOGIC;
+      -- from PS2
+      UPD_DATA        : in STD_LOGIC;
+      COL             : in STD_LOGIC_VECTOR (2 downto 0);
+      ROW             : in STD_LOGIC_VECTOR (5 downto 0);
+      NODE            : in STD_LOGIC_VECTOR (g_NODE_WIDTH-1 downto 0);
+      NUMBER          : in STD_LOGIC_VECTOR (11 downto 0);
+      DATA            : in char_buff_t;
+      -- to bus_arbiter
+      RW              : out STD_LOGIC;
+      COL_OUT         : out STD_LOGIC_VECTOR (2 downto 0);
+      ROW_OUT         : out STD_LOGIC_VECTOR (5 downto 0);
+      NODE_OUT        : out STD_LOGIC_VECTOR (g_NODE_WIDTH-1 downto 0);
+      REQ             : out STD_LOGIC;
+      ACK             : in STD_LOGIC;
+      DIN             : in STD_LOGIC_VECTOR (11 downto 0);
+      DOUT            : out STD_LOGIC_VECTOR (11 downto 0);
+      -- to spi_master
+      BUSY            : in STD_LOGIC;
+      RX_DATA         : in STD_LOGIC_VECTOR (g_DATA_WIDTH-1 downto 0);
+      SSEL            : out STD_LOGIC_VECTOR (g_SLAVE_CNT-1 downto 0);
+      SINGLE          : out STD_LOGIC;
+      TXN_ENA         : out STD_LOGIC;
+      TX_DATA         : out STD_LOGIC_VECTOR (g_DATA_WIDTH-1 downto 0);
+      -- from/to UI adapter
+      NODE_UPD_ACTIVE : in STD_LOGIC;
+      UPD_DATA_OUT    : out STD_LOGIC;
+      END_OF_THE_DAY  : out STD_LOGIC;
+      SUMM_BCD        : out summ_digit_arr_t
+  );
+end component;
 
 --------------------------------------------------------------------------------
 
@@ -224,7 +227,7 @@ component spi_master is
   signal   node_sel_ctrl        : std_logic_vector(c_NODE_WIDTH-1 downto 0);
   signal   col_ctrl             : std_logic_vector(2 downto 0);
   signal   row_ctrl             : std_logic_vector(5 downto 0);
-  signal   char_buff            : char_buff_t;
+  signal   ps2_char_buff        : char_buff_t;
   signal   reg_ctrl             : std_logic;
   signal   ack_ctrl             : std_logic;
   signal   rw_ctrl              : std_logic;
@@ -260,6 +263,7 @@ component spi_master is
   signal   rw_ui                : std_logic;
   signal   upd_data_out         : std_logic;
   signal   node_upd_active      : std_logic;
+  signal   char_buff            : char_buff_t;
   signal   data_out_ui          : char_buff_t;
 
   -- signals from SPI controller
@@ -279,8 +283,9 @@ component spi_master is
   signal   tx_data              : std_logic_vector(c_SPI_WIDTH-1 downto 0);
   signal   rx_data              : std_logic_vector(c_SPI_WIDTH-1 downto 0);
   
-
   signal   upd_data_spi         : std_logic;
+  signal   end_of_the_day       : std_logic;
+  signal   spi_summ_bcd         : summ_digit_arr_t;
 
   signal col_c  : unsigned(2 downto 0);
   signal row_c  : unsigned(4 downto 0);
@@ -336,7 +341,7 @@ port map(
   NODE_SEL     => node_sel_ctrl,
   SEL_CELL_COL => col_ctrl,
   SEL_CELL_ROW => row_ctrl,
-  CHAR_BUFF    => char_buff,
+  CHAR_BUFF    => ps2_char_buff,
   REQ          => reg_ctrl,
   ACK          => ack_ctrl,
   RW           => rw_ctrl,
@@ -445,6 +450,7 @@ port map(
   CLK             => CLK,
   RST             => RST,
   EDIT_ENA        => edit_ena,
+  VGA_RDY         => VGA_RDY,
   -- from PS2
   UPD_DATA        => upd_data_out,
   COL             => col_out,
@@ -469,8 +475,10 @@ port map(
   TXN_ENA         => txn_ena,
   TX_DATA         => tx_data,
   -- to UI adapter
+  NODE_UPD_ACTIVE => node_upd_active,
   UPD_DATA_OUT    => upd_data_spi,
-  NODE_UPD_ACTIVE => node_upd_active
+  END_OF_THE_DAY  => end_of_the_day,
+  SUMM_BCD        => spi_summ_bcd
 );
 
 --------------------------------------------------------------------------------
@@ -498,21 +506,30 @@ port map(
 --------------------------------------------------------------------------------
 -- TODO: replace with ctrl_core and spi_if modules
 -- MUX col, row, node and update signals to UI adapter from PS2 and SPI
-process(edit_ena, col_ctrl, row_ctrl, node_sel_ctrl, upd_arr_ctrl,
-        upd_data_ctrl, row_spi, node_spi, upd_data_spi)
+process(edit_ena, col_ctrl, row_ctrl, node_sel_ctrl, upd_arr_ctrl, spi_summ_bcd,
+        upd_data_ctrl, row_spi, node_spi, upd_data_spi, end_of_the_day, ps2_char_buff)
 begin
-  if(edit_ena = '1') then
-    col_in_ui   <= col_ctrl;
-    row_in_ui   <= row_ctrl;
-    node_in_ui  <= node_sel_ctrl;
-    upd_arr_ui  <= upd_arr_ctrl;
-    upd_data_ui <= upd_data_ctrl;
+  if((edit_ena = '1') and (end_of_the_day = '0')) then
+    col_in_ui     <= col_ctrl;
+    row_in_ui     <= row_ctrl;
+    node_in_ui    <= node_sel_ctrl;
+    upd_arr_ui    <= upd_arr_ctrl;
+    upd_data_ui   <= upd_data_ctrl;
+    char_buff     <= ps2_char_buff;
   else
-    col_in_ui   <= "001";
-    row_in_ui   <= row_spi;
-    node_in_ui  <= "00"; -- show server table in run mode
-    upd_arr_ui  <= '0';
-    upd_data_ui <= upd_data_spi;
+    col_in_ui     <= "001";
+    row_in_ui     <= row_spi;
+    node_in_ui    <= "00"; -- show server table in run mode
+    upd_arr_ui    <= '0';
+    upd_data_ui   <= upd_data_spi;
+    char_buff     <= (others => (others => '0'));
+    char_buff(0)  <= spi_summ_bcd(0);
+    char_buff(1)  <= spi_summ_bcd(1);
+    char_buff(2)  <= spi_summ_bcd(2);
+    char_buff(3)  <= spi_summ_bcd(3);
+    char_buff(4)  <= spi_summ_bcd(4);
+    char_buff(5)  <= spi_summ_bcd(5);
+    char_buff(6)  <= spi_summ_bcd(6);
   end if;
 end process;
 

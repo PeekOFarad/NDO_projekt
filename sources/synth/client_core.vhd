@@ -47,6 +47,7 @@ entity client_core is
           RSP_AMOUNT  : in  STD_LOGIC_VECTOR (3 downto 0);
           REQ_TO_SERV : out STD_LOGIC;
           REQ_ROW     : out STD_LOGIC_VECTOR (5 downto 0);
+          SUMM        : out STD_LOGIC_VECTOR (19 downto 0);
           -- from PS2 top
           KEYS     : in t_keys;
           -- buttons (S, Z, E)
@@ -97,8 +98,8 @@ architecture Behavioral of client_core is
   signal price_buff_c : std_logic_vector(7 downto 0);
   signal price_buff_s : std_logic_vector(7 downto 0) := (others => '0');
 
-  signal summ_c : unsigned(21 downto 0);
-  signal summ_s : unsigned(21 downto 0) := (others => '0');
+  signal summ_c : unsigned(19 downto 0);
+  signal summ_s : unsigned(19 downto 0) := (others => '0');
 
   signal out_of_product_flag_c : std_logic;
 
@@ -134,8 +135,8 @@ begin
       row_s           <= (others => '0');
       spi_row_s       <= (others => '0');
       price_type_s    <= "010";
-      amount_buff_s   <= amount_buff_c;
-      price_buff_s    <= price_buff_c;
+      amount_buff_s   <= (others => '0');
+      price_buff_s    <= (others => '0');
       summ_s          <= (others => '0');
       rsp_amount_s    <= (others => '0');
       upd_arr_s       <= '0';
@@ -208,9 +209,9 @@ begin
         REQ_1     <= '1';
 
         if(ACK_1 = '1') then
-          if(DIN = ALL_ZERO_VECTOR_DIN) then
-            REQ_1 <= '0';
+          REQ_1 <= '0';
 
+          if(DIN = ALL_ZERO_VECTOR_DIN) then
             if(EDIT_ENA = '1') then
               fsm_c <= idle;
             else
@@ -230,6 +231,7 @@ begin
         REQ_1     <= '1';
         
         if(ACK_1 = '1') then
+          REQ_1         <= '0';
           price_buff_c  <= DIN(7 downto 0);
           summ_c        <= summ_s + unsigned(DIN(7 downto 0));
           fsm_c         <= edit_amount;
@@ -248,6 +250,7 @@ begin
 
         if(ACK_1 = '1') then
           REQ_1 <= '0';
+          RW_1  <= '1';
 
           if(EDIT_ENA = '1') then
             fsm_c <= idle;
@@ -388,5 +391,6 @@ begin
 
   UPD_ARR   <= upd_arr_s;
   UPD_DATA  <= upd_data_s;
+  SUMM      <= std_logic_vector(summ_s);
 
 end Behavioral;
