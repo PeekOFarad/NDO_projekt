@@ -286,6 +286,18 @@ begin
     wait for clk_per;
     r_send_ps2_frame(std_logic_vector(TO_UNSIGNED(c_k, 8)), par, sps2_clk, sps2_data);
     wait for 200us;
+
+    -- send backspace
+    data <= c_bckspc;
+    wait for clk_per;
+    r_send_ps2_frame(c_bckspc, par, sps2_clk, sps2_data);
+    wait for 200us;
+
+    data <= std_logic_vector(TO_UNSIGNED(c_k, 8));
+    wait for clk_per;
+    r_send_ps2_frame(std_logic_vector(TO_UNSIGNED(c_k, 8)), par, sps2_clk, sps2_data);
+    wait for 200us;
+
     data <= std_logic_vector(TO_UNSIGNED(c_a, 8));
     wait for clk_per;
     r_send_ps2_frame(std_logic_vector(TO_UNSIGNED(c_a, 8)), par, sps2_clk, sps2_data);

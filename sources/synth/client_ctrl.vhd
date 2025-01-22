@@ -88,10 +88,10 @@ architecture Behavioral of client_ctrl is
   signal row_s : std_logic_vector (5 downto 0) := (others => '0');
 
   signal last_col_c : std_logic_vector (2 downto 0);
-  signal last_col_s : std_logic_vector (2 downto 0) := (others => '0');
+  signal last_col_s : std_logic_vector (2 downto 0) := (others => '1');
 
   signal last_row_c : std_logic_vector (5 downto 0);
-  signal last_row_s : std_logic_vector (5 downto 0) := (others => '0');
+  signal last_row_s : std_logic_vector (5 downto 0) := (others => '1');
 
   signal char_buff_c : char_buff_t;
   signal char_buff_s : char_buff_t := (others => (others => '0'));
@@ -206,24 +206,34 @@ begin
             -- save last position of cursor
             last_col_c <= col_s;
             last_row_c <= row_s;
-            
-            -- clear char buffer if cell is changed
-            if((frm_col /= last_col_s) or (frm_row /= last_row_s)) then
-              char_buff_c <= (others => (others => '0'));
-            end if;
 
             if(frm_col = "000") then -- char
               col_c      <= frm_col;
               row_c      <= frm_row;
 
-              if((frm_col = col_s) and (frm_row = row_s) and
-                not(TO_INTEGER(ch_cnt_s) = 0 and (unsigned(frm_data) = to_unsigned(0, frm_data'length))))
-              then
-                ch_cnt_c <= ch_cnt_s + 1;
-                char_buff_c(TO_INTEGER(ch_cnt_s)) <= frm_data(7 downto 0);
-              else
-                ch_cnt_c <= (others => '0');
-                char_buff_c(0) <= frm_data(7 downto 0);
+              -- clear char buffer if cell is changed
+              if((frm_col /= last_col_s) or (frm_row /= last_row_s)) then
+                char_buff_c     <= (others => (others => '0'));
+                char_buff_c(0)  <= frm_data(7 downto 0);
+
+                if(frm_data(7 downto 0) = x"00") then
+                  ch_cnt_c  <= (others => '0');
+                else
+                  ch_cnt_c  <= TO_UNSIGNED(1, ch_cnt_c'length);
+                end if;
+              else -- receive char to the same cell as previous
+                if(frm_data = "000100000000") then -- receive backspace ("000100000000" unique code)
+                  if(TO_INTEGER(ch_cnt_s) /= 0) then
+                    ch_cnt_c <= ch_cnt_s - 1;
+                    char_buff_c((TO_INTEGER(ch_cnt_s) - 1)) <= (others => '0');
+                  end if;
+                else
+                  char_buff_c(TO_INTEGER(ch_cnt_s)) <= frm_data(7 downto 0);
+
+                  if(TO_INTEGER(ch_cnt_s) /= 31) then
+                    ch_cnt_c <= ch_cnt_s + 1;
+                  end if;
+                end if;
               end if;
             else -- number
               new_data_c <= '1';

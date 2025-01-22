@@ -24,6 +24,7 @@ entity spi_ctrl is
           VGA_RDY         : in STD_LOGIC;
           -- from PS2
           UPD_DATA        : in STD_LOGIC;
+          BACKSPACE       : in STD_LOGIC;
           COL             : in STD_LOGIC_VECTOR (2 downto 0);
           ROW             : in STD_LOGIC_VECTOR (5 downto 0);
           NODE            : in STD_LOGIC_VECTOR (g_NODE_WIDTH-1 downto 0);
@@ -238,7 +239,7 @@ begin
 
 -------------------------------------------------------------------------------
 
-  process(fsm_s, EDIT_ENA, BUSY, UPD_DATA, char_idx_s, COL, ROW, NODE, data_s, col_s, row_s, spi_busy_s,
+  process(fsm_s, EDIT_ENA, BUSY, UPD_DATA, char_idx_s, COL, ROW, NODE, data_s, col_s, row_s, spi_busy_s, BACKSPACE,
           txn_ena_s, tx_frame_s, tx_data_c, tx_row_c, tx_col_c, tx_par_c, single_s, prod_num_s, summ_s, VGA_RDY,
           tmr_trig, sel_node_s, spi_rx_par, spi_rx_calc_par_c, spi_rx_data, tx_col_c, frst_frm_done_s, rx_data_s,
           spi_rx_row, DIN, ACK, decremented_din_c, decremented_din_s, NODE_UPD_ACTIVE, end_of_the_day_s) begin
@@ -302,7 +303,13 @@ begin
           fsm_c <= wait4data;
           
           if(data_s(0) /= x"00") then
-            char_idx_c <= char_idx_s + 1;
+            if(BACKSPACE = '1') then
+              if(char_idx_s /= TO_UNSIGNED(0, char_idx_s'length)) then
+                char_idx_c <= char_idx_s - 1;
+              end if;
+            else
+              char_idx_c <= char_idx_s + 1;
+            end if;
           end if;
         end if;
       ---------------------------------------------------------------------------
@@ -566,12 +573,16 @@ begin
   end process;
 
   -- calculate TX
-  process(COL, ROW, data_s, char_idx_s, number_s, EDIT_ENA,
-          spi_amount_data, spi_col, spi_row, fsm_s, tx_data_end_c, tx_col_end_c, tx_row_end_c) begin
+  process(COL, ROW, data_s, char_idx_s, number_s, EDIT_ENA, BACKSPACE, spi_amount_data,
+          spi_col, spi_row, fsm_s, tx_data_end_c, tx_col_end_c, tx_row_end_c) begin
     if(EDIT_ENA = '1') then
       if((fsm_s = idle) or (fsm_s = wait4data) or (fsm_s = tx_spi)) then
         if(COL = "000") then
-          tx_data_c <= "0000" & data_s(TO_INTEGER(char_idx_s));
+          if(BACKSPACE = '1') then
+            tx_data_c <= "000100000000";
+          else
+            tx_data_c <= "0000" & data_s(TO_INTEGER(char_idx_s));
+          end if;
         else
           tx_data_c <= number_s;
         end if;
