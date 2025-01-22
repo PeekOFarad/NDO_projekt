@@ -702,7 +702,7 @@ begin
     wait for clk_per;
     r_send_ps2_frame(c_enter, par, sps2_clk, sps2_data);
     
-    wait for clk_per * 10000;
+    wait for clk_per * 40000;
 
     simulation_finished <= TRUE;
     WAIT;

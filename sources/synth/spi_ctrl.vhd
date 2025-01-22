@@ -50,6 +50,8 @@ entity spi_ctrl is
           NODE_UPD_ACTIVE : in STD_LOGIC;
           UPD_DATA_OUT    : out STD_LOGIC;
           END_OF_THE_DAY  : out STD_LOGIC;
+          COL_UI          : out STD_LOGIC_VECTOR (2 downto 0);
+          ROW_UI          : out STD_LOGIC_VECTOR (5 downto 0);
           SUMM_BCD        : out summ_digit_arr_t
       );
 end spi_ctrl;
@@ -148,6 +150,12 @@ constant ALL_ONES_VECTOR : std_logic_vector(11 downto 0) := (others => '1');
   signal upd_data_c        : std_logic;
   signal upd_data_s        : std_logic := '0';
 
+  signal col_ui_c          : std_logic_vector (2 downto 0);
+  signal col_ui_s          : std_logic_vector (2 downto 0) := (others => '0');
+
+  signal row_ui_c          : std_logic_vector (5 downto 0);
+  signal row_ui_s          : std_logic_vector (5 downto 0) := (others => '0');
+
   signal rx_data_s         : std_logic_vector(g_DATA_WIDTH-1 downto 0) := (others => '0');
 
   -- signals for end of the day
@@ -210,6 +218,8 @@ begin
       summ_s            <= (others => '0');
       new_data_s        <= '0';
       end_of_the_day_s  <= '0';
+      col_ui_s          <= (others => '0');
+      row_ui_s          <= (others => '0');
     elsif(rising_edge(CLK)) then
       fsm_s             <= fsm_c;
       char_idx_s        <= char_idx_c;
@@ -226,6 +236,8 @@ begin
       summ_s            <= summ_c;
       new_data_s        <= new_data_c;
       end_of_the_day_s  <= end_of_the_day_c;
+      col_ui_s          <= col_ui_c;
+      row_ui_s          <= row_ui_c;
 
       if(ACK = '1') then
         decremented_din_s <= decremented_din_c;
@@ -239,10 +251,14 @@ begin
 
 -------------------------------------------------------------------------------
 
-  process(fsm_s, EDIT_ENA, BUSY, UPD_DATA, char_idx_s, COL, ROW, NODE, data_s, col_s, row_s, spi_busy_s, BACKSPACE,
-          txn_ena_s, tx_frame_s, tx_data_c, tx_row_c, tx_col_c, tx_par_c, single_s, prod_num_s, summ_s, VGA_RDY,
-          tmr_trig, sel_node_s, spi_rx_par, spi_rx_calc_par_c, spi_rx_data, tx_col_c, frst_frm_done_s, rx_data_s,
-          spi_rx_row, DIN, ACK, decremented_din_c, decremented_din_s, NODE_UPD_ACTIVE, end_of_the_day_s) begin
+  process(fsm_s, EDIT_ENA, BUSY, UPD_DATA, char_idx_s, COL, ROW, NODE, data_s,
+          col_s, row_s, spi_busy_s, BACKSPACE, col_ui_s, row_ui_s, txn_ena_s,
+          tx_frame_s, tx_data_c, tx_row_c, tx_col_c, tx_par_c, single_s,
+          prod_num_s, summ_s, VGA_RDY, tmr_trig, sel_node_s, spi_rx_par,
+          spi_rx_calc_par_c, spi_rx_data, tx_col_c, frst_frm_done_s, rx_data_s,
+          spi_rx_row, DIN, ACK, decremented_din_c, decremented_din_s,
+          NODE_UPD_ACTIVE, end_of_the_day_s
+  ) begin
     fsm_c             <= fsm_s;
     char_idx_c        <= char_idx_s;
     ssel_c            <= (others => '1');
@@ -266,9 +282,14 @@ begin
     summ_c            <= summ_s;
     new_data_c        <= '0';
     end_of_the_day_c  <= end_of_the_day_s;
+    row_ui_c          <= row_ui_s;
+    col_ui_c          <= col_ui_s;
 
     case(fsm_s) is
       when idle =>
+        col_ui_c <= "001";
+        row_ui_c <= spi_rx_row;
+
         if(EDIT_ENA = '1') then
           fsm_c <= wait4data;
         else
@@ -276,6 +297,10 @@ begin
         end if;
       ---------------------------------------------------------------------------
       when wait4data =>
+        col_ui_c          <= "001";
+        row_ui_c          <= spi_rx_row;
+        end_of_the_day_c  <= '0';
+          
         if(EDIT_ENA = '0') then
           fsm_c <= wait4event;
         elsif(UPD_DATA = '1' and NODE_UPD_ACTIVE = '0' and
@@ -416,6 +441,8 @@ begin
           REQ         <= '0';
           RW          <= '1';
           upd_data_c  <= '1';
+          col_ui_c    <= "001";
+          row_ui_c    <= spi_rx_row;
 
           -- increment selected client
           if(sel_node_s = (g_SLAVE_CNT-1)) then
@@ -551,8 +578,9 @@ begin
       when display_summ =>
         if(VGA_RDY = '1') then
           upd_data_c        <= '1';
+          col_ui_c          <= "000";
+          row_ui_c          <= STD_LOGIC_VECTOR(TO_UNSIGNED(32, row_ui_c'length));
           fsm_c             <= wait4data;
-          end_of_the_day_c  <= '0';
         end if;
       ---------------------------------------------------------------------------
       when others => fsm_c <= idle;
@@ -660,6 +688,8 @@ begin
 
   -- output assignments 
   UPD_DATA_OUT    <= upd_data_s;
+  COL_UI          <= col_ui_s;
+  ROW_UI          <= row_ui_s;
   END_OF_THE_DAY  <= end_of_the_day_s;
   SUMM_BCD        <= bcd_out;
 
