@@ -63,7 +63,7 @@ begin
 
 -- divide the clock for debouncer
   clk_div_i: clk_divider
-    generic map ( IN_FREQ  => 50, -- 50 MHz
+    generic map ( IN_FREQ  => 30, -- 30 MHz
                   OUT_FREQ => 1  --  1 MHz
                 )
     port map  ( CLK        => CLK,
