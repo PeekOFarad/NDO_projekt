@@ -30,7 +30,7 @@ entity spi_master is
 end spi_master;
 
 architecture Behavioral of spi_master is
-  type fsm_t IS(idle, run);
+  type fsm_t IS(idle, run, wait4per);
 
   signal fsm_c : fsm_t;
   signal fsm_s : fsm_t := idle;
@@ -119,23 +119,27 @@ begin
         if(clk_div = '1') then
           sclk_cnt_c <= sclk_cnt_s + 1;
           sclk_c <= not sclk_s;
-
-          if(sclk_cnt_s(0) = '0') then -- TX
-            mosi_c <= tx_buff_s(0);
-            tx_buff_c <= '0' & tx_buff_s(g_DATA_WIDTH-1 downto 1);
-          else -- RX
-            if(single_s = '1') then
-              rx_buff_c <= MISO & rx_buff_s(g_DATA_WIDTH-1 downto 1);
-            end if;
-          end if;
-
+          
           if(sclk_cnt_s = ((2 * g_DATA_WIDTH))) then
-            busy_c   <= '0';
             sclk_c   <= '0';
             s_sel_c  <= (others => '1');
             mosi_c   <= 'Z';
-            fsm_c    <= idle;
+            fsm_c    <= wait4per;
+          else
+            if(sclk_cnt_s(0) = '0') then -- TX
+              mosi_c <= tx_buff_s(0);
+              tx_buff_c <= '0' & tx_buff_s(g_DATA_WIDTH-1 downto 1);
+            else -- RX
+              if(single_s = '1') then
+                rx_buff_c <= MISO & rx_buff_s(g_DATA_WIDTH-1 downto 1);
+              end if;
+            end if;
           end if;
+        end if;
+      when wait4per =>
+        if(clk_div = '1') then
+          busy_c   <= '0';
+          fsm_c    <= idle;
         end if;
     end case;
   end process;

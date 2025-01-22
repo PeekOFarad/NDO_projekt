@@ -191,7 +191,7 @@ back2ui_debug_i : back2ui_debug
     RST      => RST,
     UPD_ARR  => scsb_fe,
     UPD_DATA => '0',
-    LED0     => LED_FE,
+    LED0     => LED_FE
   );
 
   back2ui_debug_3_i : back2ui_debug
