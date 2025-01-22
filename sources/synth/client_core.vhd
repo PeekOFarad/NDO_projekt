@@ -382,10 +382,10 @@ begin
   REQ_ROW       <= std_logic_vector(spi_row_s);
   COL           <= "001";
   ROW           <= std_logic_vector(row_s);
-  CHAR_BUFF(0)  <= bcd_out(3);
-  CHAR_BUFF(1)  <= bcd_out(2);
-  CHAR_BUFF(2)  <= bcd_out(1);
-  CHAR_BUFF(3)  <= bcd_out(0);
+  CHAR_BUFF(0)  <= bcd_out(0);
+  CHAR_BUFF(1)  <= bcd_out(1);
+  CHAR_BUFF(2)  <= bcd_out(2);
+  CHAR_BUFF(3)  <= bcd_out(3);
    
   CHAR_BUFF(4 to 31) <= (others => (others => '0'));
 
