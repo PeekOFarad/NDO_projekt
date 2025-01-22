@@ -160,8 +160,8 @@ begin
     end if;
   end process;
 
-  process(fsm_s, row_s, EDIT_ENA, KEYS, price_type_s, amount_buff_c,
-          amount_buff_s, price_buff_c, price_buff_s, summ_s, DIN, ACK_1) begin
+  process(fsm_s, row_s, EDIT_ENA, KEYS, price_type_s, amount_buff_c, RSP_RDY,
+          amount_buff_s, price_buff_c, price_buff_s, summ_s, DIN, ACK_1, RSP_AMOUNT) begin
     fsm_c         <= fsm_s;
     row_c         <= row_s;
     amount_buff_c <= amount_buff_s;
@@ -200,6 +200,12 @@ begin
           COL_OUT_1 <= "001";
           ROW_OUT_1 <= std_logic_vector(row_s);
           REQ_1     <= '1';
+        end if;
+
+        -- products arrived
+        if((RSP_RDY = '1') and ((RSP_AMOUNT /= "0000"))) then
+          amount_buff_c <= resize(unsigned(RSP_AMOUNT), amount_buff_c'length);
+          new_data_c    <= '1';
         end if;
 -------------------------------------------------------------------------------
       when read_amount =>
