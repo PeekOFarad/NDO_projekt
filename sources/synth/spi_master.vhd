@@ -60,20 +60,24 @@ architecture Behavioral of spi_master is
   signal clk_cnt_c : unsigned(3 downto 0);
   signal clk_cnt_s : unsigned(3 downto 0) := (others => '0');
 
+  -- re-sychronization
+  signal miso_sync_s : std_logic_vector(1 downto 0) := (others => '0');
+
 begin
 
   process(CLK, RST) begin
     if(RST = '1') then
-      fsm_s      <= idle;
-      sclk_cnt_s <= (others => '0');
-      rx_buff_s  <= (others => '0');
-      tx_buff_s  <= (others => '0');
-      sclk_s     <= '0';
-      mosi_s     <= '0';
-      busy_s     <= '0';
-      s_sel_s    <= (others => '1');
-      single_s   <= '0';
-      clk_cnt_s  <= (others => '0');
+      fsm_s       <= idle;
+      sclk_cnt_s  <= (others => '0');
+      rx_buff_s   <= (others => '0');
+      tx_buff_s   <= (others => '0');
+      sclk_s      <= '0';
+      mosi_s      <= '0';
+      busy_s      <= '0';
+      s_sel_s     <= (others => '1');
+      single_s    <= '0';
+      clk_cnt_s   <= (others => '0');
+      miso_sync_s <= (others => '0');
     elsif(rising_edge(CLK)) then
       fsm_s       <= fsm_c;
       sclk_cnt_s  <= sclk_cnt_c;
@@ -85,10 +89,13 @@ begin
       s_sel_s     <= s_sel_c;
       single_s    <= single_c;
       clk_cnt_s   <= clk_cnt_c;
+      -- MISO
+      miso_sync_s(0) <= MISO;
+      miso_sync_s(1) <= miso_sync_s(0);
     end if;
   end process;
 
-  process(TXN_ENA, MISO, SSEL, TX_DATA, SINGLE, fsm_s, sclk_cnt_s, clk_div,
+  process(TXN_ENA, miso_sync_s, SSEL, TX_DATA, SINGLE, fsm_s, sclk_cnt_s, clk_div,
           rx_buff_s, tx_buff_s, sclk_s, mosi_s, busy_s, s_sel_s, single_s) begin
     fsm_c      <= fsm_s;
     sclk_cnt_c <= sclk_cnt_s;
@@ -131,7 +138,7 @@ begin
               tx_buff_c <= '0' & tx_buff_s(g_DATA_WIDTH-1 downto 1);
             else -- RX
               if(single_s = '1') then
-                rx_buff_c <= MISO & rx_buff_s(g_DATA_WIDTH-1 downto 1);
+                rx_buff_c <= miso_sync_s(1) & rx_buff_s(g_DATA_WIDTH-1 downto 1);
               end if;
             end if;
           end if;
