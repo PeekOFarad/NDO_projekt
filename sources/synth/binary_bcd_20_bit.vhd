@@ -121,6 +121,14 @@ begin
         bcds_out_c(39 downto 32) <= (bcds_s(19 downto 16) + x"1F");
         bcds_out_c(47 downto 40) <= (bcds_s(23 downto 20) + x"1F");
         bcds_out_c(55 downto 48) <= (bcds_s(27 downto 24) + x"1F");
+
+        for i in 6 downto 0 loop
+          if(bcds_s(((i * 4) + 3) downto (i * 4)) = x"0") then
+            bcds_out_c(((i * 8) + 7) downto (i * 8)) <= (others => '0');
+          else
+            exit;
+          end if;
+        end loop;
       end if; 
     end process;
  
