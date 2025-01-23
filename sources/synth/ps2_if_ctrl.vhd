@@ -158,8 +158,12 @@ begin
               upd_arr_c      <= '1';
             end if;
           elsif(KEYS.enter = '1') then
+            -- RUN button
             if((sel_cell_col_s = to_unsigned(c_MAX_COL, 3)) and (sel_cell_row_s = to_unsigned(g_FOOD_CNT, 6))) then
-              edit_ena_c <= not edit_ena_s;
+              edit_ena_c     <= not edit_ena_s;
+              node_sel_c     <= TO_UNSIGNED(0, node_sel_c'length);
+              sel_cell_col_c <= TO_UNSIGNED(0, sel_cell_col_c'length);
+              sel_cell_row_c <= TO_UNSIGNED(0, sel_cell_row_c'length);
             elsif(edit_ena_s = '1') then
               if((sel_cell_col_s = (to_unsigned(c_MAX_COL, 3) - 1)) and (sel_cell_row_s = to_unsigned(g_FOOD_CNT, 6))) then
                 if(node_sel_s /= g_CLIENTS_CNT) then
