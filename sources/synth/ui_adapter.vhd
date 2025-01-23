@@ -121,7 +121,7 @@ begin
     end if;
   end process;
 
-  process(fsm_s, cnt_s, EDIT_ENA, COL_IN, VGA_RDY, node_upd_active_s,
+  process(fsm_s, cnt_s, EDIT_ENA, COL_IN, VGA_RDY, node_upd_active_s, upd_data_s,
           ROW_IN, NODE_SEL, node_sel_s, ACK, row_in_s, data_done_c, UPD_DATA_IN) begin
     fsm_c             <= fsm_s;
     cnt_c             <= cnt_s;
@@ -132,22 +132,23 @@ begin
     node_upd_active_c <= node_upd_active_s;
 
     case(fsm_s) is
+-------------------------------------------------------------------------------
       when cfg =>
         COL_OUT      <= COL_IN;
         ROW_OUT      <= ROW_IN;
 
-        if(node_sel_s /= NODE_SEL) then
+        if((node_sel_s /= NODE_SEL) or
+          ((EDIT_ENA = '0') and (UNSIGNED(node_sel_s) /= TO_UNSIGNED(0, node_sel_s'length)))) then
           fsm_c             <= node_upd;
           cnt_c             <= (others => '0');
           node_upd_active_c <= '1';
           COL_OUT           <= "001"; -- select amount column
-          ROW_OUT           <= std_logic_vector(cnt_s);
+          ROW_OUT           <= (others => '0');
           REQ               <= '1';
-        end if;
-        if(EDIT_ENA = '0') then
+        elsif(EDIT_ENA = '0') then
           fsm_c <= run;
         end if;
-
+-------------------------------------------------------------------------------
       when node_upd =>
         COL_OUT <= "001"; -- select amount column
         ROW_OUT <= std_logic_vector(cnt_s);
@@ -168,13 +169,14 @@ begin
           new_data_c  <= '1';
           fsm_c       <= wait4BCD;
         end if;
+-------------------------------------------------------------------------------
       when wait4BCD =>
         COL_OUT <= "001"; -- select amount column
-        if(EDIT_ENA = '1') then
+        if((EDIT_ENA = '1') or (node_upd_active_s = '1')) then
           ROW_OUT <= std_logic_vector(cnt_s);
 
           if(data_done_c = '1') then
-            if(VGA_RDY = '1') then
+            if((VGA_RDY = '1') and (upd_data_s = '1')) then
               cnt_c <= cnt_s + 1;
               fsm_c <= node_upd;
             else
@@ -188,14 +190,18 @@ begin
             fsm_c <= run;
           end if;
         end if;
+-------------------------------------------------------------------------------
       when wait4vga =>
         COL_OUT <= "001"; -- select amount column
         ROW_OUT <= std_logic_vector(cnt_s);
 
         if(VGA_RDY = '1') then
-          cnt_c <= cnt_s + 1;
-          fsm_c <= node_upd;
+          if(upd_data_s = '1') then
+            cnt_c <= cnt_s + 1;
+            fsm_c <= node_upd;
+          end if;
         end if;
+-------------------------------------------------------------------------------
       when run =>
         COL_OUT <= "001"; -- select amount column
         ROW_OUT <= ROW_IN;
@@ -207,7 +213,7 @@ begin
           REQ         <= '1';
           smp_row_ena <= '1';
         end if;
-        
+-------------------------------------------------------------------------------
       when read_from_regs =>
         COL_OUT <= "001"; -- select amount column
         ROW_OUT <= row_in_s;
