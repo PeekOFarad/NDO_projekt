@@ -67,7 +67,8 @@ architecture Behavioral of client_ctrl is
   constant ALL_ONES_VECTOR_22 : std_logic_vector(g_DATA_WIDTH-2 downto 0) := (others => '1');
   constant ALL_ZEROS_VECTOR : std_logic_vector(g_DATA_WIDTH-1 downto 0) := (others => '0');
 
-  type fsm_t IS(cfg, wait4ack, run, wait4rsp, end_of_the_day_st, wait4spi, read_amount, edit_amount);
+  -- type fsm_t IS(cfg, wait4ack, run, wait4rsp, end_of_the_day_st, wait4spi, read_amount, edit_amount);
+  type fsm_t IS(cfg, wait4ack, run, wait4rsp, end_of_the_day_st, wait4spi, read_amount);
 
   signal fsm_c : fsm_t;
   signal fsm_s : fsm_t := cfg;
@@ -324,21 +325,22 @@ begin
         if(ACK = '1') then
           REQ      <= '0';
           amount_c <= DIN;
-          fsm_c    <= edit_amount;
-        end if;
--------------------------------------------------------------------------------
-      when edit_amount => -- clear the amount of the product
-        RW          <= '0';
-        COL_OUT     <= "001";
-        ROW_OUT     <= frm_row;
-        data_out_c  <= (others => '0');
-        REQ         <= '1';
-
-        if(ACK = '1') then
-          REQ   <= '0';
-          RW    <= '1';
+          -- fsm_c    <= edit_amount;
           fsm_c <= end_of_the_day_st;
         end if;
+-------------------------------------------------------------------------------
+      -- when edit_amount => -- clear the amount of the product
+      --   RW          <= '0';
+      --   COL_OUT     <= "001";
+      --   ROW_OUT     <= frm_row;
+      --   data_out_c  <= (others => '0');
+      --   REQ         <= '1';
+
+      --   if(ACK = '1') then
+      --     REQ   <= '0';
+      --     RW    <= '1';
+      --     fsm_c <= end_of_the_day_st;
+      --   end if;
 -------------------------------------------------------------------------------
       when end_of_the_day_st =>
         -- wait for ACK and go to the wait4spi state
