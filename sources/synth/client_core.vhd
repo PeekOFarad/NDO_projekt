@@ -71,6 +71,18 @@ architecture Behavioral of client_core is
     );
   end component;
 
+  component binary_bcd_20_bit is
+    generic(N: positive := 20);
+    port(
+        clk       : in std_logic;
+        rst       : in std_logic;
+        new_data  : in std_logic;
+        binary_in : in std_logic_vector(N-1 downto 0);
+        data_done : out std_logic;
+        bcd_out   : out summ_digit_arr_t
+    );
+  end component;
+
 -------------------------------------------------------------------------------
 
   constant ALL_ZERO_VECTOR_DIN : std_logic_vector(DIN'range) := (others => '0');
@@ -101,6 +113,13 @@ architecture Behavioral of client_core is
   signal summ_c : unsigned(19 downto 0);
   signal summ_s : unsigned(19 downto 0) := (others => '0');
 
+  signal new_summ_c : std_logic;
+  signal new_summ_s : std_logic := '0';
+
+  signal bcd_summ_done : std_logic;
+
+  signal bcd_summ_out : summ_digit_arr_t;
+
   signal out_of_product_flag_c : std_logic;
 
   signal spi_row_c : unsigned(5 downto 0);
@@ -121,10 +140,22 @@ architecture Behavioral of client_core is
   signal upd_data_req_c : std_logic;
   signal upd_data_req_s : std_logic := '0';
 
+  signal upd_summ_req_c : std_logic;
+  signal upd_summ_req_s : std_logic := '0';
+
+  signal ui_col_c : unsigned(2 downto 0);
+  signal ui_col_s : unsigned(2 downto 0) := (others => '0');
+
+  signal ui_row_c : unsigned(5 downto 0);
+  signal ui_row_s : unsigned(5 downto 0) := (others => '0');
+
   -- binary to BCD
   signal new_data_c     : STD_LOGIC;
   signal bcd_data_done  : STD_LOGIC;
   signal bcd_out        : digit_arr_t;
+
+  signal char_buff_c : summ_digit_arr_t;
+  signal char_buff_s : summ_digit_arr_t := (others => (others => '0'));
 
 begin
 
@@ -143,6 +174,11 @@ begin
       upd_data_s      <= '0';
       upd_arr_req_s   <= '0';
       upd_data_req_s  <= '0';
+      upd_summ_req_s  <= '0';
+      new_summ_s      <= '0';
+      ui_col_s        <= (others => '0');
+      ui_row_s        <= (others => '0');
+      char_buff_s     <= (others => (others => '0'));
     elsif(rising_edge(CLK)) then
       fsm_s           <= fsm_c;
       spi_fsm_s       <= spi_fsm_c;
@@ -157,6 +193,11 @@ begin
       upd_data_s      <= upd_data_c;
       upd_arr_req_s   <= upd_arr_req_c;
       upd_data_req_s  <= upd_data_req_c;
+      upd_summ_req_s  <= upd_summ_req_c;
+      new_summ_s      <= new_summ_c;
+      ui_col_s        <= ui_col_c; 
+      ui_row_s        <= ui_row_c;
+      char_buff_s     <= char_buff_c;
     end if;
   end process;
 
@@ -174,6 +215,7 @@ begin
     REQ_1         <= '0';
     DOUT_1        <= (others => '0');
     new_data_c    <= '0';
+    new_summ_c    <= '0';
 
     case(fsm_s) is
 -------------------------------------------------------------------------------
@@ -240,6 +282,7 @@ begin
           REQ_1         <= '0';
           price_buff_c  <= DIN(7 downto 0);
           summ_c        <= summ_s + unsigned(DIN(7 downto 0));
+          new_summ_c    <= '1';
           fsm_c         <= edit_amount;
         end if;
 -------------------------------------------------------------------------------
@@ -352,13 +395,37 @@ begin
     data_done => bcd_data_done,
     bcd_out   => bcd_out
   );
+
+  -- sprit output decoder for summ
+  binary_bcd_20_bit_i : binary_bcd_20_bit
+  generic map (
+    N => 20
+  )
+  port map(
+    clk       => CLK,
+    rst       => RST,
+    new_data  => new_summ_s,
+    binary_in => std_logic_vector(summ_s),
+    data_done => bcd_summ_done,
+    bcd_out   => bcd_summ_out
+  );
   
   -- User interface
-  process(upd_arr_req_s, upd_data_req_s, VGA_RDY, bcd_data_done, row_c, row_s) begin
-    upd_arr_c       <= '0';
-    upd_data_c      <= '0';
-    upd_arr_req_c   <= upd_arr_req_s;
-    upd_data_req_c  <= upd_data_req_s;
+  process(upd_arr_req_s, upd_data_req_s, VGA_RDY, bcd_data_done, bcd_summ_out,
+          row_c, row_s, bcd_summ_done, bcd_out, upd_summ_req_s, upd_data_s
+  ) begin
+    upd_arr_c           <= '0';
+    upd_data_c          <= '0';
+    upd_arr_req_c       <= upd_arr_req_s;
+    upd_data_req_c      <= upd_data_req_s;
+    upd_summ_req_c      <= upd_summ_req_s;
+    ui_col_c            <= "001";
+    ui_row_c            <= row_c;
+    char_buff_c(0)      <= bcd_out(0);
+    char_buff_c(1)      <= bcd_out(1);
+    char_buff_c(2)      <= bcd_out(2);
+    char_buff_c(3)      <= bcd_out(3);
+    char_buff_c(4 to 6) <= (others => (others => '0'));
 
     if(VGA_RDY = '1') then
       -- array update
@@ -372,6 +439,19 @@ begin
         upd_data_req_c <= '0';
         upd_data_c     <= '1';
       end if;
+
+      -- summ update
+      if((upd_summ_req_s = '1') or (bcd_summ_done = '1')) then
+        if((upd_data_req_s = '1') or (bcd_data_done = '1') or (upd_data_s = '1')) then
+          upd_summ_req_c <= '1';
+        else
+          upd_data_c          <= '1';
+          ui_col_c            <= "000";
+          ui_row_c            <= TO_UNSIGNED(32, ui_row_c'length);
+          char_buff_c(0 to 6) <= bcd_summ_out;
+          upd_summ_req_c      <= '0';
+        end if;
+      end if;
     else -- save update requests
       -- array update
       if(row_c /= row_s) then
@@ -381,19 +461,26 @@ begin
       if(bcd_data_done = '1') then
         upd_data_req_c <= '1';
       end if;
+      --summ update
+      if(bcd_summ_done = '1') then
+        upd_summ_req_c <= '1';
+      end if;
     end if;
   end process;
 
   -- output assignments
   REQ_ROW       <= std_logic_vector(spi_row_s);
-  COL           <= "001";
-  ROW           <= std_logic_vector(row_s);
-  CHAR_BUFF(0)  <= bcd_out(0);
-  CHAR_BUFF(1)  <= bcd_out(1);
-  CHAR_BUFF(2)  <= bcd_out(2);
-  CHAR_BUFF(3)  <= bcd_out(3);
+  COL           <= std_logic_vector(ui_col_s);
+  ROW           <= std_logic_vector(ui_row_s);
+  CHAR_BUFF(0)  <= char_buff_s(0);
+  CHAR_BUFF(1)  <= char_buff_s(1);
+  CHAR_BUFF(2)  <= char_buff_s(2);
+  CHAR_BUFF(3)  <= char_buff_s(3);
+  CHAR_BUFF(4)  <= char_buff_s(4);
+  CHAR_BUFF(5)  <= char_buff_s(5);
+  CHAR_BUFF(6)  <= char_buff_s(6);
    
-  CHAR_BUFF(4 to 31) <= (others => (others => '0'));
+  CHAR_BUFF(7 to 31) <= (others => (others => '0'));
 
   UPD_ARR   <= upd_arr_s;
   UPD_DATA  <= upd_data_s;
