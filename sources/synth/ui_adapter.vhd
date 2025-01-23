@@ -301,23 +301,31 @@ begin
       if((upd_data_req_s = '1') or (data_done_c = '1') or ((UPD_DATA_IN = '1') and (EDIT_ENA = '1'))) then
         upd_data_req_c  <= '0';
         upd_data_c      <= '1';
-      -- ID update
-      elsif((upd_id_req_s = '1') and (upd_data_s = '0')) then
-        upd_data_c    <= '1';
-        col_out_c     <= "001";
-        row_out_c     <= std_logic_vector(TO_UNSIGNED(32, row_out_c'length));
-        upd_id_req_c  <= '0';
+      end if;
 
-        if(unsigned(NODE_SEL) = TO_UNSIGNED(0, NODE_SEL'length)) then -- SERVER selected
-          data_out_c(0) <= x"42"; -- S
-          data_out_c(1) <= x"34"; -- E
-          data_out_c(2) <= x"41"; -- R
-          data_out_c(3) <= x"45"; -- V
-        else -- CLIENT selected
-          data_out_c(0) <= x"32"; -- C
-          data_out_c(1) <= x"3b"; -- L
-          data_out_c(2) <= std_logic_vector((unsigned(NODE_SEL) + x"1f"));
-          data_out_c(3) <= x"00";
+      -- ID update
+      if((upd_id_req_s = '1') or (node_sel_s /= NODE_SEL)) then
+        if(((upd_data_req_s = '1') or (data_done_c = '1') or ((UPD_DATA_IN = '1') and (EDIT_ENA = '1'))) or
+          upd_data_s = '1')
+        then
+          upd_id_req_c  <= '1';
+        else
+          upd_data_c    <= '1';
+          col_out_c     <= "001";
+          row_out_c     <= std_logic_vector(TO_UNSIGNED(32, row_out_c'length));
+          upd_id_req_c  <= '0';
+
+          if(unsigned(NODE_SEL) = TO_UNSIGNED(0, NODE_SEL'length)) then -- SERVER selected
+            data_out_c(0) <= x"42"; -- S
+            data_out_c(1) <= x"34"; -- E
+            data_out_c(2) <= x"41"; -- R
+            data_out_c(3) <= x"45"; -- V
+          else -- CLIENT selected
+            data_out_c(0) <= x"32"; -- C
+            data_out_c(1) <= x"3b"; -- L
+            data_out_c(2) <= std_logic_vector((unsigned(NODE_SEL) + x"1f"));
+            data_out_c(3) <= x"00";
+          end if;
         end if;
       end if;
     else -- save update requests
