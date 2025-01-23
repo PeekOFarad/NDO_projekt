@@ -84,8 +84,23 @@ architecture Behavioral of ui_adapter is
   signal upd_data_req_c : std_logic;
   signal upd_data_req_s : std_logic := '0';
 
+  signal upd_id_req_c : std_logic;
+  signal upd_id_req_s : std_logic := '1';
+
   signal node_upd_active_c : std_logic;
   signal node_upd_active_s : std_logic := '0';
+
+  signal col_out_c : std_logic_vector(2 downto 0);
+  signal col_c : std_logic_vector(2 downto 0);
+  signal col_out_s : std_logic_vector(2 downto 0) := (others => '0');
+
+  signal row_out_c : std_logic_vector(5 downto 0);
+  signal row_c : std_logic_vector(5 downto 0);
+  signal row_out_s : std_logic_vector(5 downto 0) := (others => '0');
+
+  signal data_out_c : char_buff_t;
+  signal data_c : char_buff_t;
+  signal data_out_s : char_buff_t := (others => (others => '0'));
   
 -------------------------------------------------------------------------------
 -- binary to BCD
@@ -105,7 +120,11 @@ begin
       upd_data_s        <= '0';
       upd_arr_req_s     <= '0';
       upd_data_req_s    <= '0';
+      upd_id_req_s      <= '1';
       node_upd_active_s <= '0';
+      col_out_s         <= (others => '0');
+      row_out_s         <= (others => '0');
+      data_out_s        <= (others => (others => '0'));
     elsif(rising_edge(CLK)) then
       fsm_s             <= fsm_c;
       node_sel_s        <= NODE_SEL;
@@ -114,7 +133,12 @@ begin
       upd_data_s        <= upd_data_c;
       upd_arr_req_s     <= upd_arr_req_c;
       upd_data_req_s    <= upd_data_req_c;
+      upd_id_req_s      <= upd_id_req_c;
       node_upd_active_s <= node_upd_active_c;
+      col_out_s         <= col_out_c;
+      row_out_s         <= row_out_c;
+      data_out_s        <= data_out_c;
+
       if(smp_row_ena = '1') then
         row_in_s   <= ROW_IN;
       end if;
@@ -134,24 +158,24 @@ begin
     case(fsm_s) is
 -------------------------------------------------------------------------------
       when cfg =>
-        COL_OUT      <= COL_IN;
-        ROW_OUT      <= ROW_IN;
+        col_c      <= COL_IN;
+        row_c      <= ROW_IN;
 
         if((node_sel_s /= NODE_SEL) or
           ((EDIT_ENA = '0') and (UNSIGNED(node_sel_s) /= TO_UNSIGNED(0, node_sel_s'length)))) then
           fsm_c             <= node_upd;
           cnt_c             <= (others => '0');
           node_upd_active_c <= '1';
-          COL_OUT           <= "001"; -- select amount column
-          ROW_OUT           <= (others => '0');
-          REQ               <= '1';
+          col_c           <= "001"; -- select amount column
+          row_c           <= (others => '0');
+          REQ             <= '1';
         elsif(EDIT_ENA = '0') then
           fsm_c <= run;
         end if;
 -------------------------------------------------------------------------------
       when node_upd =>
-        COL_OUT <= "001"; -- select amount column
-        ROW_OUT <= std_logic_vector(cnt_s);
+        col_c <= "001"; -- select amount column
+        row_c <= std_logic_vector(cnt_s);
         REQ     <= '1';
 
         if(cnt_s = 32) then
@@ -171,9 +195,9 @@ begin
         end if;
 -------------------------------------------------------------------------------
       when wait4BCD =>
-        COL_OUT <= "001"; -- select amount column
+        col_c <= "001"; -- select amount column
         if((EDIT_ENA = '1') or (node_upd_active_s = '1')) then
-          ROW_OUT <= std_logic_vector(cnt_s);
+          row_c <= std_logic_vector(cnt_s);
 
           if(data_done_c = '1') then
             if((VGA_RDY = '1') and (upd_data_s = '1')) then
@@ -184,7 +208,7 @@ begin
             end if;
           end if;
         else -- in run mode
-          ROW_OUT <= row_in_s;
+          row_c <= row_in_s;
 
           if(data_done_c = '1') then
             fsm_c <= run;
@@ -192,8 +216,8 @@ begin
         end if;
 -------------------------------------------------------------------------------
       when wait4vga =>
-        COL_OUT <= "001"; -- select amount column
-        ROW_OUT <= std_logic_vector(cnt_s);
+        col_c <= "001"; -- select amount column
+        row_c <= std_logic_vector(cnt_s);
 
         if(VGA_RDY = '1') then
           if(upd_data_s = '1') then
@@ -203,8 +227,8 @@ begin
         end if;
 -------------------------------------------------------------------------------
       when run =>
-        COL_OUT <= "001"; -- select amount column
-        ROW_OUT <= ROW_IN;
+        col_c <= "001"; -- select amount column
+        row_c <= ROW_IN;
 
         if(EDIT_ENA = '1') then
           fsm_c <= cfg;
@@ -215,8 +239,8 @@ begin
         end if;
 -------------------------------------------------------------------------------
       when read_from_regs =>
-        COL_OUT <= "001"; -- select amount column
-        ROW_OUT <= row_in_s;
+        col_c <= "001"; -- select amount column
+        row_c <= row_in_s;
         REQ     <= '1';
 
         if(ACK = '1') then
@@ -242,23 +266,29 @@ begin
   );
 
   process(EDIT_ENA, fsm_s, CHAR_BUFF, bcd_out) begin
-    DATA_OUT <= (others => (others => '0'));
+    data_c <= (others => (others => '0'));
 
     if((EDIT_ENA = '1') and (fsm_s = cfg)) then
-      DATA_OUT <= CHAR_BUFF;
+      data_c <= CHAR_BUFF;
     else -- decimal number to sprit ID
       for i in 0 to 3 loop
-        DATA_OUT(i) <= bcd_out(3 - i);
+        data_c(i) <= bcd_out(3 - i);
       end loop;
     end if;
   end process;
 
   -- User interface
-  process(upd_arr_req_s, upd_data_req_s, VGA_RDY, UPD_ARR_IN, UPD_DATA_IN, EDIT_ENA, data_done_c) begin
+  process(upd_arr_req_s, upd_data_req_s, VGA_RDY, UPD_ARR_IN, col_c, row_c, NODE_SEL, 
+          UPD_DATA_IN, EDIT_ENA, data_done_c, upd_id_req_s, upd_data_s, data_c, node_sel_s
+  ) begin
     upd_arr_c       <= '0';
     upd_data_c      <= '0';
     upd_arr_req_c   <= upd_arr_req_s;
     upd_data_req_c  <= upd_data_req_s;
+    upd_id_req_c    <= upd_id_req_s;
+    col_out_c       <= col_c;
+    row_out_c       <= row_c;
+    data_out_c      <= data_c;
 
     if(VGA_RDY = '1') then
       -- array update
@@ -269,8 +299,26 @@ begin
 
       -- data update
       if((upd_data_req_s = '1') or (data_done_c = '1') or ((UPD_DATA_IN = '1') and (EDIT_ENA = '1'))) then
-        upd_data_req_c <= '0';
-        upd_data_c     <= '1';
+        upd_data_req_c  <= '0';
+        upd_data_c      <= '1';
+      -- ID update
+      elsif((upd_id_req_s = '1') and (upd_data_s = '0')) then
+        upd_data_c    <= '1';
+        col_out_c     <= "001";
+        row_out_c     <= std_logic_vector(TO_UNSIGNED(32, row_out_c'length));
+        upd_id_req_c  <= '0';
+
+        if(unsigned(NODE_SEL) = TO_UNSIGNED(0, NODE_SEL'length)) then -- SERVER selected
+          data_out_c(0) <= x"42"; -- S
+          data_out_c(1) <= x"34"; -- E
+          data_out_c(2) <= x"41"; -- R
+          data_out_c(3) <= x"45"; -- V
+        else -- CLIENT selected
+          data_out_c(0) <= x"32"; -- C
+          data_out_c(1) <= x"3b"; -- L
+          data_out_c(2) <= std_logic_vector((unsigned(NODE_SEL) + x"1f"));
+          data_out_c(3) <= x"00";
+        end if;
       end if;
     else -- save update requests
       -- array update
@@ -281,11 +329,18 @@ begin
       if((data_done_c = '1') or (UPD_DATA_IN = '1')) then
         upd_data_req_c <= '1';
       end if;
+      -- ID update
+      if(node_sel_s /= NODE_SEL) then
+        upd_id_req_c  <= '1';
+      end if;
     end if;
   end process;
 
-  UPD_ARR_OUT   <= upd_arr_s;
-  UPD_DATA_OUT  <= upd_data_s;
+  UPD_ARR_OUT     <= upd_arr_s;
+  UPD_DATA_OUT    <= upd_data_s;
   NODE_UPD_ACTIVE <= node_upd_active_s;
+  COL_OUT         <= col_out_s;
+  ROW_OUT         <= row_out_s;
+  DATA_OUT        <= data_out_s;
 
 end Behavioral;
