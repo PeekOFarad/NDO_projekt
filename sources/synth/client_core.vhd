@@ -221,33 +221,38 @@ begin
 -------------------------------------------------------------------------------
       when idle =>
         row_c  <= (others => '0');
-        summ_c <= (others => '0');
 
         if(EDIT_ENA = '0') then
           fsm_c <= wait4enter;
         end if;
 -------------------------------------------------------------------------------
       when wait4enter =>
-        -- cursor
-        if((KEYS.up = '1') and (row_s /= "000000")) then
-          row_c <= row_s - 1;
-        elsif((KEYS.down = '1') and (row_s /= to_unsigned(c_FOOD_CNT-1, row_s'length))) then
-          row_c <= row_s + 1;
-        end if;
-        
-        -- enter
-        if(KEYS.enter = '1') then
-          fsm_c   <= read_amount;
-          RW_1      <= '1';
-          COL_OUT_1 <= "001";
-          ROW_OUT_1 <= std_logic_vector(row_s);
-          REQ_1     <= '1';
-        end if;
+        if(EDIT_ENA = '1') then
+          fsm_c       <= idle;
+          new_summ_c  <= '1';
+          summ_c      <= (others => '0');
+        else
+          -- cursor
+          if((KEYS.up = '1') and (row_s /= "000000")) then
+            row_c <= row_s - 1;
+          elsif((KEYS.down = '1') and (row_s /= to_unsigned(c_FOOD_CNT-1, row_s'length))) then
+            row_c <= row_s + 1;
+          end if;
+          
+          -- enter
+          if(KEYS.enter = '1') then
+            fsm_c   <= read_amount;
+            RW_1      <= '1';
+            COL_OUT_1 <= "001";
+            ROW_OUT_1 <= std_logic_vector(row_s);
+            REQ_1     <= '1';
+          end if;
 
-        -- products arrived
-        if((RSP_RDY = '1') and ((RSP_AMOUNT /= "0000"))) then
-          amount_buff_c <= resize(unsigned(RSP_AMOUNT), amount_buff_c'length);
-          new_data_c    <= '1';
+          -- products arrived
+          if((RSP_RDY = '1') and ((RSP_AMOUNT /= "0000"))) then
+            amount_buff_c <= resize(unsigned(RSP_AMOUNT), amount_buff_c'length);
+            new_data_c    <= '1';
+          end if;
         end if;
 -------------------------------------------------------------------------------
       when read_amount =>

@@ -329,19 +329,6 @@ begin
           fsm_c <= end_of_the_day_st;
         end if;
 -------------------------------------------------------------------------------
-      -- when edit_amount => -- clear the amount of the product
-      --   RW          <= '0';
-      --   COL_OUT     <= "001";
-      --   ROW_OUT     <= frm_row;
-      --   data_out_c  <= (others => '0');
-      --   REQ         <= '1';
-
-      --   if(ACK = '1') then
-      --     REQ   <= '0';
-      --     RW    <= '1';
-      --     fsm_c <= end_of_the_day_st;
-      --   end if;
--------------------------------------------------------------------------------
       when end_of_the_day_st =>
         -- wait for ACK and go to the wait4spi state
         tx_row_c                  <= frm_row;
