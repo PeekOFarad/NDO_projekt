@@ -49,18 +49,18 @@ begin
     process(clk, rst)
     begin
         if rst = '1' then
-          binary_s <= (others => '0');
-          bcds_s <= (others => '0');
-          fsm_s <= start;
-          bcds_out_s <= (others => '0');
-          shft_cnt_s <= 0;
+          binary_s    <= (others => '0');
+          bcds_s      <= (others => '0');
+          fsm_s       <= start;
+          bcds_out_s  <= (others => '0');
+          shft_cnt_s  <= 0;
           data_done_s <= '0';
         elsif rising_edge(clk) then
-          binary_s <= binary_c;
-          bcds_s <= bcds_c;
-          fsm_s <= fsm_c;
-          bcds_out_s <= bcds_out_c;
-          shft_cnt_s <= shft_cnt_c;
+          binary_s    <= binary_c;
+          bcds_s      <= bcds_c;
+          fsm_s       <= fsm_c;
+          bcds_out_s  <= bcds_out_c;
+          shft_cnt_s  <= shft_cnt_c;
           data_done_s <= data_done_c;
         end if;
     end process;
@@ -106,23 +106,14 @@ begin
                               bcds_s(3 downto 0);
     
     -- convert directly on sprit number
-    process(bcds_s, fsm_s, bcds_out_s) begin
-      bcds_out_c <= bcds_out_s;
-        
-      if(fsm_s = done) then
-        bcds_out_c(7 downto 0)   <= (bcds_s(3 downto 0) + x"1F");
-        bcds_out_c(15 downto 8)  <= (bcds_s(7 downto 4) + x"1F");
-        bcds_out_c(23 downto 16) <= (bcds_s(11 downto 8) + x"1F");
-        bcds_out_c(31 downto 24) <= (bcds_s(15 downto 12) + x"1F");
-
-        for i in 3 downto 0 loop
-          if(bcds_s(((i * 4) + 3) downto (i * 4)) = x"0") then
-            bcds_out_c(((i * 8) + 7) downto (i * 8)) <= (others => '0');
-          else
-            exit;
-          end if;
-        end loop;
-      end if; 
+    process(bcds_s) begin
+      for i in 0 to 3 loop
+        if(bcds_s((((3-i) * 4) + 3) downto ((3-i) * 4)) = x"0") then
+          bcds_out_c(((i * 8) + 7) downto (i * 8)) <= (others => '0');
+        else
+          bcds_out_c(((i * 8) + 7) downto (i * 8))  <= (bcds_s((((3-i) * 4) + 3) downto ((3-i) * 4)) + x"1F");
+        end if;
+      end loop;
     end process;
  
     bcd_out(0) <= STD_LOGIC_VECTOR(bcds_out_s(7 downto 0));
