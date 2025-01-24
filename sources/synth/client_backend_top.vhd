@@ -471,7 +471,7 @@ port map(
 
 process(edit_ena, upd_data_spi, col_ui_spi, row_ui_spi, char_buff_spi,
         upd_arr_core, upd_data_core, col_core, row_core, char_buff_core) begin
-  if(edit_ena = '1') then -- config
+  if(edit_ena = '1' and upd_data_core = '0') then -- config
     UPD_ARR   <= '0';
     UPD_DATA  <= upd_data_spi;
     COL       <= col_ui_spi;

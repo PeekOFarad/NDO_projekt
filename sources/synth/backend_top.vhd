@@ -162,6 +162,7 @@ component spi_ctrl is
       VGA_RDY         : in STD_LOGIC;
       -- from PS2
       UPD_DATA        : in STD_LOGIC;
+      BACKSPACE       : in STD_LOGIC;
       COL             : in STD_LOGIC_VECTOR (2 downto 0);
       ROW             : in STD_LOGIC_VECTOR (5 downto 0);
       NODE            : in STD_LOGIC_VECTOR (g_NODE_WIDTH-1 downto 0);
@@ -295,6 +296,9 @@ component spi_master is
   signal di_c : std_logic_vector(15 downto 0);
   signal we_c : std_logic;
   signal en   : std_logic;
+
+  signal backspace_active_c : std_logic;
+  signal backspace_active_s : std_logic := '0';
 
 begin
 
@@ -453,6 +457,7 @@ port map(
   VGA_RDY         => VGA_RDY,
   -- from PS2
   UPD_DATA        => upd_data_out,
+  BACKSPACE       => backspace_active_s,
   COL             => col_out,
   ROW             => row_out,
   NODE            => node_in_ui,
@@ -504,7 +509,6 @@ port map(
 );
 
 --------------------------------------------------------------------------------
--- TODO: replace with ctrl_core and spi_if modules
 -- MUX col, row, node and update signals to UI adapter from PS2 and SPI
 process(edit_ena, col_ctrl, row_ctrl, node_sel_ctrl, upd_arr_ctrl, spi_summ_bcd,
         upd_data_ctrl, row_spi, node_spi, upd_data_spi, end_of_the_day, ps2_char_buff)
@@ -523,13 +527,37 @@ begin
     upd_arr_ui    <= '0';
     upd_data_ui   <= upd_data_spi;
     char_buff     <= (others => (others => '0'));
-    char_buff(0)  <= spi_summ_bcd(0);
-    char_buff(1)  <= spi_summ_bcd(1);
-    char_buff(2)  <= spi_summ_bcd(2);
-    char_buff(3)  <= spi_summ_bcd(3);
-    char_buff(4)  <= spi_summ_bcd(4);
-    char_buff(5)  <= spi_summ_bcd(5);
-    char_buff(6)  <= spi_summ_bcd(6);
+    char_buff(0)  <= x"42"; -- S;
+    char_buff(1)  <= x"44"; -- U;
+    char_buff(2)  <= x"3c"; -- M;
+    char_buff(3)  <= x"29"; -- :
+    char_buff(4)  <= x"00"; --
+    char_buff(5)  <= spi_summ_bcd(0);
+    char_buff(6)  <= spi_summ_bcd(1);
+    char_buff(7)  <= spi_summ_bcd(2);
+    char_buff(8)  <= spi_summ_bcd(3);
+    char_buff(9)  <= spi_summ_bcd(4);
+    char_buff(10) <= spi_summ_bcd(5);
+    char_buff(11) <= spi_summ_bcd(6);
+  end if;
+end process;
+
+-- backspace was activated flag process
+process(backspace_active_s, keys, txn_ena) begin
+  backspace_active_c <= backspace_active_s;
+
+  if(keys.bckspc = '1') then
+    backspace_active_c <= '1';
+  elsif(txn_ena = '1') then
+    backspace_active_c <= '0';
+  end if;
+end process;
+
+process(CLK, RST) begin
+  if(RST = '1') then
+    backspace_active_s  <= '0';
+  elsif(rising_edge(CLK)) then
+    backspace_active_s  <= backspace_active_c;
   end if;
 end process;
 

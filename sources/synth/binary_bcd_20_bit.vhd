@@ -64,7 +64,7 @@ begin
         end if;
     end process;
  
-    process(fsm_s, binary_s, new_data, binary_in, bcds_s, bcds_reg_c, shft_cnt_s, data_done_s)
+    process(fsm_s, binary_s, new_data, binary_in, bcds_s, bcds_reg_c,shft_cnt_s, data_done_s)
     begin
       fsm_c       <= fsm_s;
       bcds_c      <= bcds_s;
@@ -110,18 +110,14 @@ begin
                               bcds_s(3 downto 0);
     
     -- convert directly on sprit number
-    process(bcds_s, fsm_s, bcds_out_s) begin
-      bcds_out_c <= bcds_out_s;
-        
-      if(fsm_s = done) then
-        bcds_out_c(7 downto 0)   <= (bcds_s(3 downto 0) + x"1F");
-        bcds_out_c(15 downto 8)  <= (bcds_s(7 downto 4) + x"1F");
-        bcds_out_c(23 downto 16) <= (bcds_s(11 downto 8) + x"1F");
-        bcds_out_c(31 downto 24) <= (bcds_s(15 downto 12) + x"1F");
-        bcds_out_c(39 downto 32) <= (bcds_s(19 downto 16) + x"1F");
-        bcds_out_c(47 downto 40) <= (bcds_s(23 downto 20) + x"1F");
-        bcds_out_c(55 downto 48) <= (bcds_s(27 downto 24) + x"1F");
-      end if; 
+    process(bcds_s) begin
+      for i in 0 to 6 loop
+        if(bcds_s((((6-i) * 4) + 3) downto ((6-i) * 4)) = x"0") then
+          bcds_out_c(((i * 8) + 7) downto (i * 8)) <= (others => '0');
+        else
+          bcds_out_c(((i * 8) + 7) downto (i * 8))  <= (bcds_s((((6-i) * 4) + 3) downto ((6-i) * 4)) + x"1F");
+        end if;
+      end loop;
     end process;
  
     bcd_out(0) <= STD_LOGIC_VECTOR(bcds_out_s(7 downto 0));

@@ -286,6 +286,18 @@ begin
     wait for clk_per;
     r_send_ps2_frame(std_logic_vector(TO_UNSIGNED(c_k, 8)), par, sps2_clk, sps2_data);
     wait for 200us;
+
+    -- send backspace
+    data <= c_bckspc;
+    wait for clk_per;
+    r_send_ps2_frame(c_bckspc, par, sps2_clk, sps2_data);
+    wait for 200us;
+
+    data <= std_logic_vector(TO_UNSIGNED(c_k, 8));
+    wait for clk_per;
+    r_send_ps2_frame(std_logic_vector(TO_UNSIGNED(c_k, 8)), par, sps2_clk, sps2_data);
+    wait for 200us;
+
     data <= std_logic_vector(TO_UNSIGNED(c_a, 8));
     wait for clk_per;
     r_send_ps2_frame(std_logic_vector(TO_UNSIGNED(c_a, 8)), par, sps2_clk, sps2_data);
@@ -685,12 +697,89 @@ begin
 
     wait for clk_per * 100;
 
+    -- press right arrow 4x (START col)
+    data <= c_right;
+    wait for clk_per;
+    r_send_ps2_special(c_right, par, sps2_clk, sps2_data);
+    wait for clk_per;
+    r_send_ps2_special(c_right, par, sps2_clk, sps2_data);
+    wait for clk_per;
+    r_send_ps2_special(c_right, par, sps2_clk, sps2_data);
+    wait for clk_per;
+    r_send_ps2_special(c_right, par, sps2_clk, sps2_data);
+    
+    -- go to start button row (32)
+    for i in 0 to 32 loop
+      data <= c_down;
+      wait for clk_per;
+      r_send_ps2_special(c_down, par, sps2_clk, sps2_data);
+    end loop;
+
     -- SERVER: press enter (END of the day)
     data <= c_enter;
     wait for clk_per;
     r_send_ps2_frame(c_enter, par, sps2_clk, sps2_data);
     
-    wait for clk_per * 1000;
+    wait for clk_per * 40000;
+
+    -- SERVER: press enter (row = 0, col = 0)
+    data <= c_enter;
+    wait for clk_per;
+    r_send_ps2_frame(c_enter, par, sps2_clk, sps2_data);
+
+    -- print "kul"
+    data <= std_logic_vector(TO_UNSIGNED(c_k, 8));
+    wait for clk_per;
+    r_send_ps2_frame(std_logic_vector(TO_UNSIGNED(c_k, 8)), par, sps2_clk, sps2_data);
+    wait for 200us;
+    data <= std_logic_vector(TO_UNSIGNED(c_u, 8));
+    wait for clk_per;
+    r_send_ps2_frame(std_logic_vector(TO_UNSIGNED(c_u, 8)), par, sps2_clk, sps2_data);
+    wait for 200us;
+    data <= std_logic_vector(TO_UNSIGNED(c_l, 8));
+    wait for clk_per;
+    r_send_ps2_frame(std_logic_vector(TO_UNSIGNED(c_l, 8)), par, sps2_clk, sps2_data);
+    wait for 200us;
+    
+    data <= c_right;
+    wait for clk_per;
+    r_send_ps2_special(c_right, par, sps2_clk, sps2_data);
+
+    -- SERVER: press enter (row = 0, col = 1)
+    data <= c_enter;
+    wait for clk_per;
+    r_send_ps2_frame(c_enter, par, sps2_clk, sps2_data);
+
+    -- enter amount "5"
+    data <= c_5;
+    wait for clk_per;
+    r_send_ps2_frame(c_5, par, sps2_clk, sps2_data);
+    
+    -- SERVER: press enter (row = 0, col = 1)
+    data <= c_enter;
+    wait for clk_per;
+    r_send_ps2_frame(c_enter, par, sps2_clk, sps2_data);
+
+    data <= c_right;
+    wait for clk_per;
+    r_send_ps2_special(c_right, par, sps2_clk, sps2_data);
+
+    -- SERVER: press enter (row = 0, col = 2)
+    data <= c_enter;
+    wait for clk_per;
+    r_send_ps2_frame(c_enter, par, sps2_clk, sps2_data);
+
+    -- enter price "9"
+    data <= c_9;
+    wait for clk_per;
+    r_send_ps2_frame(c_9, par, sps2_clk, sps2_data);
+    
+    -- SERVER: press enter (row = 0, col = 2)
+    data <= c_enter;
+    wait for clk_per;
+    r_send_ps2_frame(c_enter, par, sps2_clk, sps2_data);
+
+    wait for clk_per * 4000;
 
     simulation_finished <= TRUE;
     WAIT;
