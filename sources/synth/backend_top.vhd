@@ -527,13 +527,18 @@ begin
     upd_arr_ui    <= '0';
     upd_data_ui   <= upd_data_spi;
     char_buff     <= (others => (others => '0'));
-    char_buff(0)  <= spi_summ_bcd(0);
-    char_buff(1)  <= spi_summ_bcd(1);
-    char_buff(2)  <= spi_summ_bcd(2);
-    char_buff(3)  <= spi_summ_bcd(3);
-    char_buff(4)  <= spi_summ_bcd(4);
-    char_buff(5)  <= spi_summ_bcd(5);
-    char_buff(6)  <= spi_summ_bcd(6);
+    char_buff(0)  <= x"42"; -- S;
+    char_buff(1)  <= x"44"; -- U;
+    char_buff(2)  <= x"3c"; -- M;
+    char_buff(3)  <= x"29"; -- :
+    char_buff(4)  <= x"00"; --
+    char_buff(5)  <= spi_summ_bcd(0);
+    char_buff(6)  <= spi_summ_bcd(1);
+    char_buff(7)  <= spi_summ_bcd(2);
+    char_buff(8)  <= spi_summ_bcd(3);
+    char_buff(9)  <= spi_summ_bcd(4);
+    char_buff(10) <= spi_summ_bcd(5);
+    char_buff(11) <= spi_summ_bcd(6);
   end if;
 end process;
 

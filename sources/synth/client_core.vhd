@@ -141,7 +141,10 @@ architecture Behavioral of client_core is
   signal upd_data_req_s : std_logic := '0';
 
   signal upd_summ_req_c : std_logic;
-  signal upd_summ_req_s : std_logic := '0';
+  signal upd_summ_req_s : std_logic := '1';
+
+  signal upd_price_req_c : std_logic;
+  signal upd_price_req_s : std_logic := '1';
 
   signal ui_col_c : unsigned(2 downto 0);
   signal ui_col_s : unsigned(2 downto 0) := (others => '0');
@@ -154,8 +157,8 @@ architecture Behavioral of client_core is
   signal bcd_data_done  : STD_LOGIC;
   signal bcd_out        : digit_arr_t;
 
-  signal char_buff_c : summ_digit_arr_t;
-  signal char_buff_s : summ_digit_arr_t := (others => (others => '0'));
+  signal char_buff_c : summ_buff_t;
+  signal char_buff_s : summ_buff_t := (others => (others => '0'));
 
 begin
 
@@ -174,7 +177,8 @@ begin
       upd_data_s      <= '0';
       upd_arr_req_s   <= '0';
       upd_data_req_s  <= '0';
-      upd_summ_req_s  <= '0';
+      upd_summ_req_s  <= '1';
+      upd_price_req_s <= '1';
       new_summ_s      <= '0';
       ui_col_s        <= (others => '0');
       ui_row_s        <= (others => '0');
@@ -194,6 +198,7 @@ begin
       upd_arr_req_s   <= upd_arr_req_c;
       upd_data_req_s  <= upd_data_req_c;
       upd_summ_req_s  <= upd_summ_req_c;
+      upd_price_req_s <= upd_price_req_c;
       new_summ_s      <= new_summ_c;
       ui_col_s        <= ui_col_c; 
       ui_row_s        <= ui_row_c;
@@ -416,21 +421,23 @@ begin
   );
   
   -- User interface
-  process(upd_arr_req_s, upd_data_req_s, VGA_RDY, bcd_data_done, bcd_summ_out,
-          row_c, row_s, bcd_summ_done, bcd_out, upd_summ_req_s, upd_data_s
+  process(upd_arr_req_s, upd_data_req_s, VGA_RDY, bcd_data_done,
+          bcd_summ_out, upd_price_req_s, row_c, row_s, bcd_summ_done, bcd_out,
+          upd_summ_req_s, upd_data_s, price_type_c, price_type_s
   ) begin
-    upd_arr_c           <= '0';
-    upd_data_c          <= '0';
-    upd_arr_req_c       <= upd_arr_req_s;
-    upd_data_req_c      <= upd_data_req_s;
-    upd_summ_req_c      <= upd_summ_req_s;
-    ui_col_c            <= "001";
-    ui_row_c            <= row_c;
-    char_buff_c(0)      <= bcd_out(0);
-    char_buff_c(1)      <= bcd_out(1);
-    char_buff_c(2)      <= bcd_out(2);
-    char_buff_c(3)      <= bcd_out(3);
-    char_buff_c(4 to 6) <= (others => (others => '0'));
+    upd_arr_c             <= '0';
+    upd_data_c            <= '0';
+    upd_arr_req_c         <= upd_arr_req_s;
+    upd_data_req_c        <= upd_data_req_s;
+    upd_summ_req_c        <= upd_summ_req_s;
+    upd_price_req_c       <= upd_price_req_s;
+    ui_col_c              <= "001";
+    ui_row_c              <= row_c;
+    char_buff_c(0)        <= bcd_out(0);
+    char_buff_c(1)        <= bcd_out(1);
+    char_buff_c(2)        <= bcd_out(2);
+    char_buff_c(3)        <= bcd_out(3);
+    char_buff_c(4 to 11)  <= (others => (others => '0'));
 
     if(VGA_RDY = '1') then
       -- array update
@@ -450,11 +457,40 @@ begin
         if((upd_data_req_s = '1') or (bcd_data_done = '1') or (upd_data_s = '1')) then
           upd_summ_req_c <= '1';
         else
+          upd_data_c            <= '1';
+          ui_col_c              <= "000";
+          ui_row_c              <= TO_UNSIGNED(32, ui_row_c'length);
+          char_buff_c(0)        <= x"42"; -- S
+          char_buff_c(1)        <= x"44"; -- U
+          char_buff_c(2)        <= x"3c"; -- M
+          char_buff_c(3)        <= x"29"; -- :
+          char_buff_c(4)        <= x"00"; --
+          upd_summ_req_c        <= '0';
+
+          for i in 5 to 11 loop
+            char_buff_c(i)  <= bcd_summ_out(i-5);
+          end loop;
+        end if;
+      end if;
+
+      -- price update
+      if((upd_price_req_s = '1') or (price_type_c /= price_type_s)) then
+        if((upd_data_req_s = '1') or (bcd_data_done = '1') or
+          (upd_summ_req_s = '1') or (bcd_summ_done = '1') or (upd_data_s = '1')
+        )then
+          upd_price_req_c <= '1';
+        else
           upd_data_c          <= '1';
-          ui_col_c            <= "000";
+          ui_col_c            <= "001";
           ui_row_c            <= TO_UNSIGNED(32, ui_row_c'length);
-          char_buff_c(0 to 6) <= bcd_summ_out;
-          upd_summ_req_c      <= '0';
+          char_buff_c(1 to 3) <= (others => (others => '0'));
+          upd_price_req_c     <= '0';
+
+          case(price_type_c) is
+            when "011"  => char_buff_c(0) <= x"49"; -- Employee (Z)
+            when "100"  => char_buff_c(0) <= x"34"; -- External (E)
+            when others => char_buff_c(0) <= x"42"; -- Student  (S)
+          end case;
         end if;
       end if;
     else -- save update requests
@@ -470,6 +506,10 @@ begin
       if(bcd_summ_done = '1') then
         upd_summ_req_c <= '1';
       end if;
+      -- price update
+      if(price_type_c /= price_type_s) then
+        upd_price_req_c <= '1';
+      end if;
     end if;
   end process;
 
@@ -484,8 +524,13 @@ begin
   CHAR_BUFF(4)  <= char_buff_s(4);
   CHAR_BUFF(5)  <= char_buff_s(5);
   CHAR_BUFF(6)  <= char_buff_s(6);
+  CHAR_BUFF(7)  <= char_buff_s(7);
+  CHAR_BUFF(8)  <= char_buff_s(8);
+  CHAR_BUFF(9)  <= char_buff_s(9);
+  CHAR_BUFF(10) <= char_buff_s(10);
+  CHAR_BUFF(11) <= char_buff_s(11);
    
-  CHAR_BUFF(7 to 31) <= (others => (others => '0'));
+  CHAR_BUFF(12 to 31) <= (others => (others => '0'));
 
   UPD_ARR   <= upd_arr_s;
   UPD_DATA  <= upd_data_s;
