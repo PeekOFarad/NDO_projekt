@@ -188,6 +188,8 @@ component spi_ctrl is
       NODE_UPD_ACTIVE : in STD_LOGIC;
       UPD_DATA_OUT    : out STD_LOGIC;
       END_OF_THE_DAY  : out STD_LOGIC;
+      COL_UI          : out STD_LOGIC_VECTOR (2 downto 0);
+      ROW_UI          : out STD_LOGIC_VECTOR (5 downto 0);
       SUMM_BCD        : out summ_digit_arr_t
   );
 end component;
@@ -299,6 +301,9 @@ component spi_master is
 
   signal backspace_active_c : std_logic;
   signal backspace_active_s : std_logic := '0';
+
+  signal col_spi_ui : std_logic_vector(2 downto 0);
+  signal row_spi_ui : std_logic_vector(5 downto 0);
 
 begin
 
@@ -483,6 +488,8 @@ port map(
   NODE_UPD_ACTIVE => node_upd_active,
   UPD_DATA_OUT    => upd_data_spi,
   END_OF_THE_DAY  => end_of_the_day,
+  COL_UI          => col_spi_ui,
+  ROW_UI          => row_spi_ui,
   SUMM_BCD        => spi_summ_bcd
 );
 
@@ -521,10 +528,10 @@ begin
     upd_data_ui   <= upd_data_ctrl;
     char_buff     <= ps2_char_buff;
   else
-    col_in_ui     <= "001";
-    row_in_ui     <= row_spi;
+    col_in_ui     <= col_spi_ui;
+    row_in_ui     <= row_spi_ui;
     node_in_ui    <= "00"; -- show server table in run mode
-    upd_arr_ui    <= '0';
+    upd_arr_ui    <= upd_arr_ctrl;
     upd_data_ui   <= upd_data_spi;
     char_buff     <= (others => (others => '0'));
     char_buff(0)  <= x"42"; -- S;

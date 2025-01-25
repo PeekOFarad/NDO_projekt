@@ -312,7 +312,7 @@ begin
         else
           upd_data_c    <= '1';
           col_out_c     <= "001";
-          row_out_c     <= std_logic_vector(TO_UNSIGNED(32, row_out_c'length));
+          row_out_c     <= std_logic_vector(TO_UNSIGNED(33, row_out_c'length));
           upd_id_req_c  <= '0';
 
           if(unsigned(NODE_SEL) = TO_UNSIGNED(0, NODE_SEL'length)) then -- SERVER selected

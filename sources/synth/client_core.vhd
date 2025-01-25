@@ -459,7 +459,7 @@ begin
         else
           upd_data_c            <= '1';
           ui_col_c              <= "000";
-          ui_row_c              <= TO_UNSIGNED(32, ui_row_c'length);
+          ui_row_c              <= TO_UNSIGNED(33, ui_row_c'length);
           char_buff_c(0)        <= x"42"; -- S
           char_buff_c(1)        <= x"44"; -- U
           char_buff_c(2)        <= x"3c"; -- M
@@ -482,7 +482,7 @@ begin
         else
           upd_data_c          <= '1';
           ui_col_c            <= "001";
-          ui_row_c            <= TO_UNSIGNED(32, ui_row_c'length);
+          ui_row_c            <= TO_UNSIGNED(33, ui_row_c'length);
           char_buff_c(1 to 3) <= (others => (others => '0'));
           upd_price_req_c     <= '0';
 

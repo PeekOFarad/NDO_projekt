@@ -579,7 +579,7 @@ begin
         if(VGA_RDY = '1') then
           upd_data_c        <= '1';
           col_ui_c          <= "000";
-          row_ui_c          <= STD_LOGIC_VECTOR(TO_UNSIGNED(32, row_ui_c'length));
+          row_ui_c          <= STD_LOGIC_VECTOR(TO_UNSIGNED(33, row_ui_c'length));
           fsm_c             <= wait4data;
         end if;
       ---------------------------------------------------------------------------
