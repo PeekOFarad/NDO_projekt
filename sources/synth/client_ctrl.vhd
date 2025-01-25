@@ -140,9 +140,9 @@ begin
       fsm_s           <= cfg;
       upd_data_s      <= '0';
       col_s           <= (others => '0');
-      last_col_s      <= (others => '0');
+      last_col_s      <= (others => '1');
       row_s           <= (others => '0');
-      last_row_s      <= (others => '0');
+      last_row_s      <= (others => '1');
       char_buff_s     <= (others => (others => '0'));
       ch_cnt_s        <= (others => '0');
       upd_data_req_s  <= '0';
@@ -311,7 +311,9 @@ begin
             ROW_OUT <= frm_row;
             REQ     <= '1';
           else
-            fsm_c <= cfg;
+            fsm_c       <= cfg;
+            last_col_c  <= (others => '1');
+            last_row_c  <= (others => '1');
           end if;
           -- TODO: how to exit from end of the day?
         end if;

@@ -278,7 +278,7 @@ begin
   end process;
 
   -- User interface
-  process(upd_arr_req_s, upd_data_req_s, VGA_RDY, UPD_ARR_IN, col_c, row_c, NODE_SEL, 
+  process(upd_arr_req_s, upd_data_req_s, VGA_RDY, UPD_ARR_IN, col_c, row_c, NODE_SEL, COL_IN,
           UPD_DATA_IN, EDIT_ENA, data_done_c, upd_id_req_s, upd_data_s, data_c, node_sel_s
   ) begin
     upd_arr_c       <= '0';
@@ -286,7 +286,7 @@ begin
     upd_arr_req_c   <= upd_arr_req_s;
     upd_data_req_c  <= upd_data_req_s;
     upd_id_req_c    <= upd_id_req_s;
-    col_out_c       <= col_c;
+    col_out_c       <= COL_IN;
     row_out_c       <= row_c;
     data_out_c      <= data_c;
 
