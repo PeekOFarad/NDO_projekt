@@ -108,14 +108,19 @@ begin
                               bcds_s(7 downto 4);
     bcds_reg_c(3 downto 0) <= bcds_s(3 downto 0) + 3 when bcds_s(3 downto 0) > 4 else
                               bcds_s(3 downto 0);
-    
+
     -- convert directly on sprit number
-    process(bcds_s) begin
+    process(bcds_s)
+	  begin
       for i in 0 to 6 loop
-        if(bcds_s((((6-i) * 4) + 3) downto ((6-i) * 4)) = x"0") then
-          bcds_out_c(((i * 8) + 7) downto (i * 8)) <= (others => '0');
+        bcds_out_c(((i * 8) + 7) downto (i * 8))  <= (bcds_s((((6-i) * 4) + 3) downto ((6-i) * 4)) + x"1F");
+      end loop;
+
+      for i in 6 downto 0 loop -- get rid of zeros on the right (print blank spaces)
+        if(bcds_s(((i * 4) + 3) downto (i * 4)) = x"0") then
+          bcds_out_c((((6-i) * 8)+ 7) downto ((6-i) * 8)) <= (others => '0');
         else
-          bcds_out_c(((i * 8) + 7) downto (i * 8))  <= (bcds_s((((6-i) * 4) + 3) downto ((6-i) * 4)) + x"1F");
+          exit;
         end if;
       end loop;
     end process;
