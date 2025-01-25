@@ -286,9 +286,14 @@ begin
     upd_arr_req_c   <= upd_arr_req_s;
     upd_data_req_c  <= upd_data_req_s;
     upd_id_req_c    <= upd_id_req_s;
-    col_out_c       <= COL_IN;
     row_out_c       <= row_c;
     data_out_c      <= data_c;
+
+    if(EDIT_ENA = '0') then
+      col_out_c <= COL_IN;
+    else
+      col_out_c <= col_c;
+    end if;
 
     if(VGA_RDY = '1') then
       -- array update
