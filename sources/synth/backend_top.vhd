@@ -528,8 +528,13 @@ begin
     upd_data_ui   <= upd_data_ctrl;
     char_buff     <= ps2_char_buff;
   else
-    col_in_ui     <= col_spi_ui;
-    row_in_ui     <= row_spi_ui;
+    if(end_of_the_day = '0') then
+      col_in_ui     <= col_ctrl;
+      row_in_ui     <= row_ctrl;
+    else
+      col_in_ui     <= col_spi_ui;
+      row_in_ui     <= row_spi_ui;
+    end if;
     node_in_ui    <= "00"; -- show server table in run mode
     upd_arr_ui    <= upd_arr_ctrl;
     upd_data_ui   <= upd_data_spi;
