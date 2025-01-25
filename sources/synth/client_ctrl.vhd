@@ -215,13 +215,13 @@ begin
               -- clear char buffer if cell is changed
               if((frm_col /= last_col_s) or (frm_row /= last_row_s)) then
                 char_buff_c     <= (others => (others => '0'));
-                char_buff_c(0)  <= frm_data(7 downto 0);
+                -- char_buff_c(0)  <= frm_data(7 downto 0);
 
-                if(frm_data(7 downto 0) = x"00") then
+                -- if(frm_data(7 downto 0) = x"00") then
                   ch_cnt_c  <= (others => '0');
-                else
-                  ch_cnt_c  <= TO_UNSIGNED(1, ch_cnt_c'length);
-                end if;
+                -- else
+                --   ch_cnt_c  <= TO_UNSIGNED(1, ch_cnt_c'length);
+                -- end if;
               else -- receive char to the same cell as previous
                 if(frm_data = "000100000000") then -- receive backspace ("000100000000" unique code)
                   if(TO_INTEGER(ch_cnt_s) /= 0) then

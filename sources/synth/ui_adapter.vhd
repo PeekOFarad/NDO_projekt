@@ -272,7 +272,7 @@ begin
       data_c <= CHAR_BUFF;
     else -- decimal number to sprit ID
       for i in 0 to 3 loop
-        data_c(i) <= bcd_out(3 - i);
+        data_c(i) <= bcd_out(i);
       end loop;
     end if;
   end process;
