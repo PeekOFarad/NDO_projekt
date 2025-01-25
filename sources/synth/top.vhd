@@ -23,7 +23,7 @@ entity top is
 			PS2_CLK  : in STD_LOGIC;
 			PS2_DATA : in STD_LOGIC;
 			-- SPI interface
-			MISO     : in STD_LOGIC;
+			MISO     : in STD_LOGIC_VECTOR (g_SLAVE_CNT-1 downto 0);
 			SCLK     : out STD_LOGIC;
 			MOSI     : out STD_LOGIC;
 			SS_N     : out STD_LOGIC_VECTOR (g_SLAVE_CNT-1 downto 0);
@@ -61,7 +61,7 @@ architecture rtl of top is
            RST      : in  STD_LOGIC;
            PS2_CLK  : in  STD_LOGIC;
            PS2_DATA : in  STD_LOGIC;
-           MISO     : in STD_LOGIC;
+           MISO     : in STD_LOGIC_VECTOR (g_SLAVE_CNT-1 downto 0);
            VGA_RDY  : in STD_LOGIC;
            UPD_ARR  : out STD_LOGIC;
            UPD_DATA : out STD_LOGIC;

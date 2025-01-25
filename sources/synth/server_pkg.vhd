@@ -20,7 +20,7 @@ package server_pkg is
   subtype char_t is std_logic_vector(7 downto 0);
   
   constant c_FOOD_CNT     : integer := 32;
-  constant c_CLIENTS_CNT  : integer := 1;
+  constant c_CLIENTS_CNT  : integer := 2;
   constant c_NODE_WIDTH   : integer := 2;
   constant c_NUM_BLOCKS   : integer := 3;
   constant c_SPI_WIDTH    : integer := 23;

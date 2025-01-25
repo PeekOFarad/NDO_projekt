@@ -21,7 +21,7 @@ entity backend_top is
            RST      : in STD_LOGIC;
            PS2_CLK  : in STD_LOGIC;
            PS2_DATA : in STD_LOGIC;
-           MISO     : in STD_LOGIC;
+           MISO     : in STD_LOGIC_VECTOR (g_SLAVE_CNT-1 downto 0);
            VGA_RDY  : in STD_LOGIC;
            UPD_ARR  : out STD_LOGIC;
            UPD_DATA : out STD_LOGIC;
@@ -305,6 +305,9 @@ component spi_master is
   signal col_spi_ui : std_logic_vector(2 downto 0);
   signal row_spi_ui : std_logic_vector(5 downto 0);
 
+  signal miso_c : std_logic;
+  signal ss_n_c : STD_LOGIC_VECTOR (g_SLAVE_CNT-1 downto 0);
+
 begin
 
   col_c   <= (unsigned(col_reg) - 1) when ((unsigned(col_reg) >= 1) and (unsigned(col_reg) <= 4)) else (others => '0');
@@ -504,14 +507,14 @@ port map(
   CLK        => CLK,
   RST        => RST,
   TXN_ENA    => txn_ena,
-  MISO       => MISO,
+  MISO       => miso_c,
   SINGLE     => single,
   SSEL       => ssel,
   TX_DATA    => tx_data,
   SCLK       => SCLK,
   MOSI       => MOSI,
   BUSY       => spi_busy,
-  SS_N       => SS_N,
+  SS_N       => ss_n_c,
   RX_DATA    => rx_data
 );
 
@@ -573,11 +576,27 @@ process(CLK, RST) begin
   end if;
 end process;
 
+process(ss_n_c, MISO) begin
+  miso_c <= '0';
+
+  if(unsigned(ss_n_c) = TO_UNSIGNED(0, ss_n_c'length)) then
+    miso_c <= '0';
+  else
+    for i in 0 to c_CLIENTS_CNT-1 loop
+      if(ss_n_c(i) = '0') then
+        miso_c <= MISO(i);
+        exit;
+      end if;
+    end loop;
+  end if;
+end process;
+
 --------------------------------------------------------------------------------
 -- Output assignments
   COL       <= col_out;
   ROW       <= row_out;
   UPD_DATA  <= upd_data_out;
   DATA_OUT  <= data_out_ui;
+  SS_N      <= ss_n_c;
 
 end Behavioral;
